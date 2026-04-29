@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+#include <vector>
 #include "Entity.h"
 
 namespace Cube {
@@ -16,20 +18,22 @@ namespace Cube {
         void destroyEntity(const std::string& name);
         void destroyEntity(Entity* entity);
 
-        const std::vector<std::unique_ptr<Entity>>& getAllEntities() const;
+        Entity* getRootEntity() const { return rootEntity.get(); }
+        std::vector<Entity*> getAllEntities() const;
         Entity* getEntity(const std::string& name) const;
 
         template<typename... Types>
         std::vector<Entity*> getEntitiesWith() const {
             static_assert((std::is_base_of_v<Component, Types> && ...));
             std::vector<Entity*> result;
-            for(const auto& entity : entities) {
+            for(const auto& entity : getAllEntities()) {
                 bool hasAll = true;
                 ((hasAll = hasAll && entity->hasComponent<Types>()), ...);
                 if(hasAll) {
-                    result.push_back(entity.get());
+                    result.push_back(entity);
                 }
             }
+
             return result;
         }
 
@@ -37,11 +41,22 @@ namespace Cube {
 
         const std::string& getName() const;
 
+        const std::vector<Entity*>& getRenderableEntities() const { return renderableEntities; }
+        const std::vector<Entity*>& getCameras() const { return cameras; }
+        void addRenderableEntity(Entity* entity);
+        void removeRenderableEntity(Entity* entity);
+        void addCamera(Entity* entity);
+        void removeCamera(Entity* entity);
+
     private:
         std::string name;
-        std::vector<std::unique_ptr<Entity>> entities;
+        std::unique_ptr<Entity> rootEntity = std::make_unique<Entity>("Root");
+
+        std::vector<Entity*> renderableEntities; 
+        std::vector<Entity*> cameras;
 
         void processDestroy();
+        void sortRenderableEntities();
     };
 
 }

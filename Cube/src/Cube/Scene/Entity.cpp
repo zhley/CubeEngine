@@ -13,24 +13,18 @@ namespace Cube {
         }
         processAddAndDestroy();
         processStart();
-    }
-    
-    const std::string& Entity::getName() const {
-        return name;
-    }
-    void Entity::setName(const std::string& name) {
-        this->name = name;
-    }
-    Transform& Entity::getTransform() {
-        return transform;
+
+        for(auto& child : children) {
+            child->update(delta);
+        }
     }
 
     void Entity::deserialize(const nlohmann::json& data) {
         name = data["name"];
         auto tr = data["transform"];
-        transform.setPosition({tr["pos"][0], tr["pos"][1]});
-        transform.setRotation(tr["rotation"]);
-        transform.setScale({tr["scale"][0], tr["scale"][1]});
+        transform.pos = {tr["pos"][0], tr["pos"][1]};
+        transform.rotation = tr["rotation"];
+        transform.scale = {tr["scale"][0], tr["scale"][1]};
         for(auto& c : data["components"]) {
             std::string typeName = c["type"];
             Class* classInfo = ClassRegistry::get().getClass(typeName);
@@ -44,26 +38,29 @@ namespace Cube {
             components.push_back(std::unique_ptr<Component>(compPtr));
             componentsMap[classInfo->getTypeID()] = compPtr;
         }
+        for(auto& childData : data["children"]) {
+            Entity* child = addChild(childData["name"]);
+            child->deserialize(childData);
+        }
     }
 
     nlohmann::json Entity::serialize() const {
         nlohmann::json data;
         data["name"] = name;
         nlohmann::json tr;
-        tr["pos"] = {transform.getPosition().x, transform.getPosition().y};
-        tr["rotation"] = transform.getRotation();
-        tr["scale"] = {transform.getScale().x, transform.getScale().y};
-        tr["children"] = nlohmann::json::array();
-        for(auto& child : transform.getChildren()) {
-            Entity* childEntity = child->getEntity();
-            tr["children"].push_back(childEntity->getName());
-        }
+        tr["pos"] = {transform.pos.x, transform.pos.y};
+        tr["rotation"] = transform.rotation;
+        tr["scale"] = {transform.scale.x, transform.scale.y};
         data["transform"] = tr;
         data["components"] = nlohmann::json::array();
         for(const auto& [typeID, component] : componentsMap) {
             nlohmann::json c = Serializer::get().serialize(typeID, Any(component));
             c["type"] = ClassRegistry::get().getClass(typeID)->getName();
             data["components"].push_back(c);
+        }
+        data["children"] = nlohmann::json::array();
+        for(const auto& child : children) {
+            data["children"].push_back(child->serialize());
         }
         return data;
     }
@@ -100,6 +97,43 @@ namespace Cube {
             c->start();
         }
         pendingStart.clear();
+    }
+
+    Entity* Entity::addChild(const std::string& name) {
+        std::unique_ptr<Entity> child = std::make_unique<Entity>(name);
+        child->parent = this;
+        child->scene = scene;
+        Entity* childPtr = child.get();
+        children.push_back(std::move(child));
+        return childPtr;
+    }
+
+    void Entity::removeChild(Entity* child) {
+        auto it = std::find_if(children.begin(), children.end(), [child](const std::unique_ptr<Entity>& c) {
+            return c.get() == child;
+        });
+        if(it != children.end()) {
+            (*it)->destroy();
+        }
+    }
+
+    void Entity::removeChild(const std::string& name) {
+        auto it = std::find_if(children.begin(), children.end(), [&name](const std::unique_ptr<Entity>& c) {
+            return c->getName() == name;
+        });
+        if(it != children.end()) {
+            (*it)->destroy();
+        }
+    }
+
+    void Entity::processChildDestroy() {
+        auto end = std::remove_if(children.begin(), children.end(), [](const std::unique_ptr<Entity>& child) {
+            return !child->isAlive();
+        });
+        children.erase(end, children.end());
+        for(auto& child : children) {
+            child->processChildDestroy();
+        }
     }
 
 }  // namespace Cube

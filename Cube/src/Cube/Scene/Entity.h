@@ -16,6 +16,8 @@ namespace Cube {
 	// GameObject in scene
 	class Entity {
 	public:
+		friend class Scene;
+
 		Entity() = default;
 		Entity(const std::string& name) : name(name) {}
 		~Entity() = default;
@@ -79,9 +81,16 @@ namespace Cube {
 		bool isAlive() const { return alive; }
         void destroy() { alive = false; }
 
-		const std::string& getName() const;
-		void setName(const std::string& name);
-        Transform& getTransform();
+		const std::string& getName() const { return name; }
+		void setName(const std::string& name) { this->name = name; }
+        Transform& getTransform() { return transform; }
+		Entity* getParent() const { return parent; }
+		Scene* getScene() const { return scene; }
+
+		const std::vector<std::unique_ptr<Entity>>& getChildren() const { return children; }
+		Entity* addChild(const std::string& name);
+		void removeChild(Entity* child);
+		void removeChild(const std::string& name);
 
 		void deserialize(const nlohmann::json& data);
         nlohmann::json serialize() const;
@@ -92,6 +101,10 @@ namespace Cube {
         std::vector<std::unique_ptr<Component>> components;  // for iteration
         std::unordered_map<TypeID, Component*> componentsMap;  // for lookup
 		Transform transform = Transform(this);
+		
+		Entity* parent = nullptr;
+		std::vector<std::unique_ptr<Entity>> children;
+		Scene* scene = nullptr;
 
 		std::vector<std::unique_ptr<Component>> pendingAdd;
 		std::vector<TypeID> pendingDestroy;
@@ -100,6 +113,7 @@ namespace Cube {
 
 		void processStart();
 		void processAddAndDestroy();
+		void processChildDestroy();
 	};
 
 }

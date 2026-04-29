@@ -1,3 +1,4 @@
+#include "SpriteRender.h"
 #include "pch.h"
 #include "Scene.h"
 
@@ -7,6 +8,8 @@
 namespace Cube {
 
     Scene::Scene(const std::string& sceneFilePath) {
+        rootEntity->scene = this;
+        
         std::ifstream file(sceneFilePath);
         if(!file.is_open()) {
             CB_CORE_ERROR("Scene::Scene(): Failed to open scene file '{}'", sceneFilePath);
@@ -16,64 +19,58 @@ namespace Cube {
         file >> data;
         file.close();
         name = data["name"];
-        std::vector<std::pair<std::string, std::vector<std::string>>> transformTree;
-        for(auto& entityData : data["entities"]) {
-            auto entity = createEntity(entityData["name"]);
-            entity->deserialize(entityData);
-            transformTree.emplace_back(entity->getName(), entityData["transform"]["children"]);
-        }
-        for(auto& [entityName, childrenNames] : transformTree) {
-            Entity* parentEntity = getEntity(entityName);
-            Transform* parentTransform = &parentEntity->getTransform();
-            for(auto& childName : childrenNames) {
-                Entity* childEntity = getEntity(childName);
-                Transform* childTransform = &childEntity->getTransform();
-                parentTransform->addChild(childTransform);
-            }
-        }
+        rootEntity->deserialize(data["rootEntity"]);
     }
 
     void Scene::update(float delta) {
-        for(auto& entity: entities) {
-            entity->update(delta);
-        }
+        rootEntity->update(delta);
         processDestroy();
     }
 
     Entity* Scene::createEntity(const std::string& name) {
-        auto e = std::make_unique<Entity>(name);
-        Entity* entity = e.get();
-        entities.push_back(std::move(e));
-        return entity;
+        return rootEntity->addChild(name);
     }
 
     void Scene::destroyEntity(const std::string& name) {
-        auto it = std::find_if(entities.begin(), entities.end(), [&name](const std::unique_ptr<Entity>& entity) {
-            return entity->getName() == name;
-        });
-        it->get()->destroy();
+        rootEntity->removeChild(name);
     }
 
     void Scene::destroyEntity(Entity* entity) {
-        entity->destroy();
+        rootEntity->removeChild(entity);
     }
 
-    const std::vector<std::unique_ptr<Entity>>& Scene::getAllEntities() const {
-        return entities;
+    std::vector<Entity*> Scene::getAllEntities() const {
+        std::vector<Entity*> result;
+        std::function<void(const Entity*)> traverse = [&](const Entity* entity) {
+            result.push_back(const_cast<Entity*>(entity));
+            for(const auto& child : entity->children) {
+                traverse(child.get());
+            }
+        };
+        traverse(rootEntity.get());
+        return result;
     }
 
     Entity* Scene::getEntity(const std::string& name) const {
-        auto it = std::find_if(entities.begin(), entities.end(), [&name](const std::unique_ptr<Entity>& entity) { return entity->getName() == name; });
-        return it->get();
+        std::function<Entity*(const Entity*)> traverse = [&](const Entity* entity) -> Entity* {
+            if(entity->getName() == name) {
+                return const_cast<Entity*>(entity);
+            }
+            for(const auto& child : entity->children) {
+                Entity* found = traverse(child.get());
+                if(found) {
+                    return found;
+                }
+            }
+            return nullptr;
+        };
+        return traverse(rootEntity.get());
     }
 
     void Scene::serialize(const std::string& sceneFilePath) const {
         nlohmann::json data;
         data["name"] = name;
-        data["entities"] = nlohmann::json::array();
-        for(const auto& entity : entities) {
-            data["entities"].push_back(entity->serialize());
-        }
+        data["rootEntity"] = rootEntity->serialize();
         std::ofstream file(sceneFilePath);
         if(!file.is_open()) {
             CB_CORE_ERROR("Scene::serialize(): Failed to open scene file '{}'", sceneFilePath);
@@ -88,9 +85,40 @@ namespace Cube {
     }
 
     void Scene::processDestroy() {
-        auto end = std::remove_if(entities.begin(), entities.end(), [this](const std::unique_ptr<Entity>& entity) {
-            return !entity->isAlive();
+        rootEntity->processChildDestroy();
+    }
+
+    void Scene::addRenderableEntity(Entity* entity) {
+        renderableEntities.push_back(entity);
+        sortRenderableEntities();
+    }
+
+    void Scene::removeRenderableEntity(Entity* entity) {
+        auto it = std::find(renderableEntities.begin(), renderableEntities.end(), entity);
+        if(it != renderableEntities.end()) {
+            renderableEntities.erase(it);
+        }
+    }
+
+    void Scene::addCamera(Entity* entity) {
+        cameras.push_back(entity);
+    }
+
+    void Scene::removeCamera(Entity* entity) {
+        auto it = std::find(cameras.begin(), cameras.end(), entity);
+        if(it != cameras.end()) {
+            cameras.erase(it);
+        }
+    }
+
+    void Scene::sortRenderableEntities() {
+        std::sort(renderableEntities.begin(), renderableEntities.end(), [](const Entity* a, const Entity* b) {
+            SpriteRender* spriteA = a->getComponent<SpriteRender>();
+            SpriteRender* spriteB = b->getComponent<SpriteRender>();
+            if(spriteA->order != spriteB->order) {
+                return spriteA->order < spriteB->order;
+            }
+            return (spriteA->sprite->getTexture() ? spriteA->sprite->getTexture()->getId() : -1) < (spriteB->sprite->getTexture() ? spriteB->sprite->getTexture()->getId() : -1);
         });
-        entities.erase(end, entities.end());
     }
 }  // namespace Cube
