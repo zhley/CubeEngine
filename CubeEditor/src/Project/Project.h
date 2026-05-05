@@ -5,9 +5,6 @@
 #include "AssetExplorer.h"
 #include "Cube/Scene/Scene.h"
 #include "../Views/SceneSelectPanel.h"
-#include "imgui/imgui.h"
-
-constexpr ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
 struct ProjectConfig {
 	std::string name;

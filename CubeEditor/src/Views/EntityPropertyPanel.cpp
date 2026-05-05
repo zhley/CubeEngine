@@ -24,36 +24,36 @@ void EntityPropertyPanel::render(float deltaTime) {
     if(editorPage.selectedEntity) {
         float posX = ImGui::GetWindowWidth() / 2 - 30.0f;
         float width = ImGui::GetWindowWidth() - posX - 10.0f;
-        if(ImGui::TreeNodeEx("Transform", treeNodeFlags)) {
+        if(ImGui::TreeNodeEx("Transform", Utils::TREENODE_FLAGS)) {
             Transform& transform = editorPage.selectedEntity->getTransform();
             ImGui::Text("position");
             ImGui::SameLine();
             ImGui::SetCursorPosX(posX);
             ImGui::SetNextItemWidth(width);
-            float pos[2] = {transform.getPosition().x, transform.getPosition().y};
+            float pos[2] = {transform.pos.x, transform.pos.y};
             if(ImGui::DragFloat2("##position", pos, 0.1, 0, 0, "%.3f")) {
                 editorPage.selectedScene->isSaved = false;
-                transform.setPosition({pos[0], pos[1]});
+                transform.pos = {pos[0], pos[1]};
             }
 
             ImGui::Text("scale");
-            float scale[2] = {transform.getScale().x, transform.getScale().y};
+            float scale[2] = {transform.scale.x, transform.scale.y};
             ImGui::SameLine();
             ImGui::SetCursorPosX(posX);
             ImGui::SetNextItemWidth(width);
             if(ImGui::DragFloat2("##Scale", scale, 0.01, 0, 0, "%.3f")){
                 editorPage.selectedScene->isSaved = false;
-                transform.setScale({scale[0], scale[1]});
+                transform.scale = {scale[0], scale[1]};
             }
             
             ImGui::Text("rotation");
             ImGui::SameLine();
             ImGui::SetCursorPosX(posX);
             ImGui::SetNextItemWidth(width);
-            float rotation = transform.getRotation();
+            float rotation = transform.rotation;
             if(ImGui::DragFloat("##Rotation", &rotation, 0.1, 0, 0, "%.3f")) {
                 editorPage.selectedScene->isSaved = false;
-                transform.setRotation(rotation);
+                transform.rotation = rotation;
             }
 
             ImGui::TreePop();
@@ -63,7 +63,7 @@ void EntityPropertyPanel::render(float deltaTime) {
             TypeID typeID = uniquePtrC->getType();
             Component* c = uniquePtrC.get();
             Class* classInfo = ClassRegistry::get().getClass(typeID);
-            if(ImGui::TreeNodeEx(classInfo->getName().c_str(), treeNodeFlags)) {
+            if(ImGui::TreeNodeEx(classInfo->getName().c_str(), Utils::TREENODE_FLAGS)) {
                 if(ImGui::BeginPopupContextItem()) {
                     if(ImGui::MenuItem("Delete")) {
                         toDelete = typeID;

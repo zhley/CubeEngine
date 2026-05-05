@@ -55,6 +55,8 @@ inline glm::vec2 toGlmVec2(const ImVec2& vec) {
 
 namespace Utils {
 
+    constexpr ImGuiTreeNodeFlags TREENODE_FLAGS = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
     // 保持长宽比的缩放
     inline ImVec2 keepAspectRatio(const ImVec2& size, float maxDimension) {
         float scale = maxDimension / std::max(size.x, size.y);

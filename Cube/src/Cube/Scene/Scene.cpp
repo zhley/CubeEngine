@@ -90,7 +90,6 @@ namespace Cube {
 
     void Scene::addRenderableEntity(Entity* entity) {
         renderableEntities.push_back(entity);
-        sortRenderableEntities();
     }
 
     void Scene::removeRenderableEntity(Entity* entity) {

@@ -11,11 +11,13 @@
 #include "../Project/Project.h"
 #include "../Utils/ImGuiExternal.h"
 #include "../Utils/EditorTextureCache.h"
+#include "../Utils/misc.h"
 #include "Cube/Animation/AnimationClip.h"
 #include "Cube/Renderer/Renderer.h"
 #include "Cube/Scene/Camera2D.h"
 #include "Cube/Scene/SpriteRender.h"
 #include "Cube/Animation/Animation.h"
+#include "glm/ext/vector_float4.hpp"
 
 using namespace Cube;
 
@@ -91,14 +93,14 @@ void SceneView::render(float deltaTime) {
                 switch(asset->type) {
                     case ResourceType::Texture: {
                         auto e = editorPage.selectedScene->scene->createEntity(asset->identifier);
-                        e->getTransform().setPosition(pos);
+                        e->getTransform().pos = pos;
                         auto spriteRender = e->addComponent<SpriteRender>();
                         spriteRender->sprite = ResPtr<Sprite>("spr:" + asset->identifier);
                         editorPage.selectedScene->isSaved = false;
                     } break;
                     case ResourceType::AnimationClip: {
                         auto e = editorPage.selectedScene->scene->createEntity(asset->identifier);
-                        e->getTransform().setPosition(pos);
+                        e->getTransform().pos = pos;
                         e->addComponent<SpriteRender>();
                         auto anim = e->addComponent<Animation>();
                         AnimationClip* clip = anim->addClip(asset->identifier);
@@ -119,7 +121,7 @@ void SceneView::render(float deltaTime) {
                     pos += editorPage.editorCamera.position;
                     std::string spriteName = spriteIdentifier.substr(posStr + 1);
                     auto e = editorPage.selectedScene->scene->createEntity(spriteName);
-                    e->getTransform().setPosition(pos);
+                    e->getTransform().pos = pos;
                     auto spriteRender = e->addComponent<SpriteRender>();
                     spriteRender->sprite = ResPtr<Sprite>(spriteIdentifier);
                     editorPage.selectedScene->isSaved = false;
@@ -170,21 +172,21 @@ void SceneView::render(float deltaTime) {
             if(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
                 bool choose = false;
                 glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
-                mousePos += editorCamera.position / editorCamera.zoom;
+                glm::vec4 mouseWorldPos = glm::vec4(mousePos, 0.0f, 1.0f) * editorCamera.getTransformMatrix();
                 Entity* selected = nullptr;
-                for(auto& e : editorPage.selectedScene->scene->getEntitiesWith<SpriteRender>()) {
+                for(auto& e : editorPage.selectedScene->scene->getSortedRenderableEntities()) {
                     Transform& tc = e->getTransform();
                     SpriteRender* sprite = e->getComponent<SpriteRender>();
-                    glm::vec2 position = tc.getWorldPos();
-                    glm::vec2 scale = sprite->sprite->getSize() * tc.getWorldScale();
-                    glm::vec2 min = {position.x, position.y};
-                    glm::vec2 max = {position.x + scale.x, position.y + scale.y};
-                    glm::vec4 tMin = glm::inverse(editorCamera.getTransformMatrix()) * glm::vec4(min, 0, 0);
-                    glm::vec4 tMax = glm::inverse(editorCamera.getTransformMatrix()) * glm::vec4(max, 0, 0);
-                    if(mousePos.x >= tMin.x && mousePos.x <= tMax.x && mousePos.y >= tMin.y && mousePos.y <= tMax.y) {
-                        if(!selected || sprite->order > selected->getComponent<SpriteRender>()->order) {
-                            selected = e;
-                        }
+                    if(!sprite || !sprite->sprite) continue;
+                    glm::mat4 model = tc.getWorldMatrix();
+                    glm::mat4 corner = model * glm::mat4({
+                        {0.0f, 0.0f, 0.0f, 1.0f},
+                        {sprite->sprite->getSize().x, 0.0f, 0.0f, 1.0f},
+                        {sprite->sprite->getSize().x, sprite->sprite->getSize().y, 0.0f, 1.0f},
+                        {0.0f, sprite->sprite->getSize().y, 0.0f, 1.0f}
+                    });
+                    if(Utils::isPointInPolygon({mouseWorldPos.x, mouseWorldPos.y}, {{corner[0].x, corner[0].y}, {corner[1].x, corner[1].y}, {corner[2].x, corner[2].y}, {corner[3].x, corner[3].y}})) {
+                        selected = e;
                     }
                 }
                 if(selected) {
@@ -211,7 +213,7 @@ void SceneView::render(float deltaTime) {
                 glm::vec2 delta = {io.MouseDelta.x * editorCamera.zoom, -io.MouseDelta.y * editorCamera.zoom};
                 if(editorPage.selectedEntity) {
                     Transform& tc = editorPage.selectedEntity->getTransform();
-                    tc.setPosition(tc.getPosition() + delta);
+                    tc.pos = tc.pos + delta;
                     editorPage.selectedScene->isSaved = false;
                 }
                 if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -222,7 +224,7 @@ void SceneView::render(float deltaTime) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
                 if(editorPage.selectedEntity) {
                     Transform& tc = editorPage.selectedEntity->getTransform();
-                    glm::vec2 scale = tc.getScale();
+                    glm::vec2 scale = tc.scale;
 
                     const float scaleFactor = 1.0f + (io.MouseDelta.x - io.MouseDelta.y) * 0.01f;
                     const float safeScaleFactor = scaleFactor < 0.01f ? 0.01f : scaleFactor;
@@ -231,7 +233,7 @@ void SceneView::render(float deltaTime) {
                     if(scale.x < 0.01f) scale.x = 0.01f;
                     if(scale.y < 0.01f) scale.y = 0.01f;
 
-                    tc.setScale(scale);
+                    tc.scale = scale;
                     editorPage.selectedScene->isSaved = false;
                 }
                 if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -271,13 +273,13 @@ void SceneView::sceneRender(float deltaTime) {
         auto* tc = &camera->getTransform();
         auto* cc = camera->getComponent<Camera2D>();
         if(cc->available) {
-            glm::vec2 size = cc->viewport;
-            glm::vec2 pos = tc->getWorldPos();
-            Color color = {113, 96, 232, 255};
-            Renderer2D::drawQuad(pos, glm::vec2(size.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, color);
-            Renderer2D::drawQuad(pos + glm::vec2(0, size.y), glm::vec2(size.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, color);
-            Renderer2D::drawQuad(pos, glm::vec2(1, size.y) * glm::vec2(editorCamera.zoom, 1), nullptr, color);
-            Renderer2D::drawQuad(pos + glm::vec2(size.x, 0), glm::vec2(1, size.y) * glm::vec2(editorCamera.zoom, 1), nullptr, color);
+            // glm::vec2 size = cc->viewport;
+            // glm::vec2 pos = tc->getWorldPos();
+            // Color color = {113, 96, 232, 255};
+            // Renderer2D::drawQuad(pos, glm::vec2(size.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, color);
+            // Renderer2D::drawQuad(pos + glm::vec2(0, size.y), glm::vec2(size.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, color);
+            // Renderer2D::drawQuad(pos, glm::vec2(1, size.y) * glm::vec2(editorCamera.zoom, 1), nullptr, color);
+            // Renderer2D::drawQuad(pos + glm::vec2(size.x, 0), glm::vec2(1, size.y) * glm::vec2(editorCamera.zoom, 1), nullptr, color);
         }
     }
 
@@ -288,12 +290,12 @@ void SceneView::sceneRender(float deltaTime) {
 
     // the outline of selected entity
     if(editorPage.selectedEntity && editorPage.selectedEntity->hasComponent<SpriteRender>() && editorPage.selectedEntity->getComponent<SpriteRender>()->sprite) {
-        auto* selectEntityTC = &editorPage.selectedEntity->getTransform();
-        glm::vec2 spriteSize = editorPage.selectedEntity->getComponent<SpriteRender>()->sprite->getSize();
-        Renderer2D::drawQuad(selectEntityTC->getWorldPos(), glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
-        Renderer2D::drawQuad(selectEntityTC->getWorldPos() + glm::vec2(0, selectEntityTC->getWorldScale().y * spriteSize.y), glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
-        Renderer2D::drawQuad(selectEntityTC->getWorldPos(), glm::vec2(1, selectEntityTC->getWorldScale().y * spriteSize.y) * glm::vec2(editorCamera.zoom, 1), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
-        Renderer2D::drawQuad(selectEntityTC->getWorldPos() + glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 0), glm::vec2(1, selectEntityTC->getWorldScale().y * spriteSize.y) * glm::vec2(editorCamera.zoom, 1), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
+        // auto* selectEntityTC = &editorPage.selectedEntity->getTransform();
+        // glm::vec2 spriteSize = editorPage.selectedEntity->getComponent<SpriteRender>()->sprite->getSize();
+        // Renderer2D::drawQuad(selectEntityTC->getWorldPos(), glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
+        // Renderer2D::drawQuad(selectEntityTC->getWorldPos() + glm::vec2(0, selectEntityTC->getWorldScale().y * spriteSize.y), glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
+        // Renderer2D::drawQuad(selectEntityTC->getWorldPos(), glm::vec2(1, selectEntityTC->getWorldScale().y * spriteSize.y) * glm::vec2(editorCamera.zoom, 1), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
+        // Renderer2D::drawQuad(selectEntityTC->getWorldPos() + glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 0), glm::vec2(1, selectEntityTC->getWorldScale().y * spriteSize.y) * glm::vec2(editorCamera.zoom, 1), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
     }
 
     Renderer2D::endFrame();

@@ -2,6 +2,7 @@
 
 #include <string>
 #include "json.hpp"
+#include "glm/glm.hpp"
 
 namespace Utils{
     // 获取用户配置目录
@@ -46,4 +47,6 @@ namespace Utils{
     }
     */
     nlohmann::json parseAtlasFile(const std::string& filePath);
+
+    bool isPointInPolygon(const glm::vec2& point, const std::vector<glm::vec2>& polygon);
 }

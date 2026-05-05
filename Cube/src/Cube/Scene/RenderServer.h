@@ -8,7 +8,7 @@ namespace Cube {
         RenderServer() = default;
         ~RenderServer() = default;
 
-        void renderScene(const Scene* scene);
+        void renderScene(Scene* scene);
     };
 
 }

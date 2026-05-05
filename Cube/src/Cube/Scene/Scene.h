@@ -41,7 +41,7 @@ namespace Cube {
 
         const std::string& getName() const;
 
-        const std::vector<Entity*>& getRenderableEntities() const { return renderableEntities; }
+        const std::vector<Entity*>& getSortedRenderableEntities() { sortRenderableEntities(); return renderableEntities; }
         const std::vector<Entity*>& getCameras() const { return cameras; }
         void addRenderableEntity(Entity* entity);
         void removeRenderableEntity(Entity* entity);

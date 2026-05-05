@@ -11,7 +11,6 @@
 #include "../Views/EntityPropertyPanel.h"
 #include "../Views/ResourcesPanel.h"
 #include "../Views/ScenePanel.h"
-#include "../Views/SceneSelectPanel.h"
 #include "../Views/SceneView.h"
 #include "../Views/AssetInspector.h"
 #include "../Views/LogView.h"
@@ -30,7 +29,6 @@ EditorPage::EditorPage(Project* project) : project(project) {
     views.push_back(std::make_unique<ScenePanel>(*this));
     views.push_back(std::make_unique<SceneView>(*this));
     views.push_back(std::make_unique<EntityPropertyPanel>(*this));
-    views.push_back(std::make_unique<SceneSelectPanel>(*this));
     views.push_back(std::make_unique<ResourcesPanel>(*this));
     views.push_back(std::make_unique<AssetInspector>(*this));
     views.push_back(std::make_unique<AnimationEditor>(*this));

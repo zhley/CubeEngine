@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
+#include <string>
 
 #include "../Project/Project.h"
 #include "../Utils/ImGuiExternal.h"
@@ -27,11 +28,20 @@ void GuidancePage::render(float deltaTime) {
 
     ImGui::BeginGroup();
     bool switchPage = false;
-    for(auto& p : EditorApp::get().projectsPathCache) {
+    auto toRemoveIt = EditorApp::get().projectsPathCache.end();
+    for(auto it = EditorApp::get().projectsPathCache.begin(); it != EditorApp::get().projectsPathCache.end(); ++it) {
+        const std::string& p = *it;
         if(ImGui::Button(p.c_str())) {
             proj = new Project(p);
             switchPage = true;
         }
+        ImGui::SameLine();
+        if(ImGui::Button((std::string("X##") + p).c_str())) {
+            toRemoveIt = it;
+        }
+    }
+    if(toRemoveIt != EditorApp::get().projectsPathCache.end()) {
+        EditorApp::get().projectsPathCache.erase(toRemoveIt);
     }
     ImGui::EndGroup();
 

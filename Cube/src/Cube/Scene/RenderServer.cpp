@@ -8,7 +8,7 @@
 
 namespace Cube {
 
-    void RenderServer::renderScene(const Scene* scene) {
+    void RenderServer::renderScene(Scene* scene) {
         Camera2D* camera = nullptr;
         for(auto& entity : scene->getCameras()) {
             Camera2D* cam = entity->getComponent<Camera2D>();
@@ -21,7 +21,7 @@ namespace Cube {
             CB_CORE_ERROR("RenderServer::renderScene(): no available Camera2D found in the scene");
             return;
         }
-        const auto& entities = scene->getRenderableEntities();
+        const auto& entities = scene->getSortedRenderableEntities();
         Renderer2D::beginFrame(camera->getPVMatrix());
         for(auto& entity : entities) {
             SpriteRender* sprite = entity->getComponent<SpriteRender>();

@@ -97,3 +97,21 @@ namespace Utils{
 		return sprites;
 	}
 }
+
+bool Utils::isPointInPolygon(const glm::vec2& point, const std::vector<glm::vec2>& polygon) {
+	int intersections = 0;
+	size_t count = polygon.size();
+	for(size_t i = 0; i < count; ++i) {
+		const glm::vec2& v1 = polygon[i];
+		const glm::vec2& v2 = polygon[(i + 1) % count];
+
+		if((v1.y > point.y) != (v2.y > point.y)) {
+			float slope = (v2.x - v1.x) / (v2.y - v1.y);
+			float intersectX = v1.x + slope * (point.y - v1.y);
+			if(point.x < intersectX) {
+				intersections++;
+			}
+		}
+	}
+	return (intersections % 2) == 1;
+}
