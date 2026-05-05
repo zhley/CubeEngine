@@ -115,7 +115,7 @@ namespace Cube {
                 if(obj.getID() == getTypeID<T>()) {
                     data = obj.getData();
                 } else if(removeAllPtr(obj.getID()) == classInfo->getTypeID() || removeAllPtr(obj.getID()) == classInfo->getBaseTypeID()) {
-                    data = *((T**)(obj.getData()));  // TODO: AnyÆôÓÃĞ¡¶ÔÏóÓÅ»¯ºóÕâÀïĞèÒªĞŞ¸Ä
+                    data = *((T**)(obj.getData()));  // TODO: Anyå¯ç”¨å°å¯¹è±¡ä¼˜åŒ–åè¿™é‡Œéœ€è¦ä¿®æ”¹
                 } else {
                     CB_CORE_INFO("{}", getTypeID<T*>());
                     CB_ASSERT(0 && "Type mismatch!");

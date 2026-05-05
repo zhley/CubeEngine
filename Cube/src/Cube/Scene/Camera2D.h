@@ -12,9 +12,10 @@ namespace Cube {
         float zoom = 1.0f;
         bool available = true;
 
-        Camera2D();
+        Camera2D() = default;
         ~Camera2D() override;
         TypeID getType() const override { return getTypeID<Camera2D>(); }
+        void start() override;
 
         glm::mat4 getPVMatrix() const;
     };

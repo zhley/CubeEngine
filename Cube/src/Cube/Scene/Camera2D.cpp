@@ -9,18 +9,16 @@
 
 namespace Cube {
 
-    Camera2D::Camera2D() {
-        entity->getScene()->addCamera(entity);
-    }
-
     Camera2D::~Camera2D() {
         entity->getScene()->removeCamera(entity);
     }
 
+    void Camera2D::start() {
+        entity->getScene()->addCamera(entity);
+    }
+
     glm::mat4 Camera2D::getPVMatrix() const {
-        float halfW = viewport.x * 0.5f / zoom;
-        float halfH = viewport.y * 0.5f / zoom;
-        glm::mat4 proj = glm::ortho(-halfW, halfW, -halfH, halfH, -0.1f, 1.0f);
+        glm::mat4 proj = glm::ortho(0.0f, viewport.x / zoom, 0.0f, viewport.y / zoom, -0.1f, 1.0f);
         glm::mat4 view = glm::inverse(entity->getTransform().getWorldMatrix());
         return proj * view;
     }

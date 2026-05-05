@@ -55,7 +55,7 @@ namespace Cube {
             }
         }
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        // ∆Ù”√ªÏ∫œ
+        // ÂêØÁî®Ê∑∑Âêà
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -137,23 +137,34 @@ namespace Cube {
     }
 
     void Renderer2D::drawLine(const glm::vec2& p1, const glm::vec2& p2, const Color& color, float width) {
-        if(width < 0.01f) return;
         glm::vec2 direction = p2 - p1;
         float length = glm::length(direction);
         
-        if (length < 0.01f) {
-            return;
-        }
-        
         float angle = std::atan2(direction.y, direction.x);
         
-        glm::vec2 center = (p1 + p2) * 0.5f;
-        
-        glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(center, 0.0f));
+        glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(p1, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, angle, glm::vec3(0.0f, 0.0f, 1.0f));
         modelMatrix = glm::scale(modelMatrix, glm::vec3(length, width, 1.0f));
         
         drawQuad(modelMatrix, color, currentContext->whiteTex, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+    }
+
+    void Renderer2D::drawRect(const glm::mat4& modelMatrix, const glm::vec2& size, const Color& color, float width) {
+        if(width < 0.01f) return;
+        glm::vec2 vertices[4] = {
+            {0.0f, 0.0f},
+            {size.x, 0.0f},
+            {size.x, size.y},
+            {0.0f, size.y}
+        };
+        for(int i = 0; i < 4; ++i) {
+            glm::vec4 p = modelMatrix * glm::vec4(vertices[i], 0.0f, 1.0f);
+            vertices[i] = {p.x, p.y};
+        }
+        drawLine(vertices[0], vertices[1], color, width);
+        drawLine(vertices[1], vertices[2], color, width);
+        drawLine(vertices[2], vertices[3], color, width);
+        drawLine(vertices[3], vertices[0], color, width);
     }
 
     void Renderer2D::startNewBatch() {

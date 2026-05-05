@@ -50,6 +50,7 @@ namespace Cube {
         context = new Context();
         Renderer2D::currentContext = context;
         Renderer2D::init();
+
         Renderer2D::setViewport(pros.width, pros.height);
 
         glfwSetErrorCallback(windowErrorCallBack);

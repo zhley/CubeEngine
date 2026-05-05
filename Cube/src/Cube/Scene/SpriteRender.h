@@ -12,10 +12,10 @@ namespace Cube {
         Color tintColor = {1.0f, 1.0f, 1.0f, 1.0f};
         int order = 0;
 
-        SpriteRender();
-        SpriteRender(const std::string& sprite, const Color& tintColor);
+        SpriteRender() = default;
         ~SpriteRender() override;
         TypeID getType() const override { return getTypeID<SpriteRender>(); }
+        void start() override;
     };
 
 }

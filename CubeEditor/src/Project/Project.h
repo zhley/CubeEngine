@@ -4,7 +4,6 @@
 
 #include "AssetExplorer.h"
 #include "Cube/Scene/Scene.h"
-#include "../Views/SceneSelectPanel.h"
 
 struct ProjectConfig {
 	std::string name;
@@ -22,9 +21,6 @@ struct SceneData {
 
 class Project {
 public:
-	friend SceneSelectPanel;
-	friend EditorPage;
-
     Project(const std::string& name, const std::string& rootPath);
 	Project(const std::string& configFilePath);
 	virtual ~Project();

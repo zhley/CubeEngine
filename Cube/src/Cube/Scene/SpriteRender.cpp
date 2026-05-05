@@ -6,16 +6,12 @@
 
 namespace Cube {
 
-    SpriteRender::SpriteRender() {
-        entity->getScene()->addRenderableEntity(entity);
-    }
-
-    SpriteRender::SpriteRender(const std::string& sprite, const Color& tintColor) : sprite(sprite), tintColor(tintColor) {
-        entity->getScene()->addRenderableEntity(entity);
-    }
-
     SpriteRender::~SpriteRender() {
         entity->getScene()->removeRenderableEntity(entity);
+    }
+
+    void SpriteRender::start() {
+        entity->getScene()->addRenderableEntity(entity);
     }
 
 } // namespace Cube

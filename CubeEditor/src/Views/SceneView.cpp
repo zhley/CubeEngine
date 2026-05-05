@@ -160,6 +160,7 @@ void SceneView::render(float deltaTime) {
             }
     
             if(io.MouseWheel != 0.0f) {
+                // TODO: 设一个缩放界限
                 glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
                 glm::vec2 mouseWorldPos = mousePos * editorCamera.zoom + editorCamera.position;
                 static constexpr float E = 0.08f;
@@ -172,7 +173,7 @@ void SceneView::render(float deltaTime) {
             if(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
                 bool choose = false;
                 glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
-                glm::vec4 mouseWorldPos = glm::vec4(mousePos, 0.0f, 1.0f) * editorCamera.getTransformMatrix();
+                glm::vec4 mouseWorldPos = editorCamera.getTransformMatrix() * glm::vec4(mousePos, 0.0f, 1.0f);
                 Entity* selected = nullptr;
                 for(auto& e : editorPage.selectedScene->scene->getSortedRenderableEntities()) {
                     Transform& tc = e->getTransform();
@@ -185,6 +186,7 @@ void SceneView::render(float deltaTime) {
                         {sprite->sprite->getSize().x, sprite->sprite->getSize().y, 0.0f, 1.0f},
                         {0.0f, sprite->sprite->getSize().y, 0.0f, 1.0f}
                     });
+                    CB_EDITOR_TRACE("mouseWorldPos: {}, {}", mouseWorldPos.x, mouseWorldPos.y);
                     if(Utils::isPointInPolygon({mouseWorldPos.x, mouseWorldPos.y}, {{corner[0].x, corner[0].y}, {corner[1].x, corner[1].y}, {corner[2].x, corner[2].y}, {corner[3].x, corner[3].y}})) {
                         selected = e;
                     }
@@ -248,54 +250,43 @@ void SceneView::render(float deltaTime) {
 
 void SceneView::sceneRender(float deltaTime) {
     Scene* scene = editorPage.selectedScene->scene;
-    auto sprites = scene->getEntitiesWith<SpriteRender>();
-    sprites.erase(std::remove_if(sprites.begin(), sprites.end(), [](Entity* e) {
-        SpriteRender* sr = e->getComponent<SpriteRender>();
-        return !sr->sprite;
-    }), sprites.end());
-    std::sort(sprites.begin(), sprites.end(), [](const Entity* a, const Entity* b) {
-        SpriteRender* spriteA = a->getComponent<SpriteRender>();
-        SpriteRender* spriteB = b->getComponent<SpriteRender>();
-        if(spriteA->order != spriteB->order) {
-            return spriteA->order < spriteB->order;
-        }
-        return (spriteA->sprite->getTexture() ? spriteA->sprite->getTexture()->getId() : -1) < (spriteB->sprite->getTexture() ? spriteB->sprite->getTexture()->getId() : -1);
-    });
-    auto cameras = scene->getEntitiesWith<Camera2D>();
     
     const EditorCamera& editorCamera = editorPage.editorCamera;
     Renderer2D::beginFrame(editorCamera.getPVMatrix());
     // the axis lines
-    Renderer2D::drawQuad({0, -15000}, glm::vec2(1, 30000) * editorCamera.zoom, nullptr, {1.0f, 0.0f, 0.0f, 1.0f});
-    Renderer2D::drawQuad({-15000, 0}, glm::vec2(30000, 1) * editorCamera.zoom, nullptr, {0.0f, 0.0f, 1.0f, 1.0f});
-    
-    for(auto& camera : cameras) {
+    // Renderer2D::drawQuad({0, -15000}, glm::vec2(1, 30000) * editorCamera.zoom, nullptr, {1.0f, 0.0f, 0.0f, 1.0f});
+    // Renderer2D::drawQuad({-15000, 0}, glm::vec2(30000, 1) * editorCamera.zoom, nullptr, {0.0f, 0.0f, 1.0f, 1.0f});
+    float left = editorCamera.position.x;
+    float right = editorCamera.position.x + editorCamera.viewport.x * editorCamera.zoom;
+    float bottom = editorCamera.position.y;
+    float top = editorCamera.position.y + editorCamera.viewport.y * editorCamera.zoom;
+    Renderer2D::drawLine({left, 0}, {right, 0}, {1.0f, 0.0f, 0.0f, 1.0f}, 1.0f * editorCamera.zoom);
+    Renderer2D::drawLine({0, bottom}, {0, top}, {0.0f, 0.0f, 1.0f, 1.0f}, 1.0f * editorCamera.zoom);
+
+    for(auto& camera : scene->getCameras()) {
         auto* tc = &camera->getTransform();
         auto* cc = camera->getComponent<Camera2D>();
         if(cc->available) {
-            // glm::vec2 size = cc->viewport;
-            // glm::vec2 pos = tc->getWorldPos();
-            // Color color = {113, 96, 232, 255};
-            // Renderer2D::drawQuad(pos, glm::vec2(size.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, color);
-            // Renderer2D::drawQuad(pos + glm::vec2(0, size.y), glm::vec2(size.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, color);
-            // Renderer2D::drawQuad(pos, glm::vec2(1, size.y) * glm::vec2(editorCamera.zoom, 1), nullptr, color);
-            // Renderer2D::drawQuad(pos + glm::vec2(size.x, 0), glm::vec2(1, size.y) * glm::vec2(editorCamera.zoom, 1), nullptr, color);
+            glm::vec2 size = cc->viewport;
+            Color color = {113, 96, 232, 255};
+            Renderer2D::drawRect(tc->getWorldMatrix(), size, color, 1.0f * editorCamera.zoom);
         }
     }
 
-    for(auto& e : sprites) {
+    for(auto& e : scene->getSortedRenderableEntities()) {
         auto* sc = e->getComponent<SpriteRender>();
-        Renderer2D::drawQuad(e->getTransform().getWorldMatrix(), sc->tintColor, sc->sprite->getTexture(), sc->sprite->getTexRegion().getUVCoord());
+        if(sc->sprite){
+            Renderer2D::drawQuad(e->getTransform().getWorldMatrix(), sc->tintColor, sc->sprite->getTexture(), sc->sprite->getTexRegion().getUVCoord());
+        }
     }
 
     // the outline of selected entity
     if(editorPage.selectedEntity && editorPage.selectedEntity->hasComponent<SpriteRender>() && editorPage.selectedEntity->getComponent<SpriteRender>()->sprite) {
-        // auto* selectEntityTC = &editorPage.selectedEntity->getTransform();
-        // glm::vec2 spriteSize = editorPage.selectedEntity->getComponent<SpriteRender>()->sprite->getSize();
-        // Renderer2D::drawQuad(selectEntityTC->getWorldPos(), glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
-        // Renderer2D::drawQuad(selectEntityTC->getWorldPos() + glm::vec2(0, selectEntityTC->getWorldScale().y * spriteSize.y), glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 1) * glm::vec2(1, editorCamera.zoom), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
-        // Renderer2D::drawQuad(selectEntityTC->getWorldPos(), glm::vec2(1, selectEntityTC->getWorldScale().y * spriteSize.y) * glm::vec2(editorCamera.zoom, 1), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
-        // Renderer2D::drawQuad(selectEntityTC->getWorldPos() + glm::vec2(selectEntityTC->getWorldScale().x * spriteSize.x, 0), glm::vec2(1, selectEntityTC->getWorldScale().y * spriteSize.y) * glm::vec2(editorCamera.zoom, 1), nullptr, {1.0f, 1.0f, 0.0f, 1.0f});
+        SpriteRender* sr = editorPage.selectedEntity->getComponent<SpriteRender>();
+        glm::mat4 model = editorPage.selectedEntity->getTransform().getWorldMatrix();
+        glm::vec2 size = sr->sprite->getSize();
+        Color color = {255, 255, 0, 255};
+        Renderer2D::drawRect(model, size, color, 1.0f * editorCamera.zoom);
     }
 
     Renderer2D::endFrame();
