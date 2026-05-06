@@ -1,3 +1,4 @@
+#include "Cube/Scene/Component.h"
 #include "pch.h"
 #include "Entity.h"
 
@@ -19,6 +20,18 @@ namespace Cube {
         }
     }
 
+    Component* Entity::addComponent(std::unique_ptr<Component> component) {
+        if(componentsMap.find(component->getType()) != componentsMap.end()) {
+            CB_CORE_ERROR("Entity::addComponent(): component of type '{}' already exists", ClassRegistry::get().getClass(component->getType())->getName());
+            return nullptr;
+        }
+        Component* ptr = component.get();
+        ptr->entity = this;
+        pendingAdd.push_back(std::move(component));
+        addOrDestroy.push_back(0);
+        return ptr;
+    }
+
     void Entity::deserialize(const nlohmann::json& data) {
         name = data["name"];
         auto tr = data["transform"];
@@ -34,9 +47,7 @@ namespace Cube {
             }
             Any component = Serializer::get().deserialize(classInfo->getTypeID(), c);
             Component* compPtr = component.moveToBase<Component>();
-            compPtr->entity = this;
-            components.push_back(std::unique_ptr<Component>(compPtr));
-            componentsMap[classInfo->getTypeID()] = compPtr;
+            addComponent(std::unique_ptr<Component>(compPtr));
         }
         for(auto& childData : data["children"]) {
             Entity* child = addChild(childData["name"]);

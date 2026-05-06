@@ -117,7 +117,7 @@ namespace Cube {
             if(spriteA->order != spriteB->order) {
                 return spriteA->order < spriteB->order;
             }
-            return (spriteA->sprite->getTexture() ? spriteA->sprite->getTexture()->getId() : -1) < (spriteB->sprite->getTexture() ? spriteB->sprite->getTexture()->getId() : -1);
+            return (spriteA->sprite && spriteA->sprite->getTexture() ? spriteA->sprite->getTexture()->getId() : -1) < (spriteB->sprite && spriteB->sprite->getTexture() ? spriteB->sprite->getTexture()->getId() : -1);
         });
     }
 }  // namespace Cube

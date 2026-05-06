@@ -24,20 +24,12 @@ namespace Cube {
 
 		void update(float delta);
 
+		Component* addComponent(std::unique_ptr<Component> component);
+
 		template<typename T>
 		T* addComponent() {
 			static_assert(std::is_base_of_v<Component, T>);
-			TypeID typeID = getTypeID<T>();
-			if(componentsMap.find(typeID) != componentsMap.end()) {
-				CB_CORE_ERROR("Entity::addComponent<T>(): component of type '{}' already exists", ClassRegistry::get().getClass<T>()->getName());
-				return static_cast<T*>(componentsMap[typeID]);
-			}
-			std::unique_ptr<Component> component = std::make_unique<T>();
-			Component* ptr = component.get();
-			ptr->entity = this;
-			pendingAdd.push_back(std::move(component));
-			addOrDestroy.push_back(0);
-			return static_cast<T*>(ptr);
+			return static_cast<T*>(addComponent(std::make_unique<T>()));
         }
 
 		void removeComponent(TypeID typeID) {

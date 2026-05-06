@@ -186,7 +186,6 @@ void SceneView::render(float deltaTime) {
                         {sprite->sprite->getSize().x, sprite->sprite->getSize().y, 0.0f, 1.0f},
                         {0.0f, sprite->sprite->getSize().y, 0.0f, 1.0f}
                     });
-                    CB_EDITOR_TRACE("mouseWorldPos: {}, {}", mouseWorldPos.x, mouseWorldPos.y);
                     if(Utils::isPointInPolygon({mouseWorldPos.x, mouseWorldPos.y}, {{corner[0].x, corner[0].y}, {corner[1].x, corner[1].y}, {corner[2].x, corner[2].y}, {corner[3].x, corner[3].y}})) {
                         selected = e;
                     }
@@ -254,8 +253,6 @@ void SceneView::sceneRender(float deltaTime) {
     const EditorCamera& editorCamera = editorPage.editorCamera;
     Renderer2D::beginFrame(editorCamera.getPVMatrix());
     // the axis lines
-    // Renderer2D::drawQuad({0, -15000}, glm::vec2(1, 30000) * editorCamera.zoom, nullptr, {1.0f, 0.0f, 0.0f, 1.0f});
-    // Renderer2D::drawQuad({-15000, 0}, glm::vec2(30000, 1) * editorCamera.zoom, nullptr, {0.0f, 0.0f, 1.0f, 1.0f});
     float left = editorCamera.position.x;
     float right = editorCamera.position.x + editorCamera.viewport.x * editorCamera.zoom;
     float bottom = editorCamera.position.y;

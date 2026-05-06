@@ -19,11 +19,11 @@ struct SceneData {
 	bool isSaved = false;
 };
 
-class Project {
+class Project final{
 public:
     Project(const std::string& name, const std::string& rootPath);
 	Project(const std::string& configFilePath);
-	virtual ~Project();
+	~Project();
 
 	const std::vector<SceneData>& getScenes() const;
 	std::vector<SceneData>& getScenes();
