@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace Cube {
 
     struct Color {

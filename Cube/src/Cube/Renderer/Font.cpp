@@ -1,15 +1,14 @@
-#include "pch.h"
 #include "Font.h"
+
+#include <algorithm>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include <algorithm>
-#include "Texture.h"
+#include "Cube/Renderer/Texture.h"
 #include "Cube/Utils/Utils.h"
+#include "Cube/Core/Log.h"
 
-#include <fstream>
-#include <json.hpp>
 
 namespace Cube {
 

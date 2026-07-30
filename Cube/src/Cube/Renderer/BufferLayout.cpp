@@ -1,5 +1,6 @@
-#include "pch.h"
 #include "BufferLayout.h"
+
+#include "Cube/Core/Log.h"
 
 // clang-format off
 namespace Cube {

@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "Cube/Event/Event.h"
+
 #include "Window.h"
+#include "Cube/Event/Event.h"
 #include "Cube/Scene/RenderServer.h"
 #include "Cube/Scene/SceneManager.h"
 

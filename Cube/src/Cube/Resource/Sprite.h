@@ -1,7 +1,8 @@
 #pragma once
-#include "Cube/Renderer/TextureRegion.h"
+
 #include "ResPtr.h"
 #include "Resource.h"
+#include "Cube/Renderer/TextureRegion.h"
 #include "Cube/Renderer/Texture.h"
 
 namespace Cube {

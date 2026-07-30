@@ -1,10 +1,9 @@
-#include "pch.h"
 #include "RenderServer.h"
 
 #include "Camera2D.h"
-#include "Cube/Renderer/Renderer.h"
 #include "Scene.h"
 #include "SpriteRender.h"
+#include "Cube/Renderer/Renderer.h"
 
 namespace Cube {
 

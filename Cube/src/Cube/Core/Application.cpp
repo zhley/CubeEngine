@@ -1,14 +1,11 @@
-#include "pch.h"
 #include "Application.h"
 
+#include <chrono>
+
 #include "Window.h"
-#include "TypeRegister.h"
 #include "Cube/Event/ApplicationEvent.h"
 #include "Cube/Renderer/Renderer.h"
 #include "Cube/Scene/Scene.h"
-
-#include <chrono>
-#include <iostream>
 
 namespace Cube {
 

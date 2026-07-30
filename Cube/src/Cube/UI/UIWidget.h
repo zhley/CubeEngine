@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Cube/Event/Event.h"
-#include "Cube/Renderer/Renderer.h"
-#include "Cube/Renderer/Texture.h"
-#include "Cube/Renderer/TextureRegion.h"
-
-#include <glm/glm.hpp>
 #include <memory>
 #include <vector>
 
+#include "glm/glm.hpp"
+
+#include "Cube/Event/Event.h"
+#include "Cube/Renderer/Color.h"
+#include "Cube/Renderer/Texture.h"
+#include "Cube/Renderer/TextureRegion.h"
 #include "Cube/Renderer/Font.h"
 #include "Cube/Resource/ResourceManager.h"
 

@@ -1,8 +1,8 @@
-#include "pch.h"
-
 #include "Atlas.h"
 
 #include <fstream>
+
+#include "Cube/Core/Log.h"
 
 namespace Cube {
 

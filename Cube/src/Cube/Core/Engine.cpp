@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "Engine.h"
 
 #include "TypeRegister.h"

@@ -1,8 +1,8 @@
-#include "pch.h"
-
 #include "UILayer.h"
 
-#include <glm/ext/matrix_clip_space.hpp>
+#include "glm/ext/matrix_clip_space.hpp"
+
+#include "Cube/Renderer/Renderer.h"
 
 namespace Cube {
 	void UILayer::onUpdate(float deltaTime) {

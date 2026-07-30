@@ -1,9 +1,10 @@
-#include "SpriteRender.h"
-#include "pch.h"
 #include "Scene.h"
 
 #include <fstream>
-#include <json.hpp>
+
+#include "json.hpp"
+
+#include "SpriteRender.h"
 
 namespace Cube {
 

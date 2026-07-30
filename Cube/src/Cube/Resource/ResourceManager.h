@@ -1,5 +1,4 @@
 #pragma once
-#include "Atlas.h"
 
 #include <json.hpp>
 #include <list>

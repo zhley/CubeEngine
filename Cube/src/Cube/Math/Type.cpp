@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "Type.h"
 
 namespace Cube {

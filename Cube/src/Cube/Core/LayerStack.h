@@ -1,5 +1,8 @@
 #pragma once
+
+#include <memory>
 #include <deque>
+
 #include "Layer.h"
 
 namespace Cube {

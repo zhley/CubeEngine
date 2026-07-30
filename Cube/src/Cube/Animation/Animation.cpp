@@ -1,8 +1,6 @@
-#include "pch.h"
-#include "AnimationClip.h"
-
 #include "Animation.h"
 
+#include "AnimationClip.h"
 #include "Cube/Scene/Entity.h"
 #include "Cube/Scene/SpriteRender.h"
 

@@ -1,15 +1,10 @@
-#include "pch.h"
-
 #include "ResourceManager.h"
-
-#include "ResPtr.h"
-#include "Sprite.h"
-#include "Cube/Animation/AnimationClip.h"
-#include "Cube/Renderer/Font.h"
 
 #include <fstream>
 
-#include "Cube/Renderer/Renderer.h"
+#include "Sprite.h"
+#include "Cube/Animation/AnimationClip.h"
+#include "Cube/Renderer/Font.h"
 
 namespace Cube {
 

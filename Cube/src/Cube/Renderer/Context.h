@@ -1,14 +1,15 @@
 #pragma once
 
+#include <vector>
+
+#include "glm/glm.hpp"
+
+
 #include "Buffer.h"
 #include "Color.h"
 #include "Shader.h"
 #include "VertexArray.h"
 #include "Texture.h"
-
-#include <glm/glm.hpp>
-
-#include <vector>
 
 namespace Cube {
 

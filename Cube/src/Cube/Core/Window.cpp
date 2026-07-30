@@ -1,15 +1,12 @@
-#include "pch.h"
 #include "Window.h"
 
-#include <iostream>
+#include "GLFW/glfw3native.h"
 
 #include "Cube/Event/ApplicationEvent.h"
 #include "Cube/Event/KeyEvent.h"
 #include "Cube/Event/MouseEvent.h"
-#include "Timer.h"
 #include "Cube/Renderer/Renderer.h"
-
-#include <GLFW/glfw3native.h>
+#include "Cube/Core/Log.h"
 
 namespace Cube {
 

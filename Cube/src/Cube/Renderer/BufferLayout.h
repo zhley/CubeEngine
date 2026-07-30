@@ -1,8 +1,10 @@
 #pragma once
-#include <glad/glad.h>
+
 #include <cstdint>
 #include <string>
 #include <vector>
+
+#include "glad/glad.h"
 
 namespace Cube {
 

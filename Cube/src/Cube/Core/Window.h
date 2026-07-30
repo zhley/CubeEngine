@@ -8,6 +8,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
 #include <Windows.h>
+
 #include "Cube/Event/Event.h"
 #include "Cube/Renderer/Context.h"
 

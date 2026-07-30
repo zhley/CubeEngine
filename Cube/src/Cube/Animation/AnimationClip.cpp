@@ -1,11 +1,10 @@
-#include "pch.h"
-
 #include "AnimationClip.h"
 
-#include "Cube/Resource/ResourceManager.h"
-
 #include <fstream>
-#include <json.hpp>
+
+#include "json.hpp"
+
+#include "Cube/Resource/ResourceManager.h"
 
 namespace Cube {
     // .anim

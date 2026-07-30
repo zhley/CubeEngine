@@ -1,10 +1,11 @@
 #pragma once
-#include "Cube/Resource/Resource.h"
 
 #include <string>
-#include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <unordered_map>
+
+#include "glad/glad.h"
+#include "glm/glm.hpp"
+
+#include "Cube/Resource/Resource.h"
 
 namespace Cube {
 

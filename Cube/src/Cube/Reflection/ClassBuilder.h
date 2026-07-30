@@ -1,4 +1,5 @@
 #pragma once
+
 #include "BaseClassCaster.h"
 #include "Class.h"
 #include "ClassRegistry.h"

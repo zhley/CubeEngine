@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <functional>
+
 namespace Cube {
     class Scene;
 

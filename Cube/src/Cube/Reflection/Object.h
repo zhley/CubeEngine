@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Class.h"
 #include "ClassRegistry.h"
 

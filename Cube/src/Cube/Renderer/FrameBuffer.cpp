@@ -1,7 +1,7 @@
-#include "pch.h"
 #include "FrameBuffer.h"
 
-#include <glad/glad.h>
+#include "glad/glad.h"
+#include "Cube/Core/Log.h"
 
 namespace Cube {
 

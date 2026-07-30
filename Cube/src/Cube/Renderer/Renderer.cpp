@@ -1,13 +1,13 @@
-#include "pch.h"
 #include "Renderer.h"
+
+#include "glad/glad.h"
+#include "GLFW/glfw3.h"
+#include "glm/ext/matrix_transform.hpp"
 
 #include "Buffer.h"
 #include "BufferLayout.h"
 #include "VertexArray.h"
-
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/ext/matrix_transform.hpp>
+#include "Cube/Core/Log.h"
 
 namespace Cube {
 

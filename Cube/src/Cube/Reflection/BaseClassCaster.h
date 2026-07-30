@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Cube/Core/Log.h"
 #include "Type.h"
 

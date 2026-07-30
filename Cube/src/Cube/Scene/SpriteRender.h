@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Component.h"
 #include "Cube/Renderer/Color.h"
 #include "Cube/Resource/ResPtr.h"

@@ -14,3 +14,4 @@ ai/
 Test/CubeEditorProject/
 SandBox/assets/
 build/
+vcpkg_installed/

@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include "AnimationClip.h"
-#include "Cube/Renderer/TextureRegion.h"
 #include "Cube/Scene/Component.h"
 
 namespace Cube {

@@ -1,9 +1,7 @@
-#include "Cube/Scene/Component.h"
-#include "pch.h"
 #include "Entity.h"
 
 #include "Cube/Core/Log.h"
-
+#include "Cube/Scene/Component.h"
 #include "Cube/Reflection/Serializer.h"
 
 namespace Cube {

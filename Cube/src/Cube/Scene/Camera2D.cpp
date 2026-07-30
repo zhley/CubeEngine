@@ -1,11 +1,10 @@
-#include "pch.h"
 #include "Camera2D.h"
+
+#include "glm/ext/matrix_clip_space.hpp"
 
 #include "Entity.h"
 #include "Scene.h"
 
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
 
 namespace Cube {
 

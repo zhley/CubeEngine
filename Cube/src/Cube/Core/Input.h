@@ -1,8 +1,10 @@
 #pragma once
+
+#include "glm/vec2.hpp"
+
 #include "KeyCodes.h"
 #include "MouseCodes.h"
 
-#include <glm/vec2.hpp>
 
 namespace Cube {
 

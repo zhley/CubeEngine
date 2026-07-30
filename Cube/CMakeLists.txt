@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 project(Cube VERSION 1.0.0 LANGUAGES CXX)
 
-add_subdirectory(external/glad)
-add_subdirectory(external/stb_image)
-
 add_library(Cube STATIC)
 
 file(GLOB_RECURSE CUBE_SRC
@@ -12,24 +9,20 @@ file(GLOB_RECURSE CUBE_SRC
 )
 target_sources(Cube PRIVATE ${CUBE_SRC})
 
-target_precompile_headers(Cube PRIVATE src/pch.h)
-
 target_include_directories(Cube PUBLIC
     src
-    external/spdlog-1.15.3/include
-    external/glfw-3.4/include
-    external/glad/include
-    external/glm
-    external/stb_image
-    external/nlohmann-json
-    external/freetype/include
+    ${CMAKE_SOURCE_DIR}/thirdparty/glm
+    ${CMAKE_SOURCE_DIR}/thirdparty/nlohmann-json
+    ${CMAKE_SOURCE_DIR}/thirdparty/spdlog-1.15.3/include
 )
 
-target_link_libraries(Cube PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/glfw-3.4/lib-vc2022/glfw3.lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/freetype/freetype.lib
+find_package(glfw3 REQUIRED)
+find_package(Freetype REQUIRED)
+target_link_libraries(Cube PUBLIC
     glad
     stb_image
+    glfw
+    Freetype::Freetype
 )
 
 target_compile_definitions(Cube PRIVATE

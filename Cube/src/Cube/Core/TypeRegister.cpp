@@ -1,8 +1,6 @@
-#include "pch.h"
-
 #include "TypeRegister.h"
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 #include "Cube/Animation/Animation.h"
 #include "Cube/Reflection/ClassBuilder.h"

@@ -2,7 +2,7 @@
 
 namespace Cube {
 
-    // Ôİ²»Ê¹ÓÃ£¬ÓĞÊ±¼äÔÙĞ´ÍêÕûµÄÊıÑ§¿â
+    // æš‚ä¸ä½¿ç”¨ï¼Œæœ‰æ—¶é—´å†å†™å®Œæ•´çš„æ•°å­¦åº“
     struct Vec2 {
         float x, y;
 
@@ -29,7 +29,7 @@ namespace Cube {
         float operator*(const Vec4& other);
     };
 
-    // ÁĞÓÅÏÈ¾ØÕó
+    // åˆ—ä¼˜å…ˆçŸ©é˜µ
     struct Mat2 {
         float data[4];
 

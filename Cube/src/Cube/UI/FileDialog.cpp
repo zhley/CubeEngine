@@ -1,11 +1,10 @@
-#include "pch.h"
 #include "FileDialog.h"
-
-#include"Cube/Utils/Utils.h"
 
 #include <commctrl.h>
 #include <commdlg.h>
 #include <ShlObj.h>
+
+#include"Cube/Utils/Utils.h"
 
 namespace Cube {
 

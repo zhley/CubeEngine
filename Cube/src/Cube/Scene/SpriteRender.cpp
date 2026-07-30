@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "SpriteRender.h"
 
 #include "Entity.h"

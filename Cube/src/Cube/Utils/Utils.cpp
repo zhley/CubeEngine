@@ -1,9 +1,9 @@
-#include "pch.h"
 #include "Utils.h"
 
 #include <fstream>
 #include <sstream>
-#include <filesystem>
+
+#include "Cube/Core/Log.h"
 
 namespace Cube {
 

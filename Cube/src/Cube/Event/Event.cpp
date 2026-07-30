@@ -1,5 +1,7 @@
-#include "pch.h"
 #include "Event.h"
+
+#include "Cube/Core/Log.h"
+
 namespace Cube {
 
     void EventDispatcher::dispatch(const Event& e) {

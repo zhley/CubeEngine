@@ -1,9 +1,8 @@
-#include "pch.h"
 #include "Texture.h"
 
-#include <fstream>
-#include <stb_image.h>
-#include <json.hpp>
+#include "stb_image.h"
+
+#include "Cube/Core/Log.h"
 
 namespace Cube {
 

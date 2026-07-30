@@ -1,10 +1,10 @@
-#include "pch.h"
 #include "Transform.h"
+
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/glm.hpp"
 
 #include "Entity.h"
 
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/glm.hpp>
 
 namespace Cube {
 

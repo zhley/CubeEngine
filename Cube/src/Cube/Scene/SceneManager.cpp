@@ -1,7 +1,7 @@
-#include "pch.h"
 #include "SceneManager.h"
 
 #include "Scene.h"
+#include "Cube/Core/Log.h"
 
 namespace Cube {
 

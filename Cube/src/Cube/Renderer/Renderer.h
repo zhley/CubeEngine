@@ -1,13 +1,12 @@
 #pragma once
 
+#include <string>
+
+#include "glm/glm.hpp"
+
 #include "Color.h"
 #include "Context.h"
 #include "Texture.h"
-#include "Shader.h"
-#include "VertexArray.h"
-
-#include <glm/glm.hpp>
-#include <memory>
 
 namespace Cube {
 
