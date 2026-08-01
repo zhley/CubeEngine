@@ -14,6 +14,7 @@ target_include_directories(Cube PUBLIC
     ${CMAKE_SOURCE_DIR}/thirdparty/glm
     ${CMAKE_SOURCE_DIR}/thirdparty/nlohmann-json
     ${CMAKE_SOURCE_DIR}/thirdparty/spdlog-1.15.3/include
+    D:/GithubRepo/Zeta/build/include # temp
 )
 
 find_package(glfw3 REQUIRED)
@@ -23,6 +24,7 @@ target_link_libraries(Cube PUBLIC
     stb_image
     glfw
     Freetype::Freetype
+    D:/GithubRepo/Zeta/build/lib/zeta_core.lib # temp
 )
 
 target_compile_definitions(Cube PRIVATE
