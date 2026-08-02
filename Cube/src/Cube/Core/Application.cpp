@@ -1,8 +1,7 @@
 #include "Application.h"
 
-#include <chrono>
-
 #include "Window.h"
+#include "Cube/Core/Timer.h"
 #include "Cube/Event/ApplicationEvent.h"
 #include "Cube/Renderer/Renderer.h"
 #include "Cube/Scene/Scene.h"
@@ -24,13 +23,10 @@ namespace Cube {
         running = true;
         CB_CORE_INFO("Application run");
 
-        std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
+        Timer timer;
 
         while(running) {
-            std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
-            std::chrono::duration<float> frameDuration = currentTime - lastTime;
-            lastTime = currentTime;
-            float deltaTime = frameDuration.count();
+            float deltaTime = timer.getDuration();
 
             Renderer::clearBuffer();
 
