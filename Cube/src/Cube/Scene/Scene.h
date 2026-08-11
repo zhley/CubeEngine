@@ -10,7 +10,7 @@ namespace Cube {
     // GameObject-Component
     class Scene {
     public:
-        Scene(const std::string& name, bool tagNoSceneFile) : name(name){}
+        Scene(const std::string& name, bool tagNoSceneFile);
         Scene(const std::string& sceneFilePath);
         virtual ~Scene() = default;
 
@@ -52,7 +52,7 @@ namespace Cube {
 
     private:
         std::string name;
-        std::unique_ptr<Entity> rootEntity = std::make_unique<Entity>("Root");
+        std::unique_ptr<Entity> rootEntity;
 
         std::vector<Entity*> renderableEntities; 
         std::vector<Entity*> cameras;

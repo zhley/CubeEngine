@@ -8,6 +8,7 @@
 #include "Cube/Scene/Camera2D.h"
 #include "Cube/Scene/Component.h"
 #include "Cube/Scene/SpriteRender.h"
+#include "Cube/Script/ScriptComponent.h"
 
 namespace Cube {
 
@@ -64,6 +65,11 @@ namespace Cube {
 			.base<Component>()
 			.property("clips", &Animation::clips)
 			.serializer();
+		ClassBuilder<ScriptComponent>("ScriptComponent")
+			.base<Component>()
+			.property("script", &ScriptComponent::script)
+			.property("name", &ScriptComponent::name)
+			.serializer();
 
 		// register serializer
 		registerBasicSerializers();
@@ -72,5 +78,6 @@ namespace Cube {
 		registerResPtrSerializer<Texture2D>();
 		registerResPtrSerializer<AnimationClip>();
 		registerResPtrSerializer<Font>();
+		registerResPtrSerializer<Script>();
 	}
 }

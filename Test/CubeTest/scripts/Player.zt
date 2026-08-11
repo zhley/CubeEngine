@@ -1,0 +1,27 @@
+class Player {
+    var name = "Player";
+    var update_count = 0;
+
+    fn _init() {
+        print("Player._init\n");
+        cb_log("Player._init");
+        cb_log_warn("Player._init");
+        cb_log_error("Player._init");
+        return this;
+    }
+
+    fn start() {
+        print("Player.start\n");
+    }
+
+    fn update(dt) {
+        time += dt;
+        if (time > 0.5) {
+            time = 0.0;
+            this.update_count += 1;
+            print("Player.update: " + str(this.update_count) + "\n");
+        }
+    }
+}
+
+var time = 0.0;

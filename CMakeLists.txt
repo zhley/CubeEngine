@@ -18,3 +18,4 @@ add_subdirectory(thirdparty)
 
 add_subdirectory(Cube)
 add_subdirectory(CubeEditor)
+add_subdirectory(Test/CubeTest)

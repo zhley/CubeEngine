@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.15)
-project(CubeEditor VERSION 1.0.0 LANGUAGES CXX)
-
 add_executable(CubeEditor)
 
 file(GLOB_RECURSE EDITOR_SRC

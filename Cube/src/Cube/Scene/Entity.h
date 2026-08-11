@@ -12,9 +12,6 @@
 #include "Cube/Reflection/ClassRegistry.h"
 #include "Cube/Reflection/Type.h"
 
-
-
-
 namespace Cube {
 
 	// GameObject in scene

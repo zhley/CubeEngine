@@ -1,5 +1,7 @@
 #pragma once
 
+#include "zeta/vm/vm.h"
+
 #include "Cube/Scene/Component.h"
 #include "Cube/Resource/ResPtr.h"
 #include "Cube/Resource/Script.h"
@@ -14,7 +16,7 @@ public:
     std::string name;
 
     ScriptComponent() = default;
-    ~ScriptComponent() override = default;
+    ~ScriptComponent() override;
 
     void start() override;
     void update(float deltaTime) override;
@@ -22,7 +24,7 @@ public:
 
 private:
     Zeta::Value classObj;
-    Zeta::Value* instance;
+    Zeta::Value* instance = nullptr;
 };
 
 }  // namespace Cube

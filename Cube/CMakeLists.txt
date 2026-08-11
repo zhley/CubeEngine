@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.15)
-project(Cube VERSION 1.0.0 LANGUAGES CXX)
-
 add_library(Cube STATIC)
 
 file(GLOB_RECURSE CUBE_SRC

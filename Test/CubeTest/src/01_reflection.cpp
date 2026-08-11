@@ -1,8 +1,6 @@
 #include <iostream>
 
-#include "Cube.h"
 #include "Cube/Reflection/Serializer.h"
-#include "reflection.h"
 
 using namespace Cube;
 
@@ -16,4 +14,9 @@ void testSerializer() {
     };
     nlohmann::json j = Serializer::get().serialize(getTypeID<std::unordered_map<std::string, std::string>>(), Any(myMap));
     std::cout << j.dump(4) << std::endl;
+}
+
+int main() {
+    testSerializer();
+    return 0;
 }

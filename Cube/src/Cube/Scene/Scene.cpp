@@ -8,7 +8,13 @@
 
 namespace Cube {
 
+    Scene::Scene(const std::string& name, bool tagNoSceneFile) : name(name) {
+        rootEntity = std::make_unique<Entity>("Root");
+        rootEntity->scene = this;
+    }
+
     Scene::Scene(const std::string& sceneFilePath) {
+        rootEntity = std::make_unique<Entity>("Root");
         rootEntity->scene = this;
         
         std::ifstream file(sceneFilePath);
