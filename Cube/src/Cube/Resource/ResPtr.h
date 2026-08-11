@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Cube/Core/Application.h"
+#include "Cube/Core/Engine.h"
 #include "Resource.h"
 #include "ResourceManager.h"
 
@@ -12,11 +14,11 @@ namespace Cube {
         ResPtr() = default;
         ResPtr(std::nullptr_t) : resource(nullptr){}
         explicit ResPtr(const std::string& identifier) {
-            resource = ResourceManager::get().load<T>(identifier);
+            resource = Engine::getApp()->getResourceManager().load<T>(identifier);
         }
         ResPtr(const ResPtr& other) : resource(nullptr){
             if(other.resource) {
-                resource = ResourceManager::get().load<T>(static_cast<ResourceBase*>(other.get())->getIdentifier());
+                resource = Engine::getApp()->getResourceManager().load<T>(static_cast<ResourceBase*>(other.get())->getIdentifier());
             }
         }
         ResPtr(ResPtr&& other) noexcept : resource(other.resource){
@@ -24,22 +26,22 @@ namespace Cube {
         }
         ~ResPtr() {
             if(resource) {
-                ResourceManager::get().release(resource);
+                Engine::getApp()->getResourceManager().release(resource);
             }
         }
 
         ResPtr& operator=(const ResPtr& other) {
             if(&other == this) return *this;
             if(resource) {
-                ResourceManager::get().release(resource);
+                Engine::getApp()->getResourceManager().release(resource);
             }
-            resource = ResourceManager::get().load<T>(static_cast<ResourceBase*>(other.get())->getIdentifier());
+            resource = Engine::getApp()->getResourceManager().load<T>(static_cast<ResourceBase*>(other.get())->getIdentifier());
             return *this;
         }
         ResPtr& operator=(ResPtr&& other) noexcept {
             if(&other == this) return *this;
             if(resource) {
-                ResourceManager::get().release(resource);
+                Engine::getApp()->getResourceManager().release(resource);
             }
             resource = other.resource;
             other.resource = nullptr;
@@ -65,13 +67,13 @@ namespace Cube {
 
         void reset() noexcept {
             if(resource) {
-                ResourceManager::get().release(resource);
+                Engine::getApp()->getResourceManager().release(resource);
                 resource = nullptr;
             }
         }
         void reset(const std::string& identifier) {
             reset();
-            resource = ResourceManager::get().load<T>(identifier);
+            resource = Engine::getApp()->getResourceManager().load<T>(identifier);
         }
         void reset(const T* rawResPtr) {
             if(rawResPtr) {

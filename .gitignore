@@ -15,3 +15,5 @@ Test/CubeEditorProject/
 SandBox/assets/
 build/
 vcpkg_installed/
+
+AGENTS.md

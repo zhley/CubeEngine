@@ -10,26 +10,24 @@
 
 namespace Cube {
     class Texture2D;
-    class Context;
     class Sprite;
     class AnimationClip;
     class Font;
+    class Script;
 
     class ResourceManager {
     public:
-        friend Context;
-
-        // TODO: 改成全局单例
-        // thread-local singleton
-        static ResourceManager& get();
-        static void init(const std::string& pathMapFilePath);
-        static void init(const std::unordered_map<std::string, nlohmann::json>& pathMap);
+        ResourceManager() = default;
+        ~ResourceManager() = default;
 
         // Delete copy and move constructors and assignment operators
         ResourceManager(ResourceManager&&) = delete;
         ResourceManager(const ResourceManager&) = delete;
         ResourceManager& operator=(ResourceManager&&) = delete;
         ResourceManager& operator=(const ResourceManager&) = delete;
+
+        void init(const std::string& pathMapFilePath);
+        void init(const std::unordered_map<std::string, nlohmann::json>& pathMap);
 
         // TODO: 将加载器解耦，支持用户从外部通过脚本注册加载器，自定义类型
         // load
@@ -47,7 +45,7 @@ namespace Cube {
             }
             ResourceBase* newRes = nullptr;
             if constexpr (std::is_same_v<Sprite, T>) {
-                newRes = loadSprite(identifier);
+                newRes = (ResourceBase*)loadSprite(identifier);
             } else {
                 auto it2 = pathMap.find(identifier);
                 if(it2 == pathMap.end()) {
@@ -55,11 +53,13 @@ namespace Cube {
                     return nullptr;
                 }
                 if constexpr (std::is_same_v<Texture2D, T>) {
-                    newRes = loadTexture2D(it2->second);
+                    newRes = (ResourceBase*)loadTexture2D(it2->second);
+                }else if constexpr (std::is_same_v<Script, T>) {
+                    newRes = (ResourceBase*)loadScript(it2->second);
                 }else if constexpr (std::is_same_v<AnimationClip, T>) {
-                    newRes = loadAnimationClip(it2->second);
+                    newRes = (ResourceBase*)loadAnimationClip(it2->second);
                 }else if constexpr (std::is_same_v<Font, T>) {
-                    newRes = loadFont(it2->second);
+                    newRes = (ResourceBase*)loadFont(it2->second);
                 }else {
                     static_assert(false);
                 }
@@ -79,9 +79,6 @@ namespace Cube {
         void reset(const std::unordered_map<std::string, nlohmann::json>& pathMap);
 
     private:
-        ResourceManager() = default;
-        ~ResourceManager() = default;
-
         std::unordered_map<std::string, std::unique_ptr<ResourceBase>> resourcesCache;
         std::unordered_map<std::string, nlohmann::json> pathMap;
 
@@ -94,8 +91,8 @@ namespace Cube {
 
         Texture2D* loadTexture2D(const nlohmann::json& path);
         Sprite* loadSprite(const std::string& identifier);
+        Script* loadScript(const nlohmann::json& path);
         AnimationClip* loadAnimationClip(const nlohmann::json& path);
         Font* loadFont(const nlohmann::json& path);
-
     };
 }  // namespace Cube

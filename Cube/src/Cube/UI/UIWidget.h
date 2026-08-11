@@ -5,6 +5,8 @@
 
 #include "glm/glm.hpp"
 
+#include "Cube/Core/Application.h"
+#include "Cube/Core/Engine.h"
 #include "Cube/Event/Event.h"
 #include "Cube/Renderer/Color.h"
 #include "Cube/Renderer/Texture.h"
@@ -77,10 +79,10 @@ namespace Cube {
     class UIImage : public UIWidget {
     public:
         UIImage(const std::string& textureId, const glm::vec2& pos = {0.0f, 0.0f}, const glm::vec2& size = {100.0f, 30.0f}, const TextureRegion& texRegion = {{0.0f, 1.0f}, {1.0f, 0.0f}}) : UIWidget(pos, size), texRegion(texRegion) {
-            texture = ResourceManager::get().load<Texture2D>(textureId);
+            texture = Engine::getApp()->getResourceManager().load<Texture2D>(textureId);
         }
         ~UIImage() override {
-            ResourceManager::get().release(texture);
+            Engine::getApp()->getResourceManager().release(texture);
         }
 
         void render() override;
@@ -94,12 +96,12 @@ namespace Cube {
     public:
         UILabel(const std::string& text, const std::string& fontId, const Color& color, const glm::vec2& pos) : text(text), color(color) {
             this->pos = pos;
-            font = ResourceManager::get().load<Font>(fontId);
+            font = Engine::getApp()->getResourceManager().load<Font>(fontId);
             size = font->calcTextSize(text);
         }
         UILabel(const std::string& text, const Color& color, const glm::vec2& pos = {0.0f, 0.0f}) : UILabel(text, globalFont, color, pos){}
         ~UILabel() override {
-            ResourceManager::get().release(font);
+            Engine::getApp()->getResourceManager().release(font);
         }
 
         void render() override;

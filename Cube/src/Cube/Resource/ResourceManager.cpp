@@ -2,16 +2,12 @@
 
 #include <fstream>
 
+#include "Script.h"
 #include "Sprite.h"
 #include "Cube/Animation/AnimationClip.h"
 #include "Cube/Renderer/Font.h"
 
 namespace Cube {
-
-    ResourceManager& ResourceManager::get() {
-        static thread_local ResourceManager instance;
-        return instance;
-    }
 
     void ResourceManager::init(const std::string& pathMapFilePath) {
         std::ifstream file(pathMapFilePath);
@@ -21,11 +17,11 @@ namespace Cube {
         nlohmann::json jsonData;
         file >> jsonData;
         file.close();
-        get().pathMap = jsonData.get<std::unordered_map<std::string, nlohmann::json>>();
+        pathMap = jsonData.get<std::unordered_map<std::string, nlohmann::json>>();
     }
 
     void ResourceManager::init(const std::unordered_map<std::string, nlohmann::json>& pathMap) {
-        get().pathMap = pathMap;                        
+        this->pathMap = pathMap;
     }
 
     void ResourceManager::release(ResourceBase* resource) {
@@ -103,6 +99,10 @@ namespace Cube {
             data["texRegion"] = it->second["sprites"][identifier.substr(pos2 + 1)];
             return new Sprite(data);
         }
+    }
+
+    Script* ResourceManager::loadScript(const nlohmann::json& path) {
+        return new Script(path["path"].get<std::string>());
     }
 
     AnimationClip* ResourceManager::loadAnimationClip(const nlohmann::json& path) {

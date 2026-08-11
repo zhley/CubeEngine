@@ -18,6 +18,8 @@
 #include "Cube/Scene/Entity.h"
 
 #include "Cube/Resource/ResourceManager.h"
+#include "Cube/Resource/Script.h"
+#include "Cube/Resource/ScriptEngine.h"
 
 #include "Cube/UI/UILayer.h"
 #include "Cube/UI/UIWidget.h"
