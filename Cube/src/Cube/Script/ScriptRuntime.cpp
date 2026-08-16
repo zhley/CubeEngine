@@ -7,56 +7,48 @@
 #include "zeta/compiler/bytecode.h"
 
 #include "Cube/Core/Log.h"
+#include "Cube/Script/ScriptBindings.h"
 
 namespace Cube {
 
 namespace {
 
-Zeta::Value logNative(Zeta::VM* vm, int argc, Zeta::Value* argv) {
-    if (argc != 1) {
-        vm->reportError(std::format("Expected 1 argument, got {}", argc));
-        return Zeta::Value::Error;
+void logNative(Zeta::VM* vm, int argc) {
+    auto message = vm->pop().as<std::string_view>();
+    if(argc != 1 || !message.has_value()) {
+        vm->reportError("cb_log: argument mismatch");
+        vm->push(Zeta::Value::Error);
+        return;
     }
-    if(!argv[0].isString()) {
-        vm->reportError("Expected a string argument");
-        return Zeta::Value::Error;
-    }
-    Zeta::StrView message = argv[0].asString();
-    CB_INFO("Zeta Log: {}", message.data);
-    return Zeta::Value::Null;
+    CB_INFO("Zeta Log: {}", *message);
+    vm->push(Zeta::Value::Null);
 }
 
-Zeta::Value logWarnNative(Zeta::VM* vm, int argc, Zeta::Value* argv) {
-    if (argc != 1) {
-        vm->reportError(std::format("Expected 1 argument, got {}", argc));
-        return Zeta::Value::Error;
+void logWarnNative(Zeta::VM* vm, int argc) {
+    auto message = vm->pop().as<std::string_view>();
+    if(argc != 1 || !message.has_value()) {
+        vm->reportError("cb_log: argument mismatch");
+        vm->push(Zeta::Value::Error);
+        return;
     }
-    if(!argv[0].isString()) {
-        vm->reportError("Expected a string argument");
-        return Zeta::Value::Error;
-    }
-    Zeta::StrView message = argv[0].asString();
-    CB_WARN("Zeta Log: {}", message.data);
-    return Zeta::Value::Null;
+    CB_WARN("Zeta Log: {}", *message);
+    vm->push(Zeta::Value::Null);
 }
 
-Zeta::Value logErrorNative(Zeta::VM* vm, int argc, Zeta::Value* argv) {
-    if (argc != 1) {
-        vm->reportError(std::format("Expected 1 argument, got {}", argc));
-        return Zeta::Value::Error;
+void logErrorNative(Zeta::VM* vm, int argc) {
+    auto message = vm->pop().as<std::string_view>();
+    if(argc != 1 || !message.has_value()) {
+        vm->reportError("cb_log: argument mismatch");
+        vm->push(Zeta::Value::Error);
+        return;
     }
-    if(!argv[0].isString()) {
-        vm->reportError("Expected a string argument");
-        return Zeta::Value::Error;
-    }
-    Zeta::StrView message = argv[0].asString();
-    CB_ERROR("Zeta Log: {}", message.data);
-    return Zeta::Value::Null;
+    CB_ERROR("Zeta Log: {}", *message);
+    vm->push(Zeta::Value::Null);
 }
 
 }  // namespace
 
-ScriptRuntime::ScriptRuntime() : vm({1024, 8192, -1, {}}) {
+ScriptRuntime::ScriptRuntime(const std::string& cubeCoreScriptPath, const std::vector<std::string>& moduleSearchPaths) : vm({1024, 8192, -1, moduleSearchPaths}) {
     vm.setErrorHandler([](const Zeta::VM::Error& error) {
         if (error.type == Zeta::VM::Error::RuntimeError) {
             CB_CORE_ERROR("[Runtime Error][line {} in {}]: {}", error.line, error.moduleName, error.message);
@@ -67,6 +59,7 @@ ScriptRuntime::ScriptRuntime() : vm({1024, 8192, -1, {}}) {
     vm.registerFunction("cb_log", logNative);
     vm.registerFunction("cb_log_warn", logWarnNative);
     vm.registerFunction("cb_log_error", logErrorNative);
+    ScriptBindings::initialize(vm, cubeCoreScriptPath);
 }
 
 std::unique_ptr<Zeta::Module> ScriptRuntime::parseModule(const std::string& filePath) {

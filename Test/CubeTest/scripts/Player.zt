@@ -1,27 +1,32 @@
 class Player {
-    var name = "Player";
     var update_count = 0;
+    var entity = null;
 
-    fn _init() {
+    fn _init(entity) {
+        this.entity = entity;
         print("Player._init\n");
-        cb_log("Player._init");
-        cb_log_warn("Player._init");
-        cb_log_error("Player._init");
+        cb_log("_init: entity name = " + this.entity.get_name());
         return this;
     }
 
     fn start() {
         print("Player.start\n");
+        var pos = this.entity.get_transform().get_pos();
+        cb_log("start: pos = [" + str(pos.x) + ", " + str(pos.y) + "]");
+        cb_log("start: has SpriteRender = " + str(this.entity.has_component("SpriteRender")));
+        cb_log("start: has Camera2D = " + str(this.entity.has_component("Camera2D")));
     }
 
     fn update(dt) {
-        time += dt;
-        if (time > 0.5) {
-            time = 0.0;
-            this.update_count += 1;
-            print("Player.update: " + str(this.update_count) + "\n");
+        var pos = cb_get_mouse_pos();
+        cb_log("update: mouse pos = [" + str(pos.x) + ", " + str(pos.y) + "]");
+        if (cb_is_key_pressed(32)) {
+            cb_log("update: space pressed");
         }
+        if (cb_is_mouse_button_pressed(0)) {
+            cb_log("update: left mouse button pressed");
+        }
+        println("Player.update: " + str(this.update_count) + ", dt = " + str(dt) + "s");
+        this.update_count += 1;
     }
 }
-
-var time = 0.0;

@@ -30,6 +30,60 @@ namespace Cube {
         return ptr;
     }
 
+    Component* Entity::addComponent(const std::string& typeName) {
+        Class* classInfo = ClassRegistry::get().getClass(typeName);
+        if(!classInfo) {
+            CB_CORE_ERROR("Entity::addComponent(): Unknown component type '{}'", typeName);
+            return nullptr;
+        }
+        std::unique_ptr<Component> component(classInfo->createInstance().moveToBase<Component>());
+        return addComponent(std::move(component));
+    }
+
+    void Entity::removeComponent(TypeID typeID) {
+        auto it = componentsMap.find(typeID);
+        if(it == componentsMap.end()) {
+            CB_CORE_ERROR("Entity::removeComponent(): component of type '{}' does not exist", ClassRegistry::get().getClass(typeID)->getName());
+            return;
+        }
+        pendingDestroy.push_back(typeID);
+        addOrDestroy.push_back(1);
+    }
+
+    void Entity::removeComponent(const std::string& typeName) {
+        Class* classInfo = ClassRegistry::get().getClass(typeName);
+        if(!classInfo) {
+            CB_CORE_ERROR("Entity::removeComponent(): Unknown component type '{}'", typeName);
+            return;
+        }
+        removeComponent(classInfo->getTypeID());
+    }
+
+    Component* Entity::getComponent(const std::string& typeName) const {
+        Class* classInfo = ClassRegistry::get().getClass(typeName);
+        if(!classInfo) {
+            CB_CORE_ERROR("Entity::getComponent(): Unknown component type '{}'", typeName);
+            return nullptr;
+        }
+        TypeID typeID = classInfo->getTypeID();
+        auto it = componentsMap.find(typeID);
+        if(it == componentsMap.end()) {
+            CB_CORE_ERROR("Entity::getComponent(): component of type '{}' does not exist", typeName);
+            return nullptr;
+        }
+        return it->second;
+    }
+
+    bool Entity::hasComponent(const std::string& typeName) const {
+        Class* classInfo = ClassRegistry::get().getClass(typeName);
+        if(!classInfo) {
+            CB_CORE_ERROR("Entity::hasComponent(): Unknown component type '{}'", typeName);
+            return false;
+        }
+        TypeID typeID = classInfo->getTypeID();
+        return componentsMap.find(typeID) != componentsMap.end();
+    }
+
     void Entity::deserialize(const nlohmann::json& data) {
         name = data["name"];
         auto tr = data["transform"];

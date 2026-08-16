@@ -99,12 +99,10 @@ namespace Cube {
         }
 
         // transfer the ownership of the internal data pointer. 
+        // type must match T strictly. if you only know the base class type, use moveToBase() instead.
         template<typename T>
         T* move() {
-            if(typeID != getTypeID<T>()) {
-                CB_CORE_ERROR("Reflection: Type mismatched in Any::move()");
-                CB_ASSERT(0); // we assume this will never happen in release build
-            }
+            CB_ASSERT(typeID == getTypeID<T>());
             T* ptr = static_cast<T*>(data);
             data = nullptr;
             typeID = 0;
@@ -125,6 +123,7 @@ namespace Cube {
         TypeID getID() const { return typeID; }
         void* getData(){ return data; }
         const void* getData() const { return data; }
+        bool isNull() const { return data == nullptr; }
 
     private:
         void* data;

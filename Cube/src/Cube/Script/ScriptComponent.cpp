@@ -2,6 +2,7 @@
 
 #include "Cube/Core/Engine.h"
 #include "Cube/Core/Log.h"
+#include "Cube/Script/ScriptBindings.h"
 
 namespace Cube {
 
@@ -12,7 +13,7 @@ ScriptComponent::~ScriptComponent() {
         return;
     }
     if(Application* app = Engine::getApp()) {
-        app->getScriptRuntime().getVM().discardInstance(instance);
+        app->getScriptRuntime().getVM().popTempRoot(instance);
     }
     instance = nullptr;
 }
@@ -32,31 +33,30 @@ void ScriptComponent::start() {
     // 同一模块只会被加载一次, 重复调用是安全的
     vm.loadModule(module);
 
-    classObj = vm.getGlobal(module->name, name);
-    if(classObj.type != Zeta::Value::Type::Object ||
-       classObj.ptrValue->type != Zeta::Object::Type::Class) {
+    int classIndex = vm.findGlobal(module->name, name);
+    if(classIndex < 0) {
         CB_CORE_ERROR("ScriptComponent::start(): class '{}' not found in module '{}'", name, module->name);
         return;
     }
+    // 实例化脚本类: 类对象与 _init(entity) 实参(实体包装)依次入栈
+    ScriptBindings::wrapEntity(vm, getEntity());
+    vm.push(vm.getGlobal(classIndex));
+    vm.newInstance(1);
+    // 实例通过临时根保存, 防止 GC 回收
+    instance = vm.pushTempRoot();
 
-    instance = vm.instantiate(classObj, 0, nullptr);
-    if(!instance) {
-        CB_CORE_ERROR("ScriptComponent::start(): failed to instantiate class '{}'", name);
-        return;
-    }
-    // TODO: 脚本的 start 方法不存在时只会输出一次错误, 后续可改为先检查方法是否存在
-    // NOTE: Zeta 的 callMethod 约定 args[0] 为实例自身, 且 argc 包含该参数
-    Zeta::Value args[] = {*instance};
-    vm.callMethod(*instance, "start", 1, args);
+    // 调用脚本 start(): 实例入栈后调用
+    vm.push(*instance);
+    vm.callMethod("start", 0);
+    vm.pop();
 }
 
 void ScriptComponent::update(float deltaTime) {
-    if(!instance) {
-        return;
-    }
-    Zeta::Value delta = Zeta::Value(static_cast<double>(deltaTime));
-    Zeta::Value args[] = {*instance, delta};
-    Engine::getApp()->getScriptRuntime().getVM().callMethod(*instance, "update", 2, args);
+    Zeta::VM& vm = Engine::getApp()->getScriptRuntime().getVM();
+    vm.push(Zeta::Value(static_cast<double>(deltaTime)));
+    vm.push(*instance);
+    vm.callMethod("update", 1);
+    vm.pop();
 }
 
 }  // namespace Cube

@@ -9,7 +9,7 @@ namespace Cube {
     std::shared_ptr<spdlog::logger> Log::editorLogger;
 
     void Log::init() {
-        spdlog::set_pattern("%^[%D %T][%f:%#][%-5l] %-6n : %v%$");
+        spdlog::set_pattern("%^[%D %T][%s:%#][%-5l] %-6n : %v%$");
         coreLogger = spdlog::stdout_color_mt("CUBE");
         coreLogger->set_level(spdlog::level::trace);
         clientLogger = spdlog::stdout_color_mt("APP");

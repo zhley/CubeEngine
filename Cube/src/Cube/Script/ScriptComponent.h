@@ -23,7 +23,6 @@ public:
     TypeID getType() const override { return getTypeID<ScriptComponent>(); }
 
 private:
-    Zeta::Value classObj;
     Zeta::Value* instance = nullptr;
 };
 

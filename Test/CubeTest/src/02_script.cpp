@@ -2,6 +2,7 @@
 #include "Cube/Resource/ResourceManager.h"
 #include "Cube/Scene/Camera2D.h"
 #include "Cube/Scene/Entity.h"
+#include "Cube/Scene/SpriteRender.h"
 #include "Cube/Script/ScriptComponent.h"
 #include "Cube/Scene/Scene.h"
 
@@ -11,11 +12,11 @@ using namespace Cube;
 void testScriptIntegration() {
     Engine::init();
 
-    Engine::setApp(new Application());
+    Engine::setApp(new Application({1920, 1080, "test02_script"}, {"D:/mycode/vsProject/CubeEngine/Cube/scripts"}, "D:/mycode/vsProject/CubeEngine/Cube/scripts/cube.zt"));
     Application* app = Engine::getApp();
     // 注册脚本资源路径, 使 ResPtr<Script>("script:player") 可被加载
     std::unordered_map<std::string, nlohmann::json> pathMap;
-    pathMap["script:player"] = {{"path", "Test/CubeTest/scripts/Player.zt"}};
+    pathMap["script:player"] = {{"path", "D:/mycode/vsProject/CubeEngine/Test/CubeTest/scripts/Player.zt"}};
     app->getResourceManager().init(pathMap);
     app->getSceneManager().registerScene("scene", [&app]() {
         Scene* scene = new Scene("scene", true);

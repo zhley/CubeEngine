@@ -1,0 +1,50 @@
+class Vec2 {
+    var x = 0.0;
+    var y = 0.0;
+
+    fn _init(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    fn _equals(other) {
+        return this.x == other.x && this.y == other.y;
+    }
+}
+
+class Vec3 {
+    var x = 0.0;
+    var y = 0.0;
+    var z = 0.0;
+
+    fn _init(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
+
+    fn _equals(other) {
+        return this.x == other.x && this.y == other.y && this.z == other.z;
+    }
+}
+
+class Vec4 {
+    var x = 0.0;
+    var y = 0.0;
+    var z = 0.0;
+    var w = 0.0;
+
+    fn _init(x, y, z, w) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.w = w;
+        return this;
+    }
+
+    fn _equals(other) {
+        return this.x == other.x && this.y == other.y && this.z == other.z && this.w == other.w;
+    }
+}
