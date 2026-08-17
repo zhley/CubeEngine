@@ -15,6 +15,9 @@ namespace Cube {
 		static void setApp(Application* app);
 		static Application* getApp();
 
+		// 析构 application, 推荐显式调用以控制析构顺序, 避免日志器在 application 之前析构.
+		static void shutdown();
+
 	private:
 		static std::unique_ptr<Application> application;
 	};

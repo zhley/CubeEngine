@@ -23,6 +23,7 @@ public:
     TypeID getType() const override { return getTypeID<ScriptComponent>(); }
 
 private:
+    // TODO: 一个实体上同种类型组件只能挂载一个, 要支持多脚本或多实例, 可以在 ScriptComponent 内部维护一个脚本实例列表.
     Zeta::Value* instance = nullptr;
 };
 

@@ -10,7 +10,7 @@ namespace Cube {
 // Owns the Zeta VM. Each Application has its own engine.
 class ScriptRuntime {
 public:
-    ScriptRuntime(const std::string& cubeCoreScriptPath, const std::vector<std::string>& moduleSearchPaths);
+    ScriptRuntime(const std::vector<std::string>& moduleSearchPaths);
     ~ScriptRuntime() = default;
 
     Zeta::VM& getVM() { return vm; }

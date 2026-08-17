@@ -48,3 +48,167 @@ class Vec4 {
         return this.x == other.x && this.y == other.y && this.z == other.z && this.w == other.w;
     }
 }
+
+class Color {
+    var r = 0.0;
+    var g = 0.0;
+    var b = 0.0;
+    var a = 1.0;
+
+    fn _init(r, g, b, a) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+        return this;
+    }
+
+    fn _equals(other) {
+        return this.r == other.r && this.g == other.g && this.b == other.b && this.a == other.a;
+    }
+}
+
+// ========== Key Codes ==========
+let KEY_Space               = 32;
+let KEY_Apostrophe          = 39; /* ' */
+let KEY_Comma               = 44; /* , */
+let KEY_Minus               = 45; /* - */
+let KEY_Period              = 46; /* . */
+let KEY_Slash               = 47; /* / */
+
+let KEY_D0                  = 48; /* 0 */
+let KEY_D1                  = 49; /* 1 */
+let KEY_D2                  = 50; /* 2 */
+let KEY_D3                  = 51; /* 3 */
+let KEY_D4                  = 52; /* 4 */
+let KEY_D5                  = 53; /* 5 */
+let KEY_D6                  = 54; /* 6 */
+let KEY_D7                  = 55; /* 7 */
+let KEY_D8                  = 56; /* 8 */
+let KEY_D9                  = 57; /* 9 */
+
+let KEY_Semicolon           = 59; /* ; */
+let KEY_Equal               = 61; /* = */
+
+let KEY_A                   = 65;
+let KEY_B                   = 66;
+let KEY_C                   = 67;
+let KEY_D                   = 68;
+let KEY_E                   = 69;
+let KEY_F                   = 70;
+let KEY_G                   = 71;
+let KEY_H                   = 72;
+let KEY_I                   = 73;
+let KEY_J                   = 74;
+let KEY_K                   = 75;
+let KEY_L                   = 76;
+let KEY_M                   = 77;
+let KEY_N                   = 78;
+let KEY_O                   = 79;
+let KEY_P                   = 80;
+let KEY_Q                   = 81;
+let KEY_R                   = 82;
+let KEY_S                   = 83;
+let KEY_T                   = 84;
+let KEY_U                   = 85;
+let KEY_V                   = 86;
+let KEY_W                   = 87;
+let KEY_X                   = 88;
+let KEY_Y                   = 89;
+let KEY_Z                   = 90;
+
+let KEY_LeftBracket         = 91;  /* [ */
+let KEY_Backslash           = 92;  /* \ */
+let KEY_RightBracket        = 93;  /* ] */
+let KEY_GraveAccent         = 96;  /* ` */
+
+let KEY_World1              = 161; /* non-US #1 */
+let KEY_World2              = 162; /* non-US #2 */
+
+/* Function keys */
+let KEY_Escape              = 256;
+let KEY_Enter               = 257;
+let KEY_Tab                 = 258;
+let KEY_Backspace           = 259;
+let KEY_Insert              = 260;
+let KEY_Delete              = 261;
+let KEY_Right               = 262;
+let KEY_Left                = 263;
+let KEY_Down                = 264;
+let KEY_Up                  = 265;
+let KEY_PageDown            = 267;
+let KEY_Home                = 268;
+let KEY_End                 = 269;
+let KEY_CapsLock            = 280;
+let KEY_ScrollLock          = 281;
+let KEY_NumLock             = 282;
+let KEY_PrintScreen         = 283;
+let KEY_Pause               = 284;
+let KEY_F1                  = 290;
+let KEY_F2                  = 291;
+let KEY_F3                  = 292;
+let KEY_F4                  = 293;
+let KEY_F5                  = 294;
+let KEY_F6                  = 295;
+let KEY_F7                  = 296;
+let KEY_F8                  = 297;
+let KEY_F9                  = 298;
+let KEY_F10                 = 299;
+let KEY_F11                 = 300;
+let KEY_F12                 = 301;
+let KEY_F13                 = 302;
+let KEY_F14                 = 303;
+let KEY_F15                 = 304;
+let KEY_F16                 = 305;
+let KEY_F17                 = 306;
+let KEY_F18                 = 307;
+let KEY_F19                 = 308;
+let KEY_F20                 = 309;
+let KEY_F21                 = 310;
+let KEY_F22                 = 311;
+let KEY_F23                 = 312;
+let KEY_F24                 = 313;
+let KEY_F25                 = 314;
+/* Keypad */
+let KEY_KP0                 = 320;
+let KEY_KP1                 = 321;
+let KEY_KP2                 = 322;
+let KEY_KP3                 = 323;
+let KEY_KP4                 = 324;
+let KEY_KP5                 = 325;
+let KEY_KP6                 = 326;
+let KEY_KP7                 = 327;
+let KEY_KP8                 = 328;
+let KEY_KP9                 = 329;
+let KEY_KPDecimal           = 330;
+let KEY_KPDivide            = 331;
+let KEY_KPMultiply          = 332;
+let KEY_KPSubtract          = 333;
+let KEY_KPAdd               = 334;
+let KEY_KPEnter             = 335;
+let KEY_KPEqual             = 336;
+
+let KEY_LeftShift           = 340;
+let KEY_LeftControl         = 341;
+let KEY_LeftAlt             = 342;
+let KEY_LeftSuper           = 343;
+let KEY_RightShift          = 344;
+let KEY_RightControl        = 345;
+let KEY_RightAlt            = 346;
+let KEY_RightSuper          = 347;
+let KEY_Menu                = 348;
+
+// ========== Mouse Buttons ==========
+let MOUSE_Button0 = 0;
+let MOUSE_Button1 = 1;
+let MOUSE_Button2 = 2;
+let MOUSE_Button3 = 3;
+let MOUSE_Button4 = 4;
+let MOUSE_Button5 = 5;
+let MOUSE_Button6 = 6;
+let MOUSE_Button7 = 7;
+
+let MOUSE_ButtonLast = 7;
+let MOUSE_ButtonLeft = 0;
+let MOUSE_ButtonRight = 1;
+let MOUSE_ButtonMiddle = 2;

@@ -19,4 +19,8 @@ namespace Cube {
         return application.get();
     }
 
+    void Engine::shutdown() {
+        application.reset();
+    }
+
 }  // namespace Cube

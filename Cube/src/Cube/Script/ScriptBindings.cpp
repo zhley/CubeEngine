@@ -8,6 +8,7 @@
 #include "glm/glm.hpp"
 #include "zeta/compiler/bytecode.h"
 
+#include "Cube/Reflection/Type.h"
 #include "Cube/Core/Input.h"
 #include "Cube/Reflection/ClassRegistry.h"
 #include "Cube/Scene/Component.h"
@@ -16,6 +17,13 @@
 #include "Cube/Scene/SceneManager.h"
 #include "Cube/Scene/Transform.h"
 #include "Cube/Script/ScriptRuntime.h"
+#include "Cube/Renderer/Color.h"
+#include "Cube/Resource/ResPtr.h"
+#include "Cube/Resource/Sprite.h"
+#include "Cube/Renderer/Texture.h"
+#include "Cube/Animation/AnimationClip.h"
+#include "Cube/Renderer/Font.h"
+#include "Cube/Resource/Script.h"
 
 namespace Cube {
 
@@ -66,6 +74,15 @@ void pushVec4(Zeta::VM* vm, const glm::vec4& v) {
     vm->newInstance(4);
 }
 
+void pushColor(Zeta::VM* vm, const Color& c) {
+    vm->push(Zeta::Value(static_cast<double>(c.r)));
+    vm->push(Zeta::Value(static_cast<double>(c.g)));
+    vm->push(Zeta::Value(static_cast<double>(c.b)));
+    vm->push(Zeta::Value(static_cast<double>(c.a)));
+    vm->push(vm->getGlobal(ScriptBindings::vec4Class));
+    vm->newInstance(4);
+}
+
 std::optional<glm::vec2> toVec2(Zeta::VM* vm, const Zeta::Value& value) {
     auto xVal = Zeta::Value(value[vm->internString("x")]).as<float>();
     auto yVal = Zeta::Value(value[vm->internString("y")]).as<float>();
@@ -92,6 +109,17 @@ std::optional<glm::vec4> toVec4(Zeta::VM* vm, const Zeta::Value& value) {
     auto wVal = Zeta::Value(value[vm->internString("w")]).as<float>();
     if (xVal.has_value() && yVal.has_value() && zVal.has_value() && wVal.has_value()) {
         return glm::vec4(*xVal, *yVal, *zVal, *wVal);
+    }
+    return std::nullopt;
+}
+
+std::optional<Color> toColor(Zeta::VM* vm, const Zeta::Value& value) {
+    auto rVal = Zeta::Value(value[vm->internString("r")]).as<float>();
+    auto gVal = Zeta::Value(value[vm->internString("g")]).as<float>();
+    auto bVal = Zeta::Value(value[vm->internString("b")]).as<float>();
+    auto aVal = Zeta::Value(value[vm->internString("a")]).as<float>();
+    if (rVal.has_value() && gVal.has_value() && bVal.has_value() && aVal.has_value()) {
+        return Color(*rVal, *gVal, *bVal, *aVal);
     }
     return std::nullopt;
 }
@@ -131,6 +159,30 @@ void pushAny(Zeta::VM* vm, const Any& value) {
         pushVec4(vm, value.as<glm::vec4>());
         return;
     }
+    if(typeID == getTypeID<Color>()) {
+        pushColor(vm, value.as<Color>());
+        return;
+    }
+    if(typeID == getTypeID<ResPtr<Sprite>>()) {
+        vm->newStrObj(value.as<ResPtr<Sprite>>()->getIdentifier());
+        return;
+    }
+    if(typeID == getTypeID<ResPtr<Texture2D>>()) {
+        vm->newStrObj(value.as<ResPtr<Texture2D>>()->getIdentifier());
+        return;
+    }
+    if(typeID == getTypeID<ResPtr<AnimationClip>>()) {
+        vm->newStrObj(value.as<ResPtr<AnimationClip>>()->getIdentifier());
+        return;
+    }
+    if(typeID == getTypeID<ResPtr<Font>>()) {
+        vm->newStrObj(value.as<ResPtr<Font>>()->getIdentifier());
+        return;
+    }
+    if(typeID == getTypeID<ResPtr<Script>>()) {
+        vm->newStrObj(value.as<ResPtr<Script>>()->getIdentifier());
+        return;
+    }
     // TODO: 支持更多类型
     vm->push(Zeta::Value::Null);
 }
@@ -168,6 +220,30 @@ Any toAny(Zeta::VM* vm, TypeID typeID, const Zeta::Value& value) {
     if(typeID == getTypeID<glm::vec4>()) {
         auto val = toVec4(vm, value);
         return val.has_value() ? Any(*val) : Any();
+    }
+    if(typeID == getTypeID<Color>()) {
+        auto val = toColor(vm, value);
+        return val.has_value() ? Any(*val) : Any();
+    }
+    if(typeID == getTypeID<ResPtr<Sprite>>()) {
+        auto val = value.as<std::string>();
+        return val.has_value() ? Any(ResPtr<Sprite>(*val)) : Any();
+    }
+    if(typeID == getTypeID<ResPtr<Texture2D>>()) {
+        auto val = value.as<std::string>();
+        return val.has_value() ? Any(ResPtr<Texture2D>(*val)) : Any();
+    }
+    if(typeID == getTypeID<ResPtr<AnimationClip>>()) {
+        auto val = value.as<std::string>();
+        return val.has_value() ? Any(ResPtr<AnimationClip>(*val)) : Any();
+    }
+    if(typeID == getTypeID<ResPtr<Font>>()) {
+        auto val = value.as<std::string>();
+        return val.has_value() ? Any(ResPtr<Font>(*val)) : Any();
+    }
+    if(typeID == getTypeID<ResPtr<Script>>()) {
+        auto val = value.as<std::string>();
+        return val.has_value() ? Any(ResPtr<Script>(*val)) : Any();
     }
     return Any();
 }
@@ -425,6 +501,49 @@ void componentSetProperty(Zeta::VM* vm, int argc) {
     vm->push(Zeta::Value::Null);
 }
 
+// name, arg0, arg1, ..., argN, component
+void componentCallMethod(Zeta::VM* vm, int argc) {
+    Component* component = static_cast<Component*>(vm->unwrapPointer());
+    auto methodName = vm->peek(-(argc - 1))->as<std::string>();
+    if(argc < 2 || !component || !methodName.has_value()) {
+        vm->pop(argc - 1);
+        vm->reportError("Component.call_method: argument mismatch");
+        vm->push(Zeta::Value::Error);
+        return;
+    }
+    Class* classInfo = ClassRegistry::get().getClass(component->getType());
+    if(!classInfo) {
+        vm->push(Zeta::Value::Null);
+        return;
+    }
+    Method* method = classInfo->getMethod(*methodName);
+    if(!method) {
+        vm->push(Zeta::Value::Null);
+        return;
+    }
+    std::vector<Any> args(argc - 2);
+    const std::vector<TypeID>& params = method->getParameters();
+    if (params.size() != static_cast<size_t>(argc - 2)) {
+        vm->pop(argc - 1);
+        vm->reportError("Component.call_method: argument count mismatch");
+        vm->push(Zeta::Value::Error);
+        return;
+    }
+    for(int i = 0; i < argc - 2; ++i) {
+        Any arg = toAny(vm, params[i], *vm->peek(-static_cast<int>(argc - 2 - i)));
+        if(arg.isNull()) {
+            vm->pop(argc - 1);
+            vm->reportError("Component.call_method: argument type mismatch");
+            vm->push(Zeta::Value::Error);
+            return;
+        }
+        args[i] = std::move(arg);
+    }
+    vm->pop(argc - 1);
+    Any result = method->invoke(component, args);
+    pushAny(vm, result);
+}
+
 // ---- Scene ----
 
 void sceneFindEntity(Zeta::VM* vm, int argc) {
@@ -484,9 +603,11 @@ void inputGetMousePos(Zeta::VM* vm, int argc) {
 
 }  // namespace
 
-void ScriptBindings::initialize(Zeta::VM& vm, const std::string& cubeCoreScriptPath) {
+void ScriptBindings::initialize(Zeta::VM& vm) {
     // 注册原生类; fields 为空, 引擎对象通过 _cpp_ptr 字段持有 C++ 指针
-    entityClass = vm.registerClass("Entity", {}, {
+    entityClass = vm.registerClass("Entity", {
+        {"_cpp_ptr", Zeta::Value::Null}
+    }, {
         {"get_name", entityGetName},
         {"get_transform", entityGetTransform},
         {"get_parent", entityGetParent},
@@ -498,23 +619,34 @@ void ScriptBindings::initialize(Zeta::VM& vm, const std::string& cubeCoreScriptP
         {"remove_component", entityRemoveComponent},
         {"get_component", entityGetComponent},
         {"has_component", entityHasComponent},
+        {"_equal", equalFunction<Entity>},
     });
-    transformClass = vm.registerClass("Transform", {}, {
+    transformClass = vm.registerClass("Transform", {
+        {"_cpp_ptr", Zeta::Value::Null}
+    }, {
         {"get_pos", transformGetPos},
         {"set_pos", transformSetPos},
         {"get_rotation", transformGetRotation},
         {"set_rotation", transformSetRotation},
         {"get_scale", transformGetScale},
         {"set_scale", transformSetScale},
+        {"_equal", equalFunction<Transform>},
     });
-    componentClass = vm.registerClass("Component", {}, {
+    componentClass = vm.registerClass("Component", {
+        {"_cpp_ptr", Zeta::Value::Null}
+    }, {
         {"get_type_name", componentGetTypeName},
-        {"get_property", componentGetProperty},
-        {"set_property", componentSetProperty},
-    });
-    sceneClass = vm.registerClass("Scene", {}, {
+        {"get", componentGetProperty},
+        {"set", componentSetProperty},
+        {"call", componentCallMethod},
+        {"_equal", equalFunction<Component>},
+    }); 
+    sceneClass = vm.registerClass("Scene", {
+        {"_cpp_ptr", Zeta::Value::Null}
+    }, {
         {"find_entity", sceneFindEntity},
         {"create_entity", sceneCreateEntity},
+        {"_equal", equalFunction<Scene>},
     });
 
     vm.registerFunction("cb_is_key_pressed", inputIsKeyPressed);
@@ -522,6 +654,7 @@ void ScriptBindings::initialize(Zeta::VM& vm, const std::string& cubeCoreScriptP
     vm.registerFunction("cb_get_mouse_pos", inputGetMousePos);
 
     // TODO: 也可以改成直接内嵌字符串源码或者字节码
+    auto cubeCoreScriptPath = vm.searchModuleFile("cube").first.string(); 
     std::unique_ptr<Zeta::Module> coreModule = ScriptRuntime::parseModule(cubeCoreScriptPath);
     vm.loadModule(coreModule.get());
     vec2Class = vm.findGlobal(coreModule->name, "Vec2");

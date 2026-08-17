@@ -48,7 +48,7 @@ namespace Cube {
 
 		template<typename ReturnType, typename... Args>
 		ClassBuilder& method(const std::string& name, ReturnType(T::*methodPtr)(Args...)) {
-		    classInfo->addMethod(name, getTypeID<ReturnType>(), {getTypeID<Args>()...}, [methodPtr](void* obj, const std::vector<Any>& args) {
+		    classInfo->addMethod(name, getTypeID<ReturnType>(), {getTypeID<Args>()...}, [methodPtr, this](void* obj, const std::vector<Any>& args) {
 		        T* instance = static_cast<T*>(obj);
 				if(args.size() != sizeof...(Args)) {
 					CB_CORE_ERROR("Reflection: Mismatched number of function parameter");

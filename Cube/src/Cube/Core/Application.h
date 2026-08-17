@@ -12,7 +12,7 @@ namespace Cube {
 
 class Application {
 public:
-    Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths, const std::string& cubeCoreScriptPath);
+    Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths);
     virtual ~Application();
 
     virtual void run();

@@ -1,3 +1,5 @@
+import "cube";
+
 class Player {
     var update_count = 0;
     var entity = null;
@@ -11,22 +13,24 @@ class Player {
 
     fn start() {
         print("Player.start\n");
-        var pos = this.entity.get_transform().get_pos();
-        cb_log("start: pos = [" + str(pos.x) + ", " + str(pos.y) + "]");
-        cb_log("start: has SpriteRender = " + str(this.entity.has_component("SpriteRender")));
-        cb_log("start: has Camera2D = " + str(this.entity.has_component("Camera2D")));
+        var spriteRender = this.entity.add_component("SpriteRender");
+        spriteRender.set("sprite", "spr:tex:icon.png");
     }
 
     fn update(dt) {
-        var pos = cb_get_mouse_pos();
-        cb_log("update: mouse pos = [" + str(pos.x) + ", " + str(pos.y) + "]");
-        if (cb_is_key_pressed(32)) {
-            cb_log("update: space pressed");
+        var pos = this.entity.get_transform().get_pos();
+        if (cb_is_key_pressed(KEY_W)) {
+            pos.y += 1000.0 * dt;
         }
-        if (cb_is_mouse_button_pressed(0)) {
-            cb_log("update: left mouse button pressed");
+        if (cb_is_key_pressed(KEY_S)) {
+            pos.y -= 1000.0 * dt;
         }
-        println("Player.update: " + str(this.update_count) + ", dt = " + str(dt) + "s");
-        this.update_count += 1;
+        if (cb_is_key_pressed(KEY_A)) {
+            pos.x -= 1000.0 * dt;
+        }
+        if (cb_is_key_pressed(KEY_D)) {
+            pos.x += 1000.0 * dt;
+        }
+        this.entity.get_transform().set_pos(pos);
     }
 }

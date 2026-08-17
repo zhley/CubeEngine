@@ -8,7 +8,7 @@
 
 namespace Cube {
 
-Application::Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths, const std::string& cubeCoreScriptPath) : mainWindow(nullptr), running(true), scriptRuntime(cubeCoreScriptPath, moduleSearchPaths) {
+Application::Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths) : mainWindow(nullptr), running(true), scriptRuntime(moduleSearchPaths) {
     mainWindow = new Window(windowPros, &eventDispatcher);
     eventDispatcher.subscribe<WindowCloseEvent>(std::bind(&Application::onWindowClose, this, std::placeholders::_1));
 }

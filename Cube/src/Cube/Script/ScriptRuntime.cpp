@@ -48,7 +48,7 @@ void logErrorNative(Zeta::VM* vm, int argc) {
 
 }  // namespace
 
-ScriptRuntime::ScriptRuntime(const std::string& cubeCoreScriptPath, const std::vector<std::string>& moduleSearchPaths) : vm({1024, 8192, -1, moduleSearchPaths}) {
+ScriptRuntime::ScriptRuntime(const std::vector<std::string>& moduleSearchPaths) : vm({1024, 8192, -1, moduleSearchPaths}) {
     vm.setErrorHandler([](const Zeta::VM::Error& error) {
         if (error.type == Zeta::VM::Error::RuntimeError) {
             CB_CORE_ERROR("[Runtime Error][line {} in {}]: {}", error.line, error.moduleName, error.message);
@@ -59,7 +59,7 @@ ScriptRuntime::ScriptRuntime(const std::string& cubeCoreScriptPath, const std::v
     vm.registerFunction("cb_log", logNative);
     vm.registerFunction("cb_log_warn", logWarnNative);
     vm.registerFunction("cb_log_error", logErrorNative);
-    ScriptBindings::initialize(vm, cubeCoreScriptPath);
+    ScriptBindings::initialize(vm);
 }
 
 std::unique_ptr<Zeta::Module> ScriptRuntime::parseModule(const std::string& filePath) {
