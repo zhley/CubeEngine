@@ -1,19 +1,23 @@
 #include "EditorApp.h"
 
+#include <Windows.h>
 #include <fstream>
+#include <vector>
 
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
-
-#include "../Project/Project.h"
-#include "../Utils/misc.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 #include "Cube/Core/Application.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Event/ApplicationEvent.h"
 #include "Cube/Renderer/Renderer.h"
 #include "Cube/Utils/Utils.h"
+#include "Cube/Core/Engine.h"
+
+#include "../Project/Project.h"
+#include "../Utils/misc.h"
 #include "EditorPage.h"
+#include "json.hpp"
 
 using namespace Cube;
 
@@ -26,14 +30,13 @@ const std::string EditorApp::userConfigDir = []() {
     return dir;
 }();
 
-EditorApp::EditorApp(const WindowPros& windowPros) {
-    mainWindow = std::make_unique<Window>(windowPros, &eventDispatcher);
-    eventDispatcher.subscribe<WindowCloseEvent>(std::bind(&EditorApp::onWindowClose, this, std::placeholders::_1));
+// TODO: 暂时硬编码路径
+EditorApp::EditorApp(const WindowPros& windowPros) : Cube::Application(windowPros, {"D:/mycode/vsProject/CubeEngine/Cube/scripts"}) {
     imGuiInit();
     loadConfig();
 
     glfwSetDropCallback(mainWindow->getNativeWindow(), [](GLFWwindow* window, int path_count, const char* paths[]) {
-        Page* curPage = EditorApp::get().currentPage.get();
+        Page* curPage = static_cast<EditorApp*>(Cube::Engine::getApp())->currentPage.get();
         if(curPage && curPage->getType() == Page::Type::Editor) {
             for(int i = 0; i < path_count; ++i) {
                 static_cast<EditorPage*>(curPage)->getProject()->importResource(paths[i]);
@@ -44,22 +47,12 @@ EditorApp::EditorApp(const WindowPros& windowPros) {
 
 EditorApp::~EditorApp() {
     saveConfig();
-    if(game) {
-        game->getWindow()->close();
-    }
-    if(gameThread.joinable()) {
-        gameThread.join();
-    }
 
     ImGui_ImplGlfw_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
 }
 
-EditorApp& EditorApp::get() {
-    static EditorApp instance({1920, 1080, "Cube Editor"});
-    return instance;
-}
 
 void EditorApp::switchPage(Page* page) {
     currentPage.reset(page);
@@ -80,10 +73,6 @@ void EditorApp::run() {
         }
         mainWindow->update();
     }
-}
-
-Window* EditorApp::getWindow() const {
-    return mainWindow.get();
 }
 
 void EditorApp::imGuiInit() {
@@ -784,12 +773,4 @@ void EditorApp::setDarkTheme() {
         style.WindowTitleAlign = ImVec2(0.0f, 0.5f);  // 窗口标题对齐
         style.ButtonTextAlign = ImVec2(0.5f, 0.5f);   // 按钮文本居中
     }
-}
-
-bool EditorApp::onWindowClose(const Cube::Event& e) {
-    if(static_cast<const WindowCloseEvent*>(&e)->window == mainWindow.get()){
-        running = false;
-        return true;
-    }
-    return false;
 }

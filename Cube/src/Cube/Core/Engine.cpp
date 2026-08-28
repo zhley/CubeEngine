@@ -1,10 +1,11 @@
 #include "Engine.h"
 
 #include "TypeRegister.h"
+#include "Log.h"
 
 namespace Cube {
 
-    std::unique_ptr<Application> Engine::application;
+    Application* Engine::application = nullptr;
 
     void Engine::init() {
         Log::init();
@@ -12,15 +13,20 @@ namespace Cube {
     }
 
     void Engine::setApp(Application* app) {
-        application.reset(app);
+        if (application) {
+            CB_CORE_WARN("Engine::setApp: application already set, will delete the old one.");
+            delete application;
+        }
+        application = app;
     }
 
     Application* Engine::getApp() {
-        return application.get();
+        return application;
     }
 
     void Engine::shutdown() {
-        application.reset();
+        delete application;
+        application = nullptr;
     }
 
 }  // namespace Cube

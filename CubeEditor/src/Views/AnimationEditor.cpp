@@ -11,6 +11,7 @@
 #include "../Utils/ImGuiExternal.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Renderer/TextureRegion.h"
+#include "Cube/Core/Engine.h"
 #include "json.hpp"
 
 #include <imgui/imgui.h>
@@ -149,7 +150,7 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
     project->getAssetExplorer().createResource("anim:" + relPath.generic_string(), importConfig);
 
     TargetChangeEvent e(absPath.generic_string());
-    EditorApp::get().getEventDispatcher().dispatch(e);
+    Cube::Engine::getApp()->getEventDispatcher().dispatch(e);
     return true;
 }
 

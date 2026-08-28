@@ -1,9 +1,12 @@
 #include "AssetExplorer.h"
 
+#include <fstream>
+
 #include "Cube/Core/Log.h"
 #include "Cube/Resource/ResourceManager.h"
+#include "Cube/Core/Engine.h"
 
-#include <fstream>
+#include "../App/EditorApp.h"
 
 void AssetExplorer::normalInit() {
     rootNode = std::make_unique<AssetNode>();
@@ -131,5 +134,5 @@ void AssetExplorer::_removeNode(AssetNode* node) {
 }
 
 void AssetExplorer::resetResourceManager() {
-    Cube::ResourceManager::get().reset(assetPathMap);
+    Cube::Engine::getApp()->getResourceManager().reset(assetPathMap);
 }

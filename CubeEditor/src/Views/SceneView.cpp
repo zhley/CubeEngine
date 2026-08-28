@@ -38,18 +38,9 @@ void SceneView::render(float deltaTime) {
     ImGui::BeginChild("ToolBar", {ImGui::GetWindowWidth(), 45});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
     ImVec2 toolButtonSize(37, 37);
-    EditorApp* app = &EditorApp::get();
+    EditorApp* app = static_cast<EditorApp*>(Cube::Engine::getApp());
     static bool isGameOver = true;
     if(ImGui::ImageButton("play", play_png->getId(), toolButtonSize, ImVec2(0, 1), ImVec2(1, 0)) && isGameOver) {
-        isGameOver = false;
-        if(app->gameThread.joinable()) {
-            app->gameThread.join();
-        }
-        app->gameThread = std::thread(gameThreadFunction,
-            app,
-            editorPage.getProject(),
-            editorPage.selectedScene->scene,
-            &isGameOver);
     }
     ImGui::SameLine();
     if(ImGui::Button("Reset")) {

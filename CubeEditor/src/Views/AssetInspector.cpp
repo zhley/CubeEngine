@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 
+#include "Cube/Core/Engine.h"
 #include "Cube/UI/FileDialog.h"
 #include "../Project/AssetExplorer.h"
 #include "../App/EditorApp.h"
@@ -38,7 +39,7 @@ void AssetInspector::render(float deltaTime) {
                 ImGui::Separator();
 
                 if(ImGui::Button("Load Sprites From Atlas")) {
-                    std::string atlasPath = Cube::FileDialog::openFile("Atlas JSON(.json)\0*.json\0All(.*)\0*.*\0", EditorApp::get().getWindow()->getWin32Window());
+                    std::string atlasPath = Cube::FileDialog::openFile("Atlas JSON(.json)\0*.json\0All(.*)\0*.*\0", Cube::Engine::getApp()->getWindow()->getWin32Window());
                     if(!atlasPath.empty()) {
                         editingImporter["sprites"] = Utils::parseAtlasFile(atlasPath);
                     }
@@ -137,7 +138,7 @@ void AssetInspector::render(float deltaTime) {
                 ImGui::Text("path:");
                 ImGui::Text("%s", editingImporter.value("path", "").c_str());
                 if(ImGui::Button("Edit in Animation Editor")) {
-                    EditorApp::get().getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(editingImporter.value("path", "")));
+                    Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(editingImporter.value("path", "")));
                 }
                 break;
             } 

@@ -1,11 +1,14 @@
 ﻿#include "EditorPage.h"
 
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include <string>
 
-#include <filesystem>
-#include <glm/ext/matrix_clip_space.hpp>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "Cube/Core/Log.h"
+#include "Cube/UI/FileDialog.h"
+#include "Cube/Utils/Utils.h"
+#include "Cube/Core/Engine.h"
 
 #include "../Project/Project.h"
 #include "../Views/EntityPropertyPanel.h"
@@ -15,13 +18,6 @@
 #include "../Views/AssetInspector.h"
 #include "../Views/LogView.h"
 #include "../Views/AnimationEditor.h"
-#include "Cube/Core/Application.h"
-#include "Cube/Core/Log.h"
-#include "Cube/Renderer/Renderer.h"
-#include "Cube/UI/FileDialog.h"
-#include "Cube/Utils/Utils.h"
-#include "EditorApp.h"
-#include "imgui/imgui_internal.h"
 
 using namespace Cube;
 
@@ -72,7 +68,7 @@ void EditorPage::render(float deltaTime) {
             }
 
             if(ImGui::MenuItem("Load Scene")) {
-                std::string filePath = FileDialog::openFile("Scene File(.scene)\0*.scene\0" ,EditorApp::get().getWindow()->getWin32Window());
+                std::string filePath = FileDialog::openFile("Scene File(.scene)\0*.scene\0" ,Engine::getApp()->getWindow()->getWin32Window());
                 if(!filePath.empty()) {
                     Scene* scene = new Scene(filePath);
                     if(Utils::getFileName(filePath) == scene->getName()){
@@ -160,7 +156,7 @@ void EditorPage::render(float deltaTime) {
 }
 
 void EditorPage::importFromFileDialog() {
-    for(auto& path : FileDialog::openMultiFiles("Resources(.png.jpg)\0*.png;*.jpg\0All(.*)\0*.*\0", EditorApp::get().getWindow()->getWin32Window())) {
+    for(auto& path : FileDialog::openMultiFiles("Resources(.png.jpg)\0*.png;*.jpg\0All(.*)\0*.*\0", Engine::getApp()->getWindow()->getWin32Window())) {
         project->importResource(path);
     }
 }

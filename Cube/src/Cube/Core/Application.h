@@ -44,10 +44,10 @@ public:
 protected:
     Window* mainWindow;
     bool running;
+    ResourceManager resourceManager;
     RenderServer renderServer;
     SceneManager sceneManager;
     EventDispatcher eventDispatcher;
-    ResourceManager resourceManager;
     ScriptRuntime scriptRuntime;
 };
 

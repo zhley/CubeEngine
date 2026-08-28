@@ -5,6 +5,7 @@
 #include "View.h"
 
 #include "Cube/Event/Event.h"
+#include "Cube/Core/Engine.h"
 
 #include <string>
 #include <vector>
@@ -20,7 +21,7 @@ public:
     };
 
     AnimationEditor(EditorPage& editorPage) : View(editorPage) {
-        EditorApp::get().getEventDispatcher().subscribe<TargetChangeEvent>(std::bind(&AnimationEditor::onTargetChange, this, std::placeholders::_1));
+        Cube::Engine::getApp()->getEventDispatcher().subscribe<TargetChangeEvent>(std::bind(&AnimationEditor::onTargetChange, this, std::placeholders::_1));
     }
     ~AnimationEditor() override = default;
 

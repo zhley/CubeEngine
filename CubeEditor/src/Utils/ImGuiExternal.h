@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <string>
+#include <algorithm>
 
 #include "Cube/Renderer/Color.h"
 #include "Cube/Renderer/Texture.h"
@@ -59,7 +60,7 @@ namespace Utils {
 
     // 保持长宽比的缩放
     inline ImVec2 keepAspectRatio(const ImVec2& size, float maxDimension) {
-        float scale = maxDimension / std::max(size.x, size.y);
+        float scale = maxDimension / (std::max)(size.x, size.y);
         return ImVec2(size.x * scale, size.y * scale);
     }
 }

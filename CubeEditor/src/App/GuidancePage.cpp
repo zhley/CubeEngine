@@ -1,22 +1,23 @@
 #include "GuidancePage.h"
 
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
 #include <string>
+
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "Cube/UI/FileDialog.h"
+#include "Cube/Core/Engine.h"
 
 #include "../Project/Project.h"
 #include "../Utils/ImGuiExternal.h"
-#include "../Utils/misc.h"
-#include "Cube/Core/Log.h"
-#include "Cube/UI/FileDialog.h"
 #include "EditorApp.h"
 #include "EditorPage.h"
-#include "imgui/imgui_internal.h"
 
 using namespace Cube;
 
 void GuidancePage::render(float deltaTime) {
+    EditorApp* app = static_cast<EditorApp*>(Cube::Engine::getApp());
+
     static Project* proj = nullptr;
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -28,8 +29,8 @@ void GuidancePage::render(float deltaTime) {
 
     ImGui::BeginGroup();
     bool switchPage = false;
-    auto toRemoveIt = EditorApp::get().projectsPathCache.end();
-    for(auto it = EditorApp::get().projectsPathCache.begin(); it != EditorApp::get().projectsPathCache.end(); ++it) {
+    auto toRemoveIt = app->projectsPathCache.end();
+    for(auto it = app->projectsPathCache.begin(); it != app->projectsPathCache.end(); ++it) {
         const std::string& p = *it;
         if(ImGui::Button(p.c_str())) {
             proj = new Project(p);
@@ -40,8 +41,8 @@ void GuidancePage::render(float deltaTime) {
             toRemoveIt = it;
         }
     }
-    if(toRemoveIt != EditorApp::get().projectsPathCache.end()) {
-        EditorApp::get().projectsPathCache.erase(toRemoveIt);
+    if(toRemoveIt != app->projectsPathCache.end()) {
+        app->projectsPathCache.erase(toRemoveIt);
     }
     ImGui::EndGroup();
 
@@ -49,7 +50,7 @@ void GuidancePage::render(float deltaTime) {
     static bool isPathValid = true;
     static char name[50] = {};
     static char path[256] = {};
-    static std::unique_ptr<ModalPopup> newProject = std::make_unique<ModalPopup>("New Project", [] {
+    static std::unique_ptr<ModalPopup> newProject = std::make_unique<ModalPopup>("New Project", [&app] {
         ImGui::Text("Project Name:");
         if(!isNameValid) {
             ImGui::SameLine();
@@ -70,15 +71,15 @@ void GuidancePage::render(float deltaTime) {
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Button, toImColor({70, 77, 88, 255}));
         if(ImGui::Button("...")) {
-            strcpy_s(path, FileDialog::selectDir(EditorApp::get().getWindow()->getWin32Window()).c_str());
+            strcpy_s(path, FileDialog::selectDir(app->getWindow()->getWin32Window()).c_str());
         }
         ImGui::PopStyleColor();
-    }, [&switchPage] {
+    }, [&switchPage, &app] {
         isNameValid = !std::string(name).empty();
         isPathValid = std::filesystem::exists(path);
         if(isNameValid && isPathValid){
             delete proj;
-            EditorApp::get().projectsPathCache.push_back(std::string(path) + "/" + name + ".cbproj");
+            app->projectsPathCache.push_back(std::string(path) + "/" + name + ".cbproj");
             proj = new Project(name, path);
             newProject->close();
             ImGui::CloseCurrentPopup();
@@ -110,10 +111,10 @@ void GuidancePage::render(float deltaTime) {
     ImGui::BeginGroup();
     if(ImGui::ImageButton("Open Project##1", open_project_png->getId(), buttonSize, {0, 1}, {1, 0})) {
         delete proj;
-        std::string path = FileDialog::openFile("Cube Project File(.cbproj)\0*.cbproj\0", EditorApp::get().getWindow()->getWin32Window());
+        std::string path = FileDialog::openFile("Cube Project File(.cbproj)\0*.cbproj\0", app->getWindow()->getWin32Window());
         if(!path.empty()) {
-            if(std::find(EditorApp::get().projectsPathCache.begin(), EditorApp::get().projectsPathCache.end(), path) == EditorApp::get().projectsPathCache.end()) {
-                EditorApp::get().projectsPathCache.push_back(path);
+            if(std::find(app->projectsPathCache.begin(), app->projectsPathCache.end(), path) == app->projectsPathCache.end()) {
+                app->projectsPathCache.push_back(path);
             }
             proj = new Project(path);
             switchPage = true;
@@ -134,6 +135,6 @@ void GuidancePage::render(float deltaTime) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     if(switchPage) {
-        EditorApp::get().switchPage(new EditorPage(proj));
+        app->switchPage(new EditorPage(proj));
     }
 }
