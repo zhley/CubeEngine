@@ -8,9 +8,7 @@
 #include "App/EditorApp.h"
 #include "Project/Project.h"
 
-using namespace Cube;
-
 // TODO: 这里直接预览最终效果，改成独立进程
-void gameThreadFunction(EditorApp* app, Project* project, Scene* scene, bool* isGameOver) {
+void gameThreadFunction(EditorApp* app, Project* project, Cube::Scene* scene, bool* isGameOver) {
 
 }

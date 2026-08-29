@@ -1,39 +1,29 @@
 #include "EditorApp.h"
 
-#include <Windows.h>
+#include <filesystem>
 #include <fstream>
+#include <system_error>
 #include <vector>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include "json.hpp"
 #include "Cube/Core/Application.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Event/ApplicationEvent.h"
 #include "Cube/Renderer/Renderer.h"
-#include "Cube/Utils/Utils.h"
 #include "Cube/Core/Engine.h"
 
 #include "../Project/Project.h"
 #include "../Utils/misc.h"
 #include "EditorPage.h"
-#include "json.hpp"
-
-using namespace Cube;
 
 extern Project* proj;
 
-const std::string EditorApp::userConfigDir = []() {
-    std::string dir = ::Utils::getUserConfigDir() + "/CubeEngine";
-    Cube::Utils::normalizePath(dir);
-    std::filesystem::create_directories(dir);
-    return dir;
-}();
-
 // TODO: 暂时硬编码路径
-EditorApp::EditorApp(const WindowPros& windowPros) : Cube::Application(windowPros, {"D:/mycode/vsProject/CubeEngine/Cube/scripts"}) {
+EditorApp::EditorApp(const Cube::WindowPros& windowPros) : Cube::Application(windowPros, {"D:/mycode/vsProject/CubeEngine/Cube/scripts"}) {
     imGuiInit();
-    loadConfig();
 
     glfwSetDropCallback(mainWindow->getNativeWindow(), [](GLFWwindow* window, int path_count, const char* paths[]) {
         Page* curPage = static_cast<EditorApp*>(Cube::Engine::getApp())->currentPage.get();
@@ -46,8 +36,6 @@ EditorApp::EditorApp(const WindowPros& windowPros) : Cube::Application(windowPro
 }
 
 EditorApp::~EditorApp() {
-    saveConfig();
-
     ImGui_ImplGlfw_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
@@ -67,12 +55,23 @@ void EditorApp::run() {
         lastTime = currentTime;
         float deltaTime = frameDuration.count();
 
-        Renderer::clearBuffer();
+        Cube::Renderer::clearBuffer();
         if(currentPage) {
             currentPage->render(deltaTime);
         }
         mainWindow->update();
     }
+}
+
+std::filesystem::path EditorApp::getConfigDir() {
+    std::filesystem::path configDir = std::filesystem::path(Utils::getUserConfigDir()) / "CubeEditor"; // TODO: 改成域名倒写
+    std::error_code ec;
+    std::filesystem::create_directories(configDir, ec);
+    if (ec) {
+        CB_EDITOR_ERROR("Failed to create directory: {}, {}", configDir.string(), ec.message());
+        return std::filesystem::path();
+    }
+    return configDir;
 }
 
 void EditorApp::imGuiInit() {
@@ -93,41 +92,6 @@ void EditorApp::imGuiInit() {
 
     ImGui_ImplGlfw_InitForOpenGL(mainWindow->getNativeWindow(), true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
-}
-
-void EditorApp::loadConfig() {
-    std::string projectPathCacheFile = userConfigDir + "/project_path_cache.json";
-    if(!std::filesystem::exists(projectPathCacheFile)) {
-        // std::ofstream newFile(projectPathCacheFile);
-        // if(!newFile.is_open()) {
-        //     CB_EDITOR_ERROR("Failed to create file: {}", projectPathCacheFile);
-        //     return;
-        // }
-        // newFile.close();
-        saveConfig();
-    }
-    std::ifstream file(projectPathCacheFile);
-    if(!file.is_open()) {
-        CB_EDITOR_ERROR("Failed to open file: {}", projectPathCacheFile);
-        return;
-    }
-    nlohmann::json j;
-    file >> j;
-    file.close();
-    projectsPathCache = j["projectsPathCache"];
-}
-
-void EditorApp::saveConfig() {
-    std::string projectPathCacheFile = userConfigDir + "/project_path_cache.json";
-    std::ofstream file(projectPathCacheFile);
-    if(!file.is_open()) {
-        CB_EDITOR_ERROR("Failed to open file: {}", projectPathCacheFile);
-        return;
-    }
-    nlohmann::json j;
-    j["projectsPathCache"] = projectsPathCache;
-    file << j.dump(4);
-    file.close();
 }
 
 void EditorApp::setDarkTheme() {

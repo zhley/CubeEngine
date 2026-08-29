@@ -1,0 +1,4 @@
+Diagnostics:
+  Includes:
+    IgnoreHeader:
+      - glm/glm\.hpp

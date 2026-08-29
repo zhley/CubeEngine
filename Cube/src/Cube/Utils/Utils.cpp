@@ -1,125 +1,117 @@
 #include "Utils.h"
 
-#include <fstream>
-#include <sstream>
-
-#include "Cube/Core/Log.h"
+#ifdef _WIN32
+    #include <Windows.h>
+#endif
 
 namespace Cube {
 
-    std::string Utils::readFileToString(const std::string& filePath) {
-        std::ifstream file(filePath);
-        if(!file.is_open()) {
-            CB_CORE_ERROR("cannot open file " + filePath);
-            CB_ASSERT("Failed to open file!");
-            return "";
-        }
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        return buffer.str();
+void Utils::setConsoleUtf8() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
+}
+
+// append a utf32 code point to a utf8 string
+static void appendUtf8(std::string& out, char32_t cp) {
+    if (cp < 0x80) {
+        out.push_back(static_cast<char>(cp));
+    } else if (cp < 0x800) {
+        out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else if (cp < 0x10000) {
+        out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+        out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else {
+        out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+        out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
     }
+}
 
-    void Utils::copyFile(const std::string& srcPath, const std::string& destPath) {
-        std::ifstream srcFile(srcPath, std::ios::binary);
-        if(!srcFile.is_open()) {
-            CB_CORE_ERROR("Utils::copyFile: Failed to open source file: {}", srcPath);
-            return;
-        }
-
-        std::ofstream destFile(destPath, std::ios::binary);
-        if(!destFile.is_open()) {
-            CB_CORE_ERROR("Utils::copyFile: Failed to open destination file: {}", destPath);
-            return;
-        }
-
-        destFile << srcFile.rdbuf();
-
-        if(srcFile.fail() || destFile.fail()) {
-            CB_CORE_ERROR("Utils::copyFile: Failed to copy file from {} to {}", srcPath, destPath);
-        }
+// read a utf8 code point from a utf8 string
+static size_t readUtf8(std::string_view s, size_t pos, char32_t& cp) {
+    unsigned char c = static_cast<unsigned char>(s[pos]);
+    if (c < 0x80) {
+        cp = c;
+        return 1;
+    } else if ((c >> 5) == 0x06) {  // 110xxxxx
+        cp = (c & 0x1F) << 6;
+        cp |= (static_cast<unsigned char>(s[pos + 1]) & 0x3F);
+        return 2;
+    } else if ((c >> 4) == 0x0E) {  // 1110xxxx
+        cp = (c & 0x0F) << 12;
+        cp |= (static_cast<unsigned char>(s[pos + 1]) & 0x3F) << 6;
+        cp |= (static_cast<unsigned char>(s[pos + 2]) & 0x3F);
+        return 3;
+    } else {  // 11110xxx
+        cp = (c & 0x07) << 18;
+        cp |= (static_cast<unsigned char>(s[pos + 1]) & 0x3F) << 12;
+        cp |= (static_cast<unsigned char>(s[pos + 2]) & 0x3F) << 6;
+        cp |= (static_cast<unsigned char>(s[pos + 3]) & 0x3F);
+        return 4;
     }
+}
 
-    // please pass path with '/' as separator. case-sensitive
-    bool Utils::isFileInDirectory(const std::string& file, const std::string& directory) {
-        if(directory.empty()) {
-            CB_CORE_ERROR("Utils::isFileInDirectory: directory cannot be empty");
-            return false;
-        }
-        if(file.size() <= directory.size()) return false;
-        for(int i = 0; i < directory.size(); i++) {
-            if(file[i] != directory[i]) {
-                return false;
-            }
-        }
-        if(directory.back() != '/' && file[directory.size()] != '/') return false;
-        return true;
-    }
+// TODO: error handling
 
-    // get file name from path
-    std::string Utils::getFileName(const std::string& path, bool keepSuffix) {
-        size_t begin = path.find_last_of('/');
-        size_t end = path.find_last_of('.');
-        if(begin == std::string::npos) {
-            CB_CORE_ERROR("Utils::getFileName: invalid path");
-            return "";
-        }
-        if(end == std::string::npos) {
-            CB_CORE_WARN("Utils::getFileName: No suffix. This may be a directory.");
-            return path.substr(begin + 1);
-        }
-        if(keepSuffix) {
-            return path.substr(begin + 1);
+std::u16string Utils::utf8To16(std::string_view utf8) {
+    std::u16string out;
+    char32_t cp = 0;
+    for (size_t i = 0; i < utf8.size();) {
+        size_t len = readUtf8(utf8, i, cp);
+        i += len;
+        if (cp <= 0xFFFF) {
+            out.push_back(static_cast<char16_t>(cp));
         } else {
-            return path.substr(begin + 1, end - begin - 1);
+            // surrogate pair
+            cp -= 0x10000;
+            out.push_back(static_cast<char16_t>(0xD800 | (cp >> 10)));
+            out.push_back(static_cast<char16_t>(0xDC00 | (cp & 0x3FF)));
         }
     }
+    return out;
+}
 
-    std::vector<uint32_t> Utils::utf8To32(const std::string& utf8_str) {
-        std::vector<uint32_t> code_points;
-        size_t i = 0;
-        const size_t len = utf8_str.size();
-
-        while (i < len) {
-            uint8_t c = static_cast<uint8_t>(utf8_str[i]);
-
-            if (c <= 0x7F) { // 1byte U+0000~U+007F
-                code_points.push_back(static_cast<uint32_t>(c));
-                i += 1;
-            } 
-            else if (c >= 0xC0 && c <= 0xDF) { // 2bytes U+0080~U+07FF
-                if (i + 1 >= len) break; // invalid
-                uint8_t c2 = static_cast<uint8_t>(utf8_str[i + 1]);
-                uint32_t cp = static_cast<uint32_t>(((c & 0x1F) << 6) | (c2 & 0x3F));
-                code_points.push_back(cp);
-                i += 2;
-            } 
-            else if (c >= 0xE0 && c <= 0xEF) { // 3bytes U+0800~U+FFFF
-                if (i + 2 >= len) break;
-                uint8_t c2 = static_cast<uint8_t>(utf8_str[i + 1]);
-                uint8_t c3 = static_cast<uint8_t>(utf8_str[i + 2]);
-                uint32_t cp = static_cast<uint32_t>(
-                    ((c & 0x0F) << 12) | ((c2 & 0x3F) << 6) | (c3 & 0x3F)
-                    );
-                code_points.push_back(cp);
-                i += 3;
-            } 
-            else if (c >= 0xF0 && c <= 0xF7) { // 4bytes U+10000~U+10FFFF
-                if (i + 3 >= len) break;
-                uint8_t c2 = static_cast<uint8_t>(utf8_str[i + 1]);
-                uint8_t c3 = static_cast<uint8_t>(utf8_str[i + 2]);
-                uint8_t c4 = static_cast<uint8_t>(utf8_str[i + 3]);
-                uint32_t cp = static_cast<uint32_t>(
-                    ((c & 0x07) << 18) | ((c2 & 0x3F) << 12) | ((c3 & 0x3F) << 6) | (c4 & 0x3F)
-                    );
-                code_points.push_back(cp);
-                i += 4;
-            } 
-            else {
-                // invalid
-                i += 1;
-            }
+std::string Utils::utf16To8(std::u16string_view utf16) {
+    std::string out;
+    char32_t cp = 0;
+    for (size_t i = 0; i < utf16.size(); ++i) {
+        char16_t c = utf16[i];
+        if (c >= 0xD800 && c <= 0xDBFF) {
+            // surrogate pair
+            char16_t low = utf16[i + 1];
+            cp = ((c - 0xD800) << 10) | (low - 0xDC00);
+            cp += 0x10000;
+            ++i;
+        } else {
+            cp = c;
         }
-
-        return code_points;
+        appendUtf8(out, cp);
     }
+    return out;
+}
+
+std::u32string Utils::utf8To32(std::string_view utf8) {
+    std::u32string out;
+    char32_t cp = 0;
+    for (size_t i = 0; i < utf8.size();) {
+        size_t len = readUtf8(utf8, i, cp);
+        i += len;
+        out.push_back(cp);
+    }
+    return out;
+}
+
+std::string Utils::utf32To8(std::u32string_view utf32) {
+    std::string out;
+    for (char32_t cp : utf32) {
+        appendUtf8(out, cp);
+    }
+    return out;
+}
+
 }  // namespace Cube

@@ -50,6 +50,7 @@ namespace Cube {
         loadedScenes.erase(it);
     }
 
+    // TODO: 多场景叠加
     void SceneManager::setActive(const std::string& name) {
         auto it = loadedScenes.find(name);
         if(it == loadedScenes.end()) {

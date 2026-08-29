@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "Cube/Core/Window.h"
 #include "Cube/Core/Application.h"
 
@@ -7,22 +9,17 @@
 
 class EditorApp : public Cube::Application {
 public:
-    static const std::string userConfigDir;
-
     EditorApp(const Cube::WindowPros& windowPros);
     ~EditorApp();
 
     void switchPage(Page* page);
     void run() override;
 
-    // global
-    std::vector<std::string> projectsPathCache;
+    static std::filesystem::path getConfigDir();
 
 private:
     std::unique_ptr<Page> currentPage;
 
     void imGuiInit();
-    void loadConfig();
-    void saveConfig();
     void setDarkTheme();
 };

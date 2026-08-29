@@ -4,15 +4,16 @@
 #include <string>
 
 #include "Cube/Core/Engine.h"
-#include "Cube/UI/FileDialog.h"
+#include "imgui/imgui.h"
+
 #include "../Project/AssetExplorer.h"
 #include "../App/EditorApp.h"
 #include "../App/EditorPage.h"
 #include "../Project/Project.h"
 #include "../Utils/EditorTextureCache.h"
 #include "../Utils/misc.h"
+#include "../Utils/FileDialog.h"
 #include "AnimationEditor.h"
-#include "imgui/imgui.h"
 
 void AssetInspector::render(float deltaTime) {
     ImGui::Begin("Asset Inspector");
@@ -39,7 +40,7 @@ void AssetInspector::render(float deltaTime) {
                 ImGui::Separator();
 
                 if(ImGui::Button("Load Sprites From Atlas")) {
-                    std::string atlasPath = Cube::FileDialog::openFile("Atlas JSON(.json)\0*.json\0All(.*)\0*.*\0", Cube::Engine::getApp()->getWindow()->getWin32Window());
+                    std::string atlasPath = Utils::FileDialog::openFile();
                     if(!atlasPath.empty()) {
                         editingImporter["sprites"] = Utils::parseAtlasFile(atlasPath);
                     }

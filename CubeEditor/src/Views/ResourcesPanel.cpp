@@ -14,8 +14,6 @@
 #include "Cube/Resource/ResourceType.h"
 #include "imgui/imgui.h"
 
-using namespace Cube;
-
 namespace fs = std::filesystem;
 
 struct SelectedManager {
@@ -51,11 +49,11 @@ void ResourcesPanel::render(float deltaTime) {
     Project* project = editorPage.getProject();
     AssetExplorer& assetExplorer = project->getAssetExplorer();
     EditorTextureCache& textureCache = EditorTextureCache::get();
-    Texture2D* back_png = textureCache.request("assets/icons/back.png");
-    Texture2D* icon_mode_png = textureCache.request("assets/icons/icon_mode.png");
-    Texture2D* list_mode_png = textureCache.request("assets/icons/list_mode.png");
-    Texture2D* directory_png = textureCache.request("assets/icons/directory.png");
-    Texture2D* file_png = textureCache.request("assets/icons/file.png");
+    Cube::Texture2D* back_png = textureCache.request("assets/icons/back.png");
+    Cube::Texture2D* icon_mode_png = textureCache.request("assets/icons/icon_mode.png");
+    Cube::Texture2D* list_mode_png = textureCache.request("assets/icons/list_mode.png");
+    Cube::Texture2D* directory_png = textureCache.request("assets/icons/directory.png");
+    Cube::Texture2D* file_png = textureCache.request("assets/icons/file.png");
     if(!back_png || !icon_mode_png || !list_mode_png || !directory_png || !file_png) {
         return;
     }
@@ -98,9 +96,9 @@ void ResourcesPanel::render(float deltaTime) {
     } move;
     if(showMode == 0){
         for(const auto& entry : assetExplorer.getCurrentNode()->children) {
-            const bool isTexture = !entry->isGroup && entry->type == ResourceType::Texture;
+            const bool isTexture = !entry->isGroup && entry->type == Cube::ResourceType::Texture;
             const nlohmann::json* textureImporter = nullptr;
-            Texture2D* textureThumbnail = nullptr;
+            Cube::Texture2D* textureThumbnail = nullptr;
             bool textureHasSprites = false;
 
             ImGui::SameLine();
@@ -118,7 +116,7 @@ void ResourcesPanel::render(float deltaTime) {
                 }
             }else {
                 switch(entry->type) {
-                    case ResourceType::Texture:
+                    case Cube::ResourceType::Texture:
                         {
                             textureImporter = &assetExplorer.getAssetImporter(entry->identifier);
                             textureThumbnail = editorPage.thumbnailManager.request((*textureImporter)["path"].get<std::string>());
@@ -143,7 +141,7 @@ void ResourcesPanel::render(float deltaTime) {
                             }
                         }
                         break;
-                    case ResourceType::AnimationClip:
+                    case Cube::ResourceType::AnimationClip:
                         iconTextButton(file_png, entry->name, selectedManager.isSelected(entry.get()), ImVec2(imageSize, imageSize));
                         break;
                     default:
@@ -155,8 +153,8 @@ void ResourcesPanel::render(float deltaTime) {
                 if(ImGui::BeginDragDropSource()) {
                     AssetNode* src = entry.get();
                     ImGui::SetDragDropPayload("Asset", &src, sizeof(src));
-                    if(src->type == ResourceType::Texture) {
-                        Texture2D* tex = editorPage.thumbnailManager.request(assetExplorer.getAssetImporter(src->identifier)["path"].get<std::string>());
+                    if(src->type == Cube::ResourceType::Texture) {
+                        Cube::Texture2D* tex = editorPage.thumbnailManager.request(assetExplorer.getAssetImporter(src->identifier)["path"].get<std::string>());
                         ImGui::Image(tex ? tex->getId() : file_png->getId(), {64, 64}, {0, 1}, {1, 0});
                     }
                     ImGui::EndDragDropSource();
@@ -195,7 +193,7 @@ void ResourcesPanel::render(float deltaTime) {
             if(isTexture && textureHasSprites && expandedTextureNodes.count(entry->identifier)) {
                 const auto& sprites = (*textureImporter)["sprites"];
                 const std::string texturePath = (*textureImporter)["path"].get<std::string>();
-                Texture2D* spritePreviewTexture = textureCache.request(texturePath);
+                Cube::Texture2D* spritePreviewTexture = textureCache.request(texturePath);
                 if(!spritePreviewTexture) {
                     spritePreviewTexture = file_png;
                 }
@@ -208,7 +206,7 @@ void ResourcesPanel::render(float deltaTime) {
                         ImGui::NewLine();
                     }
 
-                    TextureRegion region = {{0.0f, 0.0f}, {1.0f, 1.0f}};
+                    Cube::TextureRegion region = {{0.0f, 0.0f}, {1.0f, 1.0f}};
                     if(spriteEntry.value().is_array() && spriteEntry.value().size() >= 4) {
                         region = {
                             {spriteEntry.value()[0].get<float>(), spriteEntry.value()[1].get<float>()},
@@ -308,7 +306,7 @@ void ResourcesPanel::render(float deltaTime) {
             assetExplorer.removeNode(selectedManager.getSingleNode());
             selectedManager.cancel();
         }
-        if(selectedManager.getSingleNode()->type == ResourceType::AnimationClip){
+        if(selectedManager.getSingleNode()->type == Cube::ResourceType::AnimationClip){
             if(ImGui::MenuItem("Edit")){
                 Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(assetExplorer.getAssetImporter(selectedManager.getSingleNode()->identifier)["path"].get<std::string>()));
             }

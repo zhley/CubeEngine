@@ -19,10 +19,8 @@
 #include "Cube/Animation/Animation.h"
 #include "glm/ext/vector_float4.hpp"
 
-using namespace Cube;
-
 SceneView::SceneView(EditorPage& editorPage) : View(editorPage) {
-    frameBuffer = new FrameBuffer();
+    frameBuffer = new Cube::FrameBuffer();
     frameBuffer->bindAttachment((int)sceneViewSize.x, (int)sceneViewSize.y);
 }
 
@@ -31,7 +29,7 @@ SceneView::~SceneView() {
 }
 
 void SceneView::render(float deltaTime) {
-    Texture2D* play_png = EditorTextureCache::get().request("assets/icons/play.png");
+    Cube::Texture2D* play_png = EditorTextureCache::get().request("assets/icons/play.png");
 
     ImGui::Begin("Scene View");
     
@@ -65,13 +63,13 @@ void SceneView::render(float deltaTime) {
         editorPage.selectedScene->scene->update(deltaTime);
     
         frameBuffer->bind();
-        Renderer2D::setViewport((int)sceneViewSize.x, (int)sceneViewSize.y);
-        Renderer2D::setClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-        Renderer2D::clearBuffer();
+        Cube::Renderer2D::setViewport((int)sceneViewSize.x, (int)sceneViewSize.y);
+        Cube::Renderer2D::setClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+        Cube::Renderer2D::clearBuffer();
         // scene render
         sceneRender(deltaTime);
     
-        FrameBuffer::bindDefaultFrameBuffer();
+        Cube::FrameBuffer::bindDefaultFrameBuffer();
     
         static bool showSelectSubTexturePopup = false;
         ImGui::Image(frameBuffer->getTexture(), sceneViewSize, ImVec2(0, 1), ImVec2(1, 0));
@@ -82,19 +80,19 @@ void SceneView::render(float deltaTime) {
                 pos *= editorPage.editorCamera.zoom;
                 pos += editorPage.editorCamera.position;
                 switch(asset->type) {
-                    case ResourceType::Texture: {
+                    case Cube::ResourceType::Texture: {
                         auto e = editorPage.selectedScene->scene->createEntity(asset->identifier);
                         e->getTransform().pos = pos;
-                        auto spriteRender = e->addComponent<SpriteRender>();
-                        spriteRender->sprite = ResPtr<Sprite>("spr:" + asset->identifier);
+                        auto spriteRender = e->addComponent<Cube::SpriteRender>();
+                        spriteRender->sprite = Cube::ResPtr<Cube::Sprite>("spr:" + asset->identifier);
                         editorPage.selectedScene->isSaved = false;
                     } break;
-                    case ResourceType::AnimationClip: {
+                    case Cube::ResourceType::AnimationClip: {
                         auto e = editorPage.selectedScene->scene->createEntity(asset->identifier);
                         e->getTransform().pos = pos;
-                        e->addComponent<SpriteRender>();
-                        auto anim = e->addComponent<Animation>();
-                        AnimationClip* clip = anim->addClip(asset->identifier);
+                        e->addComponent<Cube::SpriteRender>();
+                        auto anim = e->addComponent<Cube::Animation>();
+                        Cube::AnimationClip* clip = anim->addClip(asset->identifier);
                         if(clip) {
                             anim->play(clip->getName());
                         }
@@ -113,8 +111,8 @@ void SceneView::render(float deltaTime) {
                     std::string spriteName = spriteIdentifier.substr(posStr + 1);
                     auto e = editorPage.selectedScene->scene->createEntity(spriteName);
                     e->getTransform().pos = pos;
-                    auto spriteRender = e->addComponent<SpriteRender>();
-                    spriteRender->sprite = ResPtr<Sprite>(spriteIdentifier);
+                    auto spriteRender = e->addComponent<Cube::SpriteRender>();
+                    spriteRender->sprite = Cube::ResPtr<Cube::Sprite>(spriteIdentifier);
                     editorPage.selectedScene->isSaved = false;
                 }
             }
@@ -165,10 +163,10 @@ void SceneView::render(float deltaTime) {
                 bool choose = false;
                 glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
                 glm::vec4 mouseWorldPos = editorCamera.getTransformMatrix() * glm::vec4(mousePos, 0.0f, 1.0f);
-                Entity* selected = nullptr;
+                Cube::Entity* selected = nullptr;
                 for(auto& e : editorPage.selectedScene->scene->getSortedRenderableEntities()) {
-                    Transform& tc = e->getTransform();
-                    SpriteRender* sprite = e->getComponent<SpriteRender>();
+                    Cube::Transform& tc = e->getTransform();
+                    Cube::SpriteRender* sprite = e->getComponent<Cube::SpriteRender>();
                     if(!sprite || !sprite->sprite) continue;
                     glm::mat4 model = tc.getWorldMatrix();
                     glm::mat4 corner = model * glm::mat4({
@@ -204,7 +202,7 @@ void SceneView::render(float deltaTime) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                 glm::vec2 delta = {io.MouseDelta.x * editorCamera.zoom, -io.MouseDelta.y * editorCamera.zoom};
                 if(editorPage.selectedEntity) {
-                    Transform& tc = editorPage.selectedEntity->getTransform();
+                    Cube::Transform& tc = editorPage.selectedEntity->getTransform();
                     tc.pos = tc.pos + delta;
                     editorPage.selectedScene->isSaved = false;
                 }
@@ -215,7 +213,7 @@ void SceneView::render(float deltaTime) {
             if(isScaling) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
                 if(editorPage.selectedEntity) {
-                    Transform& tc = editorPage.selectedEntity->getTransform();
+                    Cube::Transform& tc = editorPage.selectedEntity->getTransform();
                     glm::vec2 scale = tc.scale;
 
                     const float scaleFactor = 1.0f + (io.MouseDelta.x - io.MouseDelta.y) * 0.01f;
@@ -239,43 +237,43 @@ void SceneView::render(float deltaTime) {
 }
 
 void SceneView::sceneRender(float deltaTime) {
-    Scene* scene = editorPage.selectedScene->scene;
+    Cube::Scene* scene = editorPage.selectedScene->scene;
     
     const EditorCamera& editorCamera = editorPage.editorCamera;
-    Renderer2D::beginFrame(editorCamera.getPVMatrix());
+    Cube::Renderer2D::beginFrame(editorCamera.getPVMatrix());
     // the axis lines
     float left = editorCamera.position.x;
     float right = editorCamera.position.x + editorCamera.viewport.x * editorCamera.zoom;
     float bottom = editorCamera.position.y;
     float top = editorCamera.position.y + editorCamera.viewport.y * editorCamera.zoom;
-    Renderer2D::drawLine({left, 0}, {right, 0}, {1.0f, 0.0f, 0.0f, 1.0f}, 1.0f * editorCamera.zoom);
-    Renderer2D::drawLine({0, bottom}, {0, top}, {0.0f, 0.0f, 1.0f, 1.0f}, 1.0f * editorCamera.zoom);
+    Cube::Renderer2D::drawLine({left, 0}, {right, 0}, {1.0f, 0.0f, 0.0f, 1.0f}, 1.0f * editorCamera.zoom);
+    Cube::Renderer2D::drawLine({0, bottom}, {0, top}, {0.0f, 0.0f, 1.0f, 1.0f}, 1.0f * editorCamera.zoom);
 
     for(auto& camera : scene->getCameras()) {
         auto* tc = &camera->getTransform();
-        auto* cc = camera->getComponent<Camera2D>();
+        auto* cc = camera->getComponent<Cube::Camera2D>();
         if(cc->available) {
             glm::vec2 size = cc->viewport;
-            Color color = {113, 96, 232, 255};
-            Renderer2D::drawRect(tc->getWorldMatrix(), size, color, 1.0f * editorCamera.zoom);
+            Cube::Color color = {113, 96, 232, 255};
+            Cube::Renderer2D::drawRect(tc->getWorldMatrix(), size, color, 1.0f * editorCamera.zoom);
         }
     }
 
     for(auto& e : scene->getSortedRenderableEntities()) {
-        auto* sc = e->getComponent<SpriteRender>();
+        auto* sc = e->getComponent<Cube::SpriteRender>();
         if(sc->sprite){
-            Renderer2D::drawQuad(e->getTransform().getWorldMatrix(), sc->tintColor, sc->sprite->getTexture(), sc->sprite->getTexRegion().getUVCoord());
+            Cube::Renderer2D::drawQuad(e->getTransform().getWorldMatrix(), sc->tintColor, sc->sprite->getTexture(), sc->sprite->getTexRegion().getUVCoord());
         }
     }
 
     // the outline of selected entity
-    if(editorPage.selectedEntity && editorPage.selectedEntity->hasComponent<SpriteRender>() && editorPage.selectedEntity->getComponent<SpriteRender>()->sprite) {
-        SpriteRender* sr = editorPage.selectedEntity->getComponent<SpriteRender>();
+    if(editorPage.selectedEntity && editorPage.selectedEntity->hasComponent<Cube::SpriteRender>() && editorPage.selectedEntity->getComponent<Cube::SpriteRender>()->sprite) {
+        Cube::SpriteRender* sr = editorPage.selectedEntity->getComponent<Cube::SpriteRender>();
         glm::mat4 model = editorPage.selectedEntity->getTransform().getWorldMatrix();
         glm::vec2 size = sr->sprite->getSize();
-        Color color = {255, 255, 0, 255};
-        Renderer2D::drawRect(model, size, color, 1.0f * editorCamera.zoom);
+        Cube::Color color = {255, 255, 0, 255};
+        Cube::Renderer2D::drawRect(model, size, color, 1.0f * editorCamera.zoom);
     }
 
-    Renderer2D::endFrame();
+    Cube::Renderer2D::endFrame();
 }

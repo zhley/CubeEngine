@@ -9,8 +9,6 @@
 
 #include <imgui/imgui.h>
 
-using namespace Cube;
-
 void ScenePanel::render(float deltaTime) {
     ImGui::Begin("Scene Panel");
 
@@ -22,7 +20,7 @@ void ScenePanel::render(float deltaTime) {
 
     static char name[50] = {};
     static SceneData* addScene = nullptr;
-    static Entity* addParent = nullptr;
+    static Cube::Entity* addParent = nullptr;
     static std::unique_ptr<ModalPopup> addEntityPopup = std::make_unique<ModalPopup>("Add Entity", [] {
         ImGui::Text("Name:");
         ImGui::InputText("##input", name, IM_ARRAYSIZE(name));
@@ -45,7 +43,7 @@ void ScenePanel::render(float deltaTime) {
     });
     addEntityPopup->render();
 
-    auto drawEntityTree = [&](auto&& self, SceneData& sceneData, Entity* entity) -> void {
+    auto drawEntityTree = [&](auto&& self, SceneData& sceneData, Cube::Entity* entity) -> void {
         ImGui::PushID(entity);
         const bool isSelected = editorPage.selectedEntity == entity;
         const bool hasChildren = !entity->getChildren().empty();
@@ -113,7 +111,7 @@ void ScenePanel::render(float deltaTime) {
         }
 
         if(sceneOpen) {
-            Entity* root = scene.scene->getRootEntity();
+            Cube::Entity* root = scene.scene->getRootEntity();
             for(const auto& child : root->getChildren()) {
                 drawEntityTree(drawEntityTree, scene, child.get());
             }

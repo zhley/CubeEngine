@@ -1,12 +1,12 @@
 ﻿#include "EditorPage.h"
 
+#include <filesystem>
 #include <string>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "Cube/Core/Log.h"
-#include "Cube/UI/FileDialog.h"
 #include "Cube/Utils/Utils.h"
 #include "Cube/Core/Engine.h"
 
@@ -18,8 +18,7 @@
 #include "../Views/AssetInspector.h"
 #include "../Views/LogView.h"
 #include "../Views/AnimationEditor.h"
-
-using namespace Cube;
+#include "../Utils/FileDialog.h"
 
 EditorPage::EditorPage(Project* project) : project(project) {
     views.push_back(std::make_unique<ScenePanel>(*this));
@@ -68,21 +67,23 @@ void EditorPage::render(float deltaTime) {
             }
 
             if(ImGui::MenuItem("Load Scene")) {
-                std::string filePath = FileDialog::openFile("Scene File(.scene)\0*.scene\0" ,Engine::getApp()->getWindow()->getWin32Window());
+                std::string filePath = Utils::FileDialog::openFile();
                 if(!filePath.empty()) {
-                    Scene* scene = new Scene(filePath);
-                    if(Utils::getFileName(filePath) == scene->getName()){
+                    Cube::Scene* scene = new Cube::Scene(filePath);
+                    if(std::filesystem::path(filePath).stem() == scene->getName()){
                         if(!project->hasScene(scene->getName())){
                             project->addScene(scene);
                             selectedScene = &project->getScenes().back();
-                            if(!Utils::isFileInDirectory(filePath, project->getConfig().sceneDirectory)) {
-                                Utils::copyFile(filePath, project->getConfig().sceneDirectory + "/" + scene->getName() + ".scene");
+                            std::filesystem::path target(project->getConfig().sceneDirectory + "/" + scene->getName() + ".scene");
+                            if (!std::filesystem::equivalent(filePath, target)) {
+                                // TODO: 覆盖警告
+                                std::filesystem::copy_file(filePath, target, std::filesystem::copy_options::overwrite_existing);
                             }
-                        }else {
+                        } else {
                             delete scene;
                             CB_WARN("The scene has existed"); // TODO: 提醒用户
                         }
-                    }else {
+                    } else {
                         delete scene;
                         CB_ERROR("The scene file name does not match the scene name"); // TODO: 提醒用户
                     }
@@ -116,7 +117,7 @@ void EditorPage::render(float deltaTime) {
 
             if(ImGui::Button("Add##3")) {
                 if(!project->hasScene(name)){
-                    project->addScene(new Scene(name, true));
+                    project->addScene(new Cube::Scene(name, true));
                     selectedScene = &project->getScenes().back();
                     memset(name, '\0', sizeof(name));
                     showAddNewScene = false;
@@ -156,7 +157,7 @@ void EditorPage::render(float deltaTime) {
 }
 
 void EditorPage::importFromFileDialog() {
-    for(auto& path : FileDialog::openMultiFiles("Resources(.png.jpg)\0*.png;*.jpg\0All(.*)\0*.*\0", Engine::getApp()->getWindow()->getWin32Window())) {
+    for(auto& path : Utils::FileDialog::openMultiFiles()) {
         project->importResource(path);
     }
 }

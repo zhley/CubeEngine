@@ -8,8 +8,6 @@
 #include "Cube/Resource/ResourceManager.h"
 #include "Cube/Utils/Utils.h"
 
-using namespace Cube;
-
 Project::Project(const std::string& name, const std::string& rootPath) {
     config.name = name;
     config.rootPath = rootPath;
@@ -38,7 +36,7 @@ Project::Project(const std::string& configFilePath) {
     file.close();
 
     config.name = data["name"];
-    config.rootPath = Utils::getParentPath(configFilePath);
+    config.rootPath = std::filesystem::path(configFilePath).parent_path().string();
     config.projectDataDirectory = config.rootPath + "/.cube";
     config.assetsDirectory = config.rootPath + "/Assets";
     config.sceneDirectory = config.rootPath + "/Scenes";
@@ -58,7 +56,7 @@ const std::vector<SceneData>& Project::getScenes() const { return scenes; }
 
 std::vector<SceneData>& Project::getScenes() { return scenes; }
 
-void Project::addScene(Scene* scene) {
+void Project::addScene(Cube::Scene* scene) {
     scenes.push_back({scene, false});
 }
 
@@ -171,7 +169,7 @@ void Project::load() {
     nlohmann::json data;
     file >> data;
     for(auto& s : data["scenes"]) {
-        Scene* scene = new Scene(config.sceneDirectory + "/" + s.get<std::string>() + ".scene");
+        Cube::Scene* scene = new Cube::Scene(config.sceneDirectory + "/" + s.get<std::string>() + ".scene");
         scenes.push_back({scene, true});
     }
     file.close();

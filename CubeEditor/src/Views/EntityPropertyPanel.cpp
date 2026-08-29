@@ -16,8 +16,6 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
-using namespace Cube;
-
 void EntityPropertyPanel::render(float deltaTime) {
     ImGui::Begin("Entity Properties");
 
@@ -25,7 +23,7 @@ void EntityPropertyPanel::render(float deltaTime) {
         float posX = ImGui::GetWindowWidth() / 2 - 30.0f;
         float width = ImGui::GetWindowWidth() - posX - 10.0f;
         if(ImGui::TreeNodeEx("Transform", Utils::TREENODE_FLAGS)) {
-            Transform& transform = editorPage.selectedEntity->getTransform();
+            Cube::Transform& transform = editorPage.selectedEntity->getTransform();
             ImGui::Text("position");
             ImGui::SameLine();
             ImGui::SetCursorPosX(posX);
@@ -58,11 +56,11 @@ void EntityPropertyPanel::render(float deltaTime) {
 
             ImGui::TreePop();
         }
-        TypeID toDelete = 0;
+        Cube::TypeID toDelete = 0;
         for(auto& uniquePtrC : editorPage.selectedEntity->getComponents()) {
-            TypeID typeID = uniquePtrC->getType();
-            Component* c = uniquePtrC.get();
-            Class* classInfo = ClassRegistry::get().getClass(typeID);
+            Cube::TypeID typeID = uniquePtrC->getType();
+            Cube::Component* c = uniquePtrC.get();
+            Cube::Class* classInfo = Cube::ClassRegistry::get().getClass(typeID);
             if(ImGui::TreeNodeEx(classInfo->getName().c_str(), Utils::TREENODE_FLAGS)) {
                 if(ImGui::BeginPopupContextItem()) {
                     if(ImGui::MenuItem("Delete")) {
@@ -75,77 +73,77 @@ void EntityPropertyPanel::render(float deltaTime) {
                     ImGui::SameLine();
                     ImGui::SetCursorPosX(posX);
                     ImGui::SetNextItemWidth(width);
-                    if(property->getTypeID() == getTypeID<float>()) {
+                    if(property->getTypeID() == Cube::getTypeID<float>()) {
                         float v = property->getValue(c).as<float>();
                         if(ImGui::DragFloat(("##" + property->getName()).c_str(), &v, 0.01, 0, 0, "%.3f")) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, v);
                         }
-                    } else if(property->getTypeID() == getTypeID<double>()) {
+                    } else if(property->getTypeID() == Cube::getTypeID<double>()) {
                         float v = (float)property->getValue(c).as<double>();
                         if(ImGui::DragFloat(("##" + property->getName()).c_str(), &v, 0.01, 0, 0, "%.3f")) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, v);
                         }
-                    } else if(property->getTypeID() == getTypeID<glm::vec2>()) {
+                    } else if(property->getTypeID() == Cube::getTypeID<glm::vec2>()) {
                         glm::vec2 v = property->getValue(c).as<glm::vec2>();
                         float v2[2] = {v.x, v.y};
                         if(ImGui::DragFloat2(("##" + property->getName()).c_str(), v2, 0.01, 0, 0, "%.3f")) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, glm::vec2(v2[0], v2[1]));
                         }
-                    } else if(property->getTypeID() == getTypeID<glm::vec3>()) {
+                    } else if(property->getTypeID() == Cube::getTypeID<glm::vec3>()) {
                         glm::vec3 v = property->getValue(c).as<glm::vec3>();
                         float v3[3] = {v.x, v.y, v.z};
                         if(ImGui::DragFloat3(("##" + property->getName()).c_str(), v3, 0.01, 0, 0, "%.3f")) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, glm::vec3(v3[0], v3[1], v3[2]));
                         }
-                    } else if(property->getTypeID() == getTypeID<glm::vec4>()) {
+                    } else if(property->getTypeID() == Cube::getTypeID<glm::vec4>()) {
                         glm::vec4 v = property->getValue(c).as<glm::vec4>();
                         float v4[4] = {v.x, v.y, v.z, v.w};
                         if(ImGui::DragFloat4(("##" + property->getName()).c_str(), v4, 0.01, 0, 0, "%.3f")) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, glm::vec4(v4[0], v4[1], v4[2], v4[3]));
                         }
-                    } else if(property->getTypeID() == getTypeID<bool>()) {
+                    } else if(property->getTypeID() == Cube::getTypeID<bool>()) {
                         bool v = property->getValue(c).as<bool>();
                         if(ImGui::Checkbox(("##" + property->getName()).c_str(), &v)) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, v);
                         }
-                    } else if(property->getTypeID() == getTypeID<int>()) {
+                    } else if(property->getTypeID() == Cube::getTypeID<int>()) {
                         int v = property->getValue(c).as<int>();
                         if(ImGui::DragInt(("##" + property->getName()).c_str(), &v, 1, 0, 0)) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, v);
                         }
-                    } else if(property->getTypeID() == getTypeID<std::string>()) {
+                    } else if(property->getTypeID() == Cube::getTypeID<std::string>()) {
                         char buffer[256] = {};
                         strcpy_s(buffer, property->getValue(c).as<std::string>().c_str());
                         if(ImGui::InputText(("##" + property->getName()).c_str(), buffer, IM_ARRAYSIZE(buffer))) {
                             editorPage.selectedScene->isSaved = false;
                             property->setValue(c, std::string(buffer));
                         }
-                    } else if(property->getTypeID() == getTypeID<Color>()) {
-                        Color color = property->getValue(c).as<Color>();
+                    } else if(property->getTypeID() == Cube::getTypeID<Cube::Color>()) {
+                        Cube::Color color = property->getValue(c).as<Cube::Color>();
                         float colorV[4] = {color.r, color.g, color.b, color.a};
                         if(ImGui::ColorEdit4(("##" + property->getName()).c_str(), colorV, ImGuiColorEditFlags_DisplayHex)) {
                             editorPage.selectedScene->isSaved = false;
-                            property->setValue(c, Color(colorV[0], colorV[1], colorV[2], colorV[3]));
+                            property->setValue(c, Cube::Color(colorV[0], colorV[1], colorV[2], colorV[3]));
                         }
-                    } else if(property->getTypeID() == getTypeID<TextureRegion>()) {
-                        glm::vec4 v = property->getValue(c).as<TextureRegion>().getUVCoord();
+                    } else if(property->getTypeID() == Cube::getTypeID<Cube::TextureRegion>()) {
+                        glm::vec4 v = property->getValue(c).as<Cube::TextureRegion>().getUVCoord();
                         float v4[4] = {v.x, v.y, v.z, v.w};
                         if(ImGui::DragFloat4(("##" + property->getName()).c_str(), v4, 0.001f, 0, 1)) {
                             editorPage.selectedScene->isSaved = false;
-                            TextureRegion tr;
+                            Cube::TextureRegion tr;
                             tr.uvMin = {v4[0], v4[1]};
                             tr.uvMax = {v4[2], v4[3]};
                             property->setValue(c, tr);
                         }
-                    } else if(property->getTypeID() == getTypeID<ResPtr<Sprite>>()) {
-                        ResPtr<Sprite> res = property->getValue(c).as<ResPtr<Sprite>>();
+                    } else if(property->getTypeID() == Cube::getTypeID<Cube::ResPtr<Cube::Sprite>>()) {
+                        Cube::ResPtr<Cube::Sprite> res = property->getValue(c).as<Cube::ResPtr<Cube::Sprite>>();
                         if(res) {
                             ImVec2 size = Utils::keepAspectRatio(toImVec2(res->getSize()), 100.0f);
                             ImGui::Image(res->getTexture()->getId(), size, {res->getTexRegion().uvMin.x, res->getTexRegion().uvMax.y}, {res->getTexRegion().uvMax.x, res->getTexRegion().uvMin.y});
@@ -155,20 +153,20 @@ void EntityPropertyPanel::render(float deltaTime) {
                         if(ImGui::BeginDragDropTarget()) {
                             if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset")) {
                                 AssetNode* asset = *(AssetNode**)payload->Data;
-                                if(asset->type == ResourceType::Texture) {
-                                    property->setValue(c, ResPtr<Sprite>("spr:" + asset->identifier));
+                                if(asset->type == Cube::ResourceType::Texture) {
+                                    property->setValue(c, Cube::ResPtr<Cube::Sprite>("spr:" + asset->identifier));
                                     editorPage.selectedScene->isSaved = false;
                                 }
                             }
                             if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AssetSprite")){
                                 std::string spriteIdentifier((char*)payload->Data, payload->DataSize);
-                                property->setValue(c, ResPtr<Sprite>(spriteIdentifier));
+                                property->setValue(c, Cube::ResPtr<Cube::Sprite>(spriteIdentifier));
                                 editorPage.selectedScene->isSaved = false;
                             }
                             ImGui::EndDragDropTarget();
                         }
-                    } else if (property->getTypeID() == getTypeID<std::unordered_map<std::string, ResPtr<AnimationClip>>>()) {
-                        auto animClips = property->getValue(c).as<std::unordered_map<std::string, ResPtr<AnimationClip>>>();
+                    } else if (property->getTypeID() == Cube::getTypeID<std::unordered_map<std::string, Cube::ResPtr<Cube::AnimationClip>>>()) {
+                        auto animClips = property->getValue(c).as<std::unordered_map<std::string, Cube::ResPtr<Cube::AnimationClip>>>();
                         ImGui::BeginTable("AnimClips", 2);
                         for (auto& [name, clip] : animClips) {
                             ImGui::TableNextRow();
@@ -184,13 +182,13 @@ void EntityPropertyPanel::render(float deltaTime) {
                         }
                         ImGui::EndTable();
                         if(ImGui::Button("Add Clip")){
-                            resourcePickerDialog.open("Select Animation Clip", editorPage.getProject()->getAssetExplorer().getRootNode(), ResourceType::AnimationClip);
+                            resourcePickerDialog.open("Select Animation Clip", editorPage.getProject()->getAssetExplorer().getRootNode(), Cube::ResourceType::AnimationClip);
                         }
                         if(ImGui::BeginDragDropTarget()) {
                             if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset")) {
                                 AssetNode* asset = *(AssetNode**)payload->Data;
-                                if(asset->type == ResourceType::AnimationClip) {
-                                    animClips[asset->identifier] = ResPtr<AnimationClip>(asset->identifier);
+                                if(asset->type == Cube::ResourceType::AnimationClip) {
+                                    animClips[asset->identifier] = Cube::ResPtr<Cube::AnimationClip>(asset->identifier);
                                     property->setValue(c, animClips);
                                     editorPage.selectedScene->isSaved = false;
                                 }
@@ -200,7 +198,7 @@ void EntityPropertyPanel::render(float deltaTime) {
                         std::vector<std::string> pickedIdentifiers;
                         if(resourcePickerDialog.render(pickedIdentifiers, editorPage)) {
                             for(const auto& identifier : pickedIdentifiers) {
-                                animClips[identifier] = ResPtr<AnimationClip>(identifier);
+                                animClips[identifier] = Cube::ResPtr<Cube::AnimationClip>(identifier);
                             }
                             property->setValue(c, animClips);
                             editorPage.selectedScene->isSaved = false;
@@ -226,13 +224,13 @@ void EntityPropertyPanel::render(float deltaTime) {
         }
         if(ImGui::BeginPopup("addComponent")) {
             if(ImGui::MenuItem("SpriteRender")) {
-                editorPage.selectedEntity->addComponent<SpriteRender>();
+                editorPage.selectedEntity->addComponent<Cube::SpriteRender>();
             }
             if(ImGui::MenuItem("Camera2D")) {
-                editorPage.selectedEntity->addComponent<Camera2D>();
+                editorPage.selectedEntity->addComponent<Cube::Camera2D>();
             }
             if(ImGui::MenuItem("Animation")) {
-                editorPage.selectedEntity->addComponent<Animation>();
+                editorPage.selectedEntity->addComponent<Cube::Animation>();
             }
             ImGui::EndPopup();
         }

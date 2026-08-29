@@ -20,6 +20,10 @@ target_compile_definitions(CubeEditor PRIVATE
     $<$<CONFIG:Release>:CB_RELEASE>
 )
 
+if (MSVC) 
+    target_sources(CubeEditor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cube_editor_utf8.manifest)
+endif()
+
 add_custom_command(TARGET CubeEditor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets
