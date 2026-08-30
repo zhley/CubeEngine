@@ -67,7 +67,7 @@ void EditorPage::render(float deltaTime) {
             }
 
             if(ImGui::MenuItem("Load Scene")) {
-                Cube::Path filePath = Utils::FileDialog::openFile();
+                Cube::Path filePath = Utils::FileDialog::openFile("Load Scene", {{"Cube Scene File (*.scene)", "*.scene"}}, project->getConfig().sceneDirectory);
                 if(!filePath.empty()) {
                     Cube::Scene* scene = new Cube::Scene(filePath);
                     if(filePath.stem() == scene->getName()){
@@ -157,7 +157,7 @@ void EditorPage::render(float deltaTime) {
 }
 
 void EditorPage::importFromFileDialog() {
-    for(auto& path : Utils::FileDialog::openMultiFiles()) {
+    for(auto& path : Utils::FileDialog::openMultiFiles("Import Resources", {{"All Files (*.*)", "*.*"}, {"Texture", "*.png;*.jpg"}, {"AnimationClip", "*.anim"}}, project->getConfig().assetsDirectory)) {
         project->importResource(path);
     }
 }

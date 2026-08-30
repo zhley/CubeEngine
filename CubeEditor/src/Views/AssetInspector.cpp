@@ -40,7 +40,8 @@ void AssetInspector::render(float deltaTime) {
                 ImGui::Separator();
 
                 if(ImGui::Button("Load Sprites From Atlas")) {
-                    Cube::Path atlasPath = Utils::FileDialog::openFile();
+                    // TODO: 设置过滤器
+                    Cube::Path atlasPath = Utils::FileDialog::openFile("Select Atlas File");
                     if(!atlasPath.empty()) {
                         editingImporter["sprites"] = Utils::parseAtlasFile(atlasPath);
                     }

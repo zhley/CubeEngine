@@ -107,7 +107,7 @@ void GuidancePage::render(float deltaTime) {
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Button, toImColor({70, 77, 88, 255}));
         if(ImGui::Button("...")) {
-            strcpy_s(path, Utils::FileDialog::selectDir().string().c_str());
+            strcpy_s(path, Utils::FileDialog::selectDir("New Project").c_str());
         }
         ImGui::PopStyleColor();
     }, [&switchPage, this] {
@@ -147,7 +147,7 @@ void GuidancePage::render(float deltaTime) {
     ImGui::BeginGroup();
     if(ImGui::ImageButton("Open Project##1", open_project_png->getId(), buttonSize, {0, 1}, {1, 0})) {
         delete proj;
-        Cube::Path path = Utils::FileDialog::openFile();
+        Cube::Path path = Utils::FileDialog::openFile("Open Project", {{"Cube Project File (*.cbproj)", "*.cbproj"}});
         if(!path.empty()) {
             if(std::find(projectsPathCache.begin(), projectsPathCache.end(), path) == projectsPathCache.end()) {
                 projectsPathCache.push_back(path);
