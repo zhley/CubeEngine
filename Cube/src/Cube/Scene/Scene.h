@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include "Cube/Core/Path.h"
+
 #include "Entity.h"
 
 namespace Cube {
@@ -11,7 +13,7 @@ namespace Cube {
     class Scene {
     public:
         Scene(const std::string& name, bool tagNoSceneFile);
-        Scene(const std::string& sceneFilePath);
+        Scene(const Cube::Path& sceneFilePath);
         virtual ~Scene() = default;
 
         void update(float delta);
@@ -39,7 +41,7 @@ namespace Cube {
             return result;
         }
 
-        void serialize(const std::string& sceneFilePath) const;
+        void serialize(const Cube::Path& sceneFilePath) const;
 
         const std::string& getName() const;
 

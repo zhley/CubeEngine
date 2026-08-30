@@ -13,11 +13,11 @@ namespace Cube {
         rootEntity->scene = this;
     }
 
-    Scene::Scene(const std::string& sceneFilePath) {
+    Scene::Scene(const Cube::Path& sceneFilePath) {
         rootEntity = std::make_unique<Entity>("Root");
         rootEntity->scene = this;
         
-        std::ifstream file(sceneFilePath);
+        std::ifstream file(sceneFilePath.string());
         if(!file.is_open()) {
             CB_CORE_ERROR("Scene::Scene(): Failed to open scene file '{}'", sceneFilePath);
             return;
@@ -74,11 +74,11 @@ namespace Cube {
         return traverse(rootEntity.get());
     }
 
-    void Scene::serialize(const std::string& sceneFilePath) const {
+    void Scene::serialize(const Cube::Path& sceneFilePath) const {
         nlohmann::json data;
         data["name"] = name;
         data["rootEntity"] = rootEntity->serialize();
-        std::ofstream file(sceneFilePath);
+        std::ofstream file(sceneFilePath.string());
         if(!file.is_open()) {
             CB_CORE_ERROR("Scene::serialize(): Failed to open scene file '{}'", sceneFilePath);
             return;

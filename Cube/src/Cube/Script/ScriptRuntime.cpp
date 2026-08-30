@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "zeta/compiler/compiler.h"
 #include "zeta/compiler/bytecode.h"
@@ -62,18 +63,18 @@ ScriptRuntime::ScriptRuntime(const std::vector<std::string>& moduleSearchPaths) 
     ScriptBindings::initialize(vm);
 }
 
-std::unique_ptr<Zeta::Module> ScriptRuntime::parseModule(const std::string& filePath) {
-    if (filePath.ends_with(ZETA_SRC_EXT)) {
+std::unique_ptr<Zeta::Module> ScriptRuntime::parseModule(const Cube::Path& filePath) {
+    if (filePath.extension() == ZETA_SRC_EXT) {
         std::string error;
-        std::unique_ptr<Zeta::Module> module = Zeta::compileModule(filePath, &error);
+        std::unique_ptr<Zeta::Module> module = Zeta::compileModule(filePath.string(), &error);
         if (!module) {
             CB_CORE_ERROR("ScriptRuntime::parseModule(): failed to compile module '{}': {}", filePath, error);
             return nullptr;
         }
         return module;
-    } else if (filePath.ends_with(ZETA_BC_EXT)) {
+    } else if (filePath.extension() == ZETA_BC_EXT) {
         std::string error;
-        std::unique_ptr<Zeta::Module> module = Zeta::deserializeModule(filePath, &error);
+        std::unique_ptr<Zeta::Module> module = Zeta::deserializeModule(filePath.string(), &error);
         if (!module) {
             CB_CORE_ERROR("ScriptRuntime::parseModule(): failed to load bytecode module '{}': {}", filePath, error);
             return nullptr;

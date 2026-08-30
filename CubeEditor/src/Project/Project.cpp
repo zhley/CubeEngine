@@ -170,7 +170,7 @@ void Project::load() {
     nlohmann::json data;
     file >> data;
     for(auto& s : data["scenes"]) {
-        Cube::Scene* scene = new Cube::Scene((config.sceneDirectory / (s.get<std::string>() + ".scene")).string());
+        Cube::Scene* scene = new Cube::Scene(config.sceneDirectory / (s.get<std::string>() + ".scene"));
         scenes.push_back({scene, true});
     }
     file.close();

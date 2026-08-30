@@ -9,8 +9,8 @@
 
 namespace Cube {
 
-    void ResourceManager::init(const std::string& pathMapFilePath) {
-        std::ifstream file(pathMapFilePath);
+    void ResourceManager::init(const Cube::Path& pathMapFilePath) {
+        std::ifstream file(pathMapFilePath.string());
         if(!file.is_open()) {
             CB_CORE_ERROR("Failed to open resource path map file: {}", pathMapFilePath);
         }
@@ -78,7 +78,7 @@ namespace Cube {
         
 
     Texture2D* ResourceManager::loadTexture2D(const nlohmann::json& path) {
-        return new Texture2D(path["path"].get<std::string>());
+        return new Texture2D(Cube::Path(path["path"].get<std::string>()));
     }
 
     Sprite* ResourceManager::loadSprite(const std::string& identifier) {
@@ -102,14 +102,14 @@ namespace Cube {
     }
 
     Script* ResourceManager::loadScript(const nlohmann::json& path) {
-        return new Script(path["path"].get<std::string>());
+        return new Script(Cube::Path(path["path"].get<std::string>()));
     }
 
     AnimationClip* ResourceManager::loadAnimationClip(const nlohmann::json& path) {
-        return new AnimationClip(path["path"].get<std::string>());
+        return new AnimationClip(Cube::Path(path["path"].get<std::string>()));
     }
 
     Font* ResourceManager::loadFont(const nlohmann::json& path) {
-        return new Font(path["fontFilePath"].get<std::string>(), path.value("fontSize", 16));
+        return new Font(Cube::Path(path["fontFilePath"].get<std::string>()), path.value("fontSize", 16));
     }
 }  // namespace Cube

@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "Cube/Core/Path.h"
 #include "Cube/Renderer/Texture.h"
 
 class EditorTextureCache {
@@ -20,7 +21,7 @@ public:
         }
         auto it = textures.find(path);
         if(it == textures.end()) {
-            textures[path] = std::make_unique<Cube::Texture2D>(path);
+            textures[path] = std::make_unique<Cube::Texture2D>(Cube::Path(path));
             it = textures.find(path);
         }
         return it->second.get();

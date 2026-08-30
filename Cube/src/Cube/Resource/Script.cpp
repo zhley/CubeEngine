@@ -4,7 +4,7 @@
 
 namespace Cube {
 
-Script::Script(const std::string& filePath) {
+Script::Script(const Cube::Path& filePath) {
     module = ScriptRuntime::parseModule(filePath);
 }
 

@@ -17,6 +17,6 @@ public:
 
 private:
 	std::vector<Cube::Path> projectsPathCache;
-	std::unique_ptr<Cube::Texture2D> new_project_png = std::make_unique<Cube::Texture2D>("assets/icons/new_project.png");
-	std::unique_ptr<Cube::Texture2D> open_project_png = std::make_unique<Cube::Texture2D>("assets/icons/open_project.png");
+	std::unique_ptr<Cube::Texture2D> new_project_png = std::make_unique<Cube::Texture2D>(Cube::Path("assets/icons/new_project.png"));
+	std::unique_ptr<Cube::Texture2D> open_project_png = std::make_unique<Cube::Texture2D>(Cube::Path("assets/icons/open_project.png"));
 };

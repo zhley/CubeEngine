@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "Cube/Core/Log.h"
+#include "Cube/Core/Path.h"
 #include "Cube/Resource/Resource.h"
 #include "Resource.h"
 
@@ -26,7 +27,7 @@ namespace Cube {
         ResourceManager& operator=(ResourceManager&&) = delete;
         ResourceManager& operator=(const ResourceManager&) = delete;
 
-        void init(const std::string& pathMapFilePath);
+        void init(const Cube::Path& pathMapFilePath);
         void init(const std::unordered_map<std::string, nlohmann::json>& pathMap);
 
         // TODO: 将加载器解耦，支持用户从外部通过脚本注册加载器，自定义类型

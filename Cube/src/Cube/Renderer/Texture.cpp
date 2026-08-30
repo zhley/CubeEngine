@@ -6,7 +6,7 @@
 
 namespace Cube {
 
-    Texture2D::Texture2D(const std::string& filePath){
+    Texture2D::Texture2D(const Cube::Path& filePath){
         stbi_set_flip_vertically_on_load(1);
         int channels;
         uint8_t* originalData = stbi_load(filePath.c_str(), &width, &height, &channels, 0);

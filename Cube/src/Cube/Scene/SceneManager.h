@@ -5,6 +5,8 @@
 #include <memory>
 #include <functional>
 
+#include "Cube/Core/Path.h"
+
 namespace Cube {
     class Scene;
 
@@ -15,7 +17,7 @@ namespace Cube {
         ~SceneManager() = default;
 
         void registerScene(const std::string& name, const SceneFactory& sceneFactory);
-        void registerScene(const std::string& name, const std::string& sceneFilePath);
+        void registerScene(const std::string& name, const Cube::Path& sceneFilePath);
         Scene* load(const std::string& name);
         void unload(const std::string& name);
         void setActive(const std::string& name);

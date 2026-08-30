@@ -655,7 +655,7 @@ void ScriptBindings::initialize(Zeta::VM& vm) {
 
     // TODO: 也可以改成直接内嵌字符串源码或者字节码
     auto cubeCoreScriptPath = vm.searchModuleFile("cube").first.string(); 
-    std::unique_ptr<Zeta::Module> coreModule = ScriptRuntime::parseModule(cubeCoreScriptPath);
+    std::unique_ptr<Zeta::Module> coreModule = ScriptRuntime::parseModule(Cube::Path(cubeCoreScriptPath));
     vm.loadModule(coreModule.get());
     vec2Class = vm.findGlobal(coreModule->name, "Vec2");
     vec3Class = vm.findGlobal(coreModule->name, "Vec3");

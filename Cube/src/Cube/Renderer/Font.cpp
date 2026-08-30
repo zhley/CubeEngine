@@ -21,7 +21,7 @@ namespace Cube {
         }
     };
 
-    Font::Font(const std::string& fontFilePath, int fontSize) : fontFilePath(fontFilePath), fontSize(fontSize){
+    Font::Font(const Cube::Path& fontFilePath, int fontSize) : fontFilePath(fontFilePath), fontSize(fontSize){
         loadFontFile();
     }
 

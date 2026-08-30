@@ -69,7 +69,7 @@ void EditorPage::render(float deltaTime) {
             if(ImGui::MenuItem("Load Scene")) {
                 Cube::Path filePath = Utils::FileDialog::openFile();
                 if(!filePath.empty()) {
-                    Cube::Scene* scene = new Cube::Scene(filePath.string());
+                    Cube::Scene* scene = new Cube::Scene(filePath);
                     if(filePath.stem() == scene->getName()){
                         if(!project->hasScene(scene->getName())){
                             project->addScene(scene);
@@ -91,14 +91,14 @@ void EditorPage::render(float deltaTime) {
             }
             if(ImGui::MenuItem("Save Scene") && this->selectedScene) {
                 if(!this->selectedScene->isSaved){
-                    this->selectedScene->scene->serialize((project->getConfig().sceneDirectory / (this->selectedScene->scene->getName() + ".scene")).string());
+                    this->selectedScene->scene->serialize(project->getConfig().sceneDirectory / (this->selectedScene->scene->getName() + ".scene"));
                     this->selectedScene->isSaved = true;
                 }
             }
             if(ImGui::MenuItem("Save All Scene")) {
                 for(auto& scene : project->getScenes()){
                     if(!scene.isSaved){
-                        scene.scene->serialize((project->getConfig().sceneDirectory / (scene.scene->getName() + ".scene")).string());
+                        scene.scene->serialize(project->getConfig().sceneDirectory / (scene.scene->getName() + ".scene"));
                         scene.isSaved = true;
                     }
                 }

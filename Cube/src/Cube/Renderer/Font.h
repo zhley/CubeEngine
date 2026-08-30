@@ -1,12 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "glm/vec2.hpp"
 
 #include "TextureRegion.h"
+#include "Cube/Core/Path.h"
 #include "Cube/Resource/Resource.h"
 
 namespace Cube {
@@ -23,7 +25,7 @@ namespace Cube {
 	// Font class. based on FreeType
 	class Font : public ResourceBase{
 	public:
-		Font(const std::string& fontFilePath, int fontSize);
+		Font(const Cube::Path& fontFilePath, int fontSize);
 		~Font() = default;
 
 		Glyph* getGlyph(uint32_t c);
@@ -32,7 +34,7 @@ namespace Cube {
 		int getAscender() const;
 		glm::vec2 calcTextSize(const std::string& text);
 	private:
-		std::string fontFilePath;
+		Cube::Path fontFilePath;
         int fontSize;
 		std::unordered_map<uint32_t, Glyph> glyphs;
 		std::vector<std::unique_ptr<Texture2D>> atlasPages;

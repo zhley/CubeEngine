@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "Cube/Core/Path.h"
 #include "Cube/Resource/ResPtr.h"
 #include "Cube/Resource/Sprite.h"
 
@@ -15,7 +16,7 @@ namespace Cube {
 
     class AnimationClip : public ResourceBase{
     public:
-        AnimationClip(const std::string& animFilePath);
+        AnimationClip(const Cube::Path& animFilePath);
         ~AnimationClip() = default;
 
         Sprite* getFrameAtTime(float time) const;
