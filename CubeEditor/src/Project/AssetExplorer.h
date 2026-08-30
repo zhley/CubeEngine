@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Cube/Core/Path.h"
 #include "Cube/Resource/ResourceType.h"
 
 #include <json.hpp>
@@ -53,8 +54,8 @@ public:
     ~AssetExplorer() = default;
 
     void normalInit();
-    void loadFromFile(const std::string& path, const std::string& assetMapFilePath);
-    void saveToFile(const std::string& path, const std::string& assetMapFilePath) const;
+    void loadFromFile(const Cube::Path& path, const Cube::Path& assetMapFilePath);
+    void saveToFile(const Cube::Path& path, const Cube::Path& assetMapFilePath) const;
     AssetNode* getCurrentNode() const;
     void enterNode(AssetNode* node);
     void back();

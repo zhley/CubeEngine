@@ -38,7 +38,7 @@ EditorPage::EditorPage(Project* project) : project(project) {
 
 EditorPage::~EditorPage() {
     if(project) {
-        project->getAssetExplorer().saveToFile(project->getConfig().projectDataDirectory + "/resources.cache", project->getConfig().assetPathMapFilePath);
+        project->getAssetExplorer().saveToFile(project->getConfig().projectDataDirectory / "resources.cache", project->getConfig().assetPathMapFilePath);
     }
 }
 
@@ -67,17 +67,17 @@ void EditorPage::render(float deltaTime) {
             }
 
             if(ImGui::MenuItem("Load Scene")) {
-                std::string filePath = Utils::FileDialog::openFile();
+                Cube::Path filePath = Utils::FileDialog::openFile();
                 if(!filePath.empty()) {
-                    Cube::Scene* scene = new Cube::Scene(filePath);
-                    if(std::filesystem::path(filePath).stem() == scene->getName()){
+                    Cube::Scene* scene = new Cube::Scene(filePath.string());
+                    if(filePath.stem() == scene->getName()){
                         if(!project->hasScene(scene->getName())){
                             project->addScene(scene);
                             selectedScene = &project->getScenes().back();
-                            std::filesystem::path target(project->getConfig().sceneDirectory + "/" + scene->getName() + ".scene");
-                            if (!std::filesystem::equivalent(filePath, target)) {
+                            Cube::Path target = project->getConfig().sceneDirectory / (scene->getName() + ".scene");
+                            if (!std::filesystem::equivalent(filePath.string(), target.string())) {
                                 // TODO: 覆盖警告
-                                std::filesystem::copy_file(filePath, target, std::filesystem::copy_options::overwrite_existing);
+                                std::filesystem::copy_file(filePath.string(), target.string(), std::filesystem::copy_options::overwrite_existing);
                             }
                         } else {
                             delete scene;
@@ -91,14 +91,14 @@ void EditorPage::render(float deltaTime) {
             }
             if(ImGui::MenuItem("Save Scene") && this->selectedScene) {
                 if(!this->selectedScene->isSaved){
-                    this->selectedScene->scene->serialize(project->getConfig().sceneDirectory + "/" + this->selectedScene->scene->getName() + ".scene");
+                    this->selectedScene->scene->serialize((project->getConfig().sceneDirectory / (this->selectedScene->scene->getName() + ".scene")).string());
                     this->selectedScene->isSaved = true;
                 }
             }
             if(ImGui::MenuItem("Save All Scene")) {
                 for(auto& scene : project->getScenes()){
                     if(!scene.isSaved){
-                        scene.scene->serialize(project->getConfig().sceneDirectory + "/" + scene.scene->getName() + ".scene");
+                        scene.scene->serialize((project->getConfig().sceneDirectory / (scene.scene->getName() + ".scene")).string());
                         scene.isSaved = true;
                     }
                 }

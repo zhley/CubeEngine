@@ -108,8 +108,7 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
         return false;
     }
 
-    namespace fs = std::filesystem;
-    const fs::path assetsDir(project->getConfig().assetsDirectory);
+    const Cube::Path& assetsDir = project->getConfig().assetsDirectory;
 
     std::string baseName = fileName;
     if(baseName.empty()) {
@@ -119,37 +118,36 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
         baseName = baseName.substr(0, baseName.size() - 5);
     }
 
-    fs::path animPath = assetsDir / (baseName + ".anim");
+    Cube::Path animPath = assetsDir / (baseName + ".anim");
     int index = 1;
-    while(fs::exists(animPath)) {
+    while(std::filesystem::exists(animPath.string())) {
         animPath = assetsDir / (baseName + "_" + std::to_string(index) + ".anim");
         ++index;
     }
 
     nlohmann::json animData;
-    animData["name"] = animPath.stem().string();
+    animData["name"] = animPath.stem();
     animData["looping"] = true;
     animData["speed"] = 1.0f;
     animData["duration"] = 0.0f;
     animData["frames"] = nlohmann::json::array();
 
-    std::ofstream file(animPath);
+    std::ofstream file(animPath.string());
     if(!file.is_open()) {
         // TODO: Show user-level error prompt in unified notification system.
-        CB_EDITOR_ERROR("AnimationEditor: Failed to create animation file {}", animPath.string());
+        CB_EDITOR_ERROR("AnimationEditor: Failed to create animation file {}", animPath);
         return false;
     }
     file << animData.dump(4);
     file.close();
 
-    const fs::path absPath = fs::weakly_canonical(animPath);
-    const fs::path relPath = fs::relative(absPath, assetsDir);
+    Cube::Path relPath = animPath.lexicallyRelative(assetsDir);
 
     nlohmann::json importConfig;
-    importConfig["path"] = absPath.generic_string();
-    project->getAssetExplorer().createResource("anim:" + relPath.generic_string(), importConfig);
+    importConfig["path"] = animPath.string();
+    project->getAssetExplorer().createResource("anim:" + relPath.string(), importConfig);
 
-    TargetChangeEvent e(absPath.generic_string());
+    TargetChangeEvent e(animPath);
     Cube::Engine::getApp()->getEventDispatcher().dispatch(e);
     return true;
 }
@@ -168,7 +166,7 @@ bool AnimationEditor::loadTargetAnim() {
         return false;
     }
 
-    std::ifstream file(target);
+    std::ifstream file(target.string());
     if(!file.is_open()) {
         // TODO: Show user-level error prompt in unified notification system.
         CB_EDITOR_ERROR("AnimationEditor: Failed to open animation file {}", target);
@@ -227,7 +225,7 @@ bool AnimationEditor::saveTargetAnim() {
     }
     animData["duration"] = totalDuration;
 
-    std::ofstream file(target);
+    std::ofstream file(target.string());
     if(!file.is_open()) {
         CB_EDITOR_ERROR("AnimationEditor: Failed to open animation file for save {}", target);
         return false;

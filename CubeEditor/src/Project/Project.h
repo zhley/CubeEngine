@@ -3,15 +3,16 @@
 #include <string>
 
 #include "AssetExplorer.h"
+#include "Cube/Core/Path.h"
 #include "Cube/Scene/Scene.h"
 
 struct ProjectConfig {
 	std::string name;
-	std::string rootPath; // project root directory
-	std::string projectDataDirectory;
-	std::string assetsDirectory;
-	std::string sceneDirectory;
-	std::string assetPathMapFilePath;
+	Cube::Path rootPath; // project root directory
+	Cube::Path projectDataDirectory;
+	Cube::Path assetsDirectory;
+	Cube::Path sceneDirectory;
+	Cube::Path assetPathMapFilePath;
 };
 
 struct SceneData {
@@ -21,8 +22,8 @@ struct SceneData {
 
 class Project final{
 public:
-    Project(const std::string& name, const std::string& rootPath);
-	Project(const std::string& configFilePath);
+    Project(const std::string& name, const Cube::Path& rootPath);
+	Project(const Cube::Path& configFilePath);
 	~Project();
 
 	const std::vector<SceneData>& getScenes() const;
@@ -30,13 +31,13 @@ public:
 	void addScene(Cube::Scene* scene);
 	bool hasScene(const std::string& sceneName) const;
 
-	void importResource(const std::string& path);
+	void importResource(const Cube::Path& path);
 
 	const ProjectConfig& getConfig() const;
     AssetExplorer& getAssetExplorer() { return assetExplorer; }
 
 private:
-	void writeToConfigFile(const std::string& configFilePath) const;
+	void writeToConfigFile(const Cube::Path& configFilePath) const;
 	void load();
 	void save();
 

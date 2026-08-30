@@ -4,6 +4,7 @@
 #include "ResourcePickerDialog.h"
 #include "View.h"
 
+#include "Cube/Core/Path.h"
 #include "Cube/Event/Event.h"
 #include "Cube/Core/Engine.h"
 
@@ -16,8 +17,8 @@ public:
     public:
         EVENT_TYPE(TargetChangeEvent)
 
-        TargetChangeEvent(const std::string& targetFilePath) : targetFilePath(targetFilePath) {}
-        std::string targetFilePath;
+        TargetChangeEvent(const Cube::Path& targetFilePath) : targetFilePath(targetFilePath) {}
+        Cube::Path targetFilePath;
     };
 
     AnimationEditor(EditorPage& editorPage) : View(editorPage) {
@@ -39,7 +40,7 @@ private:
 
     bool onTargetChange(const Cube::Event& e);
 
-    std::string target;
+    Cube::Path target;
     std::string name;
     bool looping = false;
     float speed = 1.0f;

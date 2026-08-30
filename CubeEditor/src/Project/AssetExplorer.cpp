@@ -14,9 +14,9 @@ void AssetExplorer::normalInit() {
     rootNode->isGroup = true;
 }
 
-void AssetExplorer::loadFromFile(const std::string& path, const std::string& assetMapFilePath) {
+void AssetExplorer::loadFromFile(const Cube::Path& path, const Cube::Path& assetMapFilePath) {
     // Asset structure
-    std::ifstream file(path);
+    std::ifstream file(path.string());
     if(!file.is_open()) {
         CB_EDITOR_ERROR("Failed to open file {}", path);
         return;
@@ -28,7 +28,7 @@ void AssetExplorer::loadFromFile(const std::string& path, const std::string& ass
     rootNode->fromJson(data);
 
     // AssetPathMap
-    std::ifstream file2(assetMapFilePath);
+    std::ifstream file2(assetMapFilePath.string());
     if(!file2.is_open()) {
         CB_EDITOR_ERROR("Failed to open AssetPathMapFile {}", assetMapFilePath);
         return;
@@ -40,9 +40,9 @@ void AssetExplorer::loadFromFile(const std::string& path, const std::string& ass
     resetResourceManager();
 }
 
-void AssetExplorer::saveToFile(const std::string& path, const std::string& assetMapFilePath) const {
+void AssetExplorer::saveToFile(const Cube::Path& path, const Cube::Path& assetMapFilePath) const {
     // Asset structure
-    std::ofstream file(path);
+    std::ofstream file(path.string());
     if(!file.is_open()) {
         CB_EDITOR_ERROR("Failed to open file {}", path);
         return;
@@ -51,7 +51,7 @@ void AssetExplorer::saveToFile(const std::string& path, const std::string& asset
     file.close();
 
     // AssetPathMap
-    std::ofstream file2(assetMapFilePath);
+    std::ofstream file2(assetMapFilePath.string());
     if(!file2.is_open()) {
         CB_EDITOR_ERROR("Failed to open AssetPathMapFile {}", assetMapFilePath);
         return;

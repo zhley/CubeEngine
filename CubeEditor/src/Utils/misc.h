@@ -5,10 +5,12 @@
 #include "json.hpp"
 #include "glm/glm.hpp"
 
+#include "Cube/Core/Path.h"
+
 namespace Utils{
 
 // 获取用户配置目录
-std::string getUserConfigDir();
+Cube::Path getUserConfigDir();
 
 /*
 TexturePacker的json格式示例：
@@ -48,7 +50,7 @@ TexturePacker的json格式示例：
     "ui_room_industrial.png": [0.002, 0.002, 0.786, 0.416]
 }
 */
-nlohmann::json parseAtlasFile(const std::string& filePath);
+nlohmann::json parseAtlasFile(const Cube::Path& filePath);
 
 bool isPointInPolygon(const glm::vec2& point, const std::vector<glm::vec2>& polygon);
 

@@ -5,28 +5,29 @@
 #include <json.hpp>
 
 #include "Cube/Core/Log.h"
+#include "Cube/Core/Path.h"
 #include "Cube/Resource/ResourceManager.h"
 #include "Cube/Utils/Utils.h"
 
-Project::Project(const std::string& name, const std::string& rootPath) {
+Project::Project(const std::string& name, const Cube::Path& rootPath) {
     config.name = name;
     config.rootPath = rootPath;
-    config.projectDataDirectory = rootPath + "/.cube";
-    config.assetsDirectory = rootPath + "/Assets";
-    config.sceneDirectory = rootPath + "/Scenes";
-    config.assetPathMapFilePath = config.rootPath + "/AssetMap.json";
+    config.projectDataDirectory = rootPath / ".cube";
+    config.assetsDirectory = rootPath / "Assets";
+    config.sceneDirectory = rootPath / "Scenes";
+    config.assetPathMapFilePath = config.rootPath / "AssetMap.json";
 
-    std::filesystem::create_directories(config.projectDataDirectory);
-    std::filesystem::create_directories(config.sceneDirectory);
-    std::filesystem::create_directories(config.assetsDirectory);
-    writeToConfigFile(rootPath + "/" + name + ".cbproj");
+    std::filesystem::create_directories(config.projectDataDirectory.string());
+    std::filesystem::create_directories(config.sceneDirectory.string());
+    std::filesystem::create_directories(config.assetsDirectory.string());
+    writeToConfigFile(rootPath / (name + ".cbproj"));
 
     assetExplorer.normalInit();
 }
 
-Project::Project(const std::string& configFilePath) {
+Project::Project(const Cube::Path& configFilePath) {
     nlohmann::json data;
-    std::ifstream file(configFilePath);
+    std::ifstream file(configFilePath.string());
     if(!file.is_open()) {
         CB_ERROR("Project::Project: Failed to open file: {}", configFilePath);
         CB_ASSERT(false);
@@ -36,11 +37,11 @@ Project::Project(const std::string& configFilePath) {
     file.close();
 
     config.name = data["name"];
-    config.rootPath = std::filesystem::path(configFilePath).parent_path().string();
-    config.projectDataDirectory = config.rootPath + "/.cube";
-    config.assetsDirectory = config.rootPath + "/Assets";
-    config.sceneDirectory = config.rootPath + "/Scenes";
-    config.assetPathMapFilePath = config.rootPath + "/AssetMap.json";
+    config.rootPath = configFilePath.parentPath();
+    config.projectDataDirectory = config.rootPath / ".cube";
+    config.assetsDirectory = config.rootPath / "Assets";
+    config.sceneDirectory = config.rootPath / "Scenes";
+    config.assetPathMapFilePath = config.rootPath / "AssetMap.json";
     load();
 }
 
@@ -66,56 +67,53 @@ bool Project::hasScene(const std::string& sceneName) const {
 }
 
 
-void importTexture(const std::filesystem::path& texturePath, Project* project, AssetExplorer& assetExplorer) {
-    std::filesystem::path path = std::filesystem::canonical(texturePath);
-    std::filesystem::path relPath = std::filesystem::relative(path, project->getConfig().assetsDirectory);
+void importTexture(const Cube::Path& texturePath, Project* project, AssetExplorer& assetExplorer) {
+    Cube::Path relPath = texturePath.lexicallyRelative(project->getConfig().assetsDirectory);
     nlohmann::json importConfig;
-    importConfig["path"] = path.generic_string();
-    assetExplorer.createResource("tex:" + relPath.generic_string(), importConfig);
+    importConfig["path"] = texturePath.string();
+    assetExplorer.createResource("tex:" + relPath.string(), importConfig);
 }
 
-void importAnimClip(const std::filesystem::path& animPath, Project* project, AssetExplorer& assetExplorer) {
-    std::filesystem::path path = std::filesystem::canonical(animPath);
-    std::filesystem::path relPath = std::filesystem::relative(path, project->getConfig().assetsDirectory);
+void importAnimClip(const Cube::Path& animPath, Project* project, AssetExplorer& assetExplorer) {
+    Cube::Path relPath = animPath.lexicallyRelative(project->getConfig().assetsDirectory);
     nlohmann::json importConfig;
-    importConfig["path"] = path.generic_string();
-    assetExplorer.createResource("anim:" + relPath.generic_string(), importConfig);
+    importConfig["path"] = animPath.string();
+    assetExplorer.createResource("anim:" + relPath.string(), importConfig);
 }
 
-void importRes(const std::filesystem::path& source, const std::filesystem::path& target, Project* project, AssetExplorer& assetExplorer) {
-    if(std::filesystem::is_directory(source)) {
-        if(!std::filesystem::exists(target)) {
-            std::filesystem::create_directories(target);
-        }
-        for(auto& entry : std::filesystem::directory_iterator(source)) {
-            importRes(entry.path(), target / entry.path().filename(), project, assetExplorer);
+void importRes(const Cube::Path& source, const Cube::Path& target, Project* project, AssetExplorer& assetExplorer) {
+    std::filesystem::path sourcePath = source.string();
+    std::filesystem::path targetPath = target.string();
+    if(std::filesystem::is_directory(sourcePath)) {
+        std::filesystem::create_directories(targetPath);
+        for(const auto& entry : std::filesystem::directory_iterator(sourcePath)) {
+            Cube::Path child(entry.path().string());
+            importRes(child, target / child.filename(), project, assetExplorer);
         }
     }else {
         if(target != source) {
             std::error_code ec;
-            std::filesystem::copy_file(source, target, std::filesystem::copy_options::none, ec);
+            std::filesystem::copy_file(source.string(), target.string(), std::filesystem::copy_options::none, ec);
             if(ec) {
-                CB_EDITOR_ERROR("Failed to copy file from {} to {}. Error Code: {}", source.string(), target.string(), ec.message());
+                CB_EDITOR_ERROR("Failed to copy file from {} to {}. Error Code: {}", source, target, ec.message());
                 return;
             }
         }
-        if(target.extension() == ".png" || target.extension() == ".jpg") {
+        const std::string_view extension = target.extension();
+        if(extension == ".png" || extension == ".jpg") {
             importTexture(target, project, assetExplorer);
-        } else if(target.extension() == ".anim") {
+        } else if(extension == ".anim") {
             importAnimClip(target, project, assetExplorer);
         }
         else {
-            CB_EDITOR_ERROR("Unknown assets format: {}", source.extension().string());
+            CB_EDITOR_ERROR("Unknown assets format: {}", source.extension());
             return;
         }
     }
 }
 
-void Project::importResource(const std::string& path) {
-    std::filesystem::path filepath(path);
-    std::filesystem::path targetFile = config.assetsDirectory;
-    targetFile /= filepath.filename();
-    importRes(path, targetFile, this, assetExplorer);
+void Project::importResource(const Cube::Path& path) {
+    importRes(path, config.assetsDirectory / path.filename(), this, assetExplorer);
 }
 
 const ProjectConfig& Project::getConfig() const {
@@ -130,23 +128,24 @@ void Project::save() {
         data["scenes"].push_back(s.scene->getName());
     }
 
-    std::ofstream file(config.projectDataDirectory + "/scenes.cache");
+    const Cube::Path scenesCacheFile = config.projectDataDirectory / "scenes.cache";
+    std::ofstream file(scenesCacheFile.string());
     if(!file.is_open()) {
-        CB_ERROR("Project::save: failed to open file: {}", config.projectDataDirectory + "/scenes.cache");
+        CB_ERROR("Project::save: failed to open file: {}", scenesCacheFile);
         CB_ASSERT(false);
         return;
     }
     file << data.dump(4);
     file.close();
 
-    assetExplorer.saveToFile(config.projectDataDirectory + "/resources.cache", config.assetPathMapFilePath);
+    assetExplorer.saveToFile(config.projectDataDirectory / "resources.cache", config.assetPathMapFilePath);
 }
 
-void Project::writeToConfigFile(const std::string& configFilePath) const {
+void Project::writeToConfigFile(const Cube::Path& configFilePath) const {
     nlohmann::json data;
     data["name"] = config.name;
 
-    std::ofstream file(configFilePath);
+    std::ofstream file(configFilePath.string());
     if(!file.is_open()) {
         CB_ERROR("Project::Project: Failed to open file: {}", configFilePath);
         CB_ASSERT(false);
@@ -157,19 +156,20 @@ void Project::writeToConfigFile(const std::string& configFilePath) const {
 
 void Project::load() {
     // resources.cache
-    assetExplorer.loadFromFile(config.projectDataDirectory + "/resources.cache", config.assetPathMapFilePath);
+    assetExplorer.loadFromFile(config.projectDataDirectory / "resources.cache", config.assetPathMapFilePath);
 
     // scenes.cache
-    std::ifstream file(config.projectDataDirectory + "/scenes.cache");
+    const Cube::Path scenesCacheFile = config.projectDataDirectory / "scenes.cache";
+    std::ifstream file(scenesCacheFile.string());
     if(!file.is_open()) {
-        CB_ERROR("Project::load: failed to open file: {}", config.projectDataDirectory + "/scenes.cache");
+        CB_ERROR("Project::load: failed to open file: {}", scenesCacheFile);
         CB_ASSERT(false);
         return;
     }
     nlohmann::json data;
     file >> data;
     for(auto& s : data["scenes"]) {
-        Cube::Scene* scene = new Cube::Scene(config.sceneDirectory + "/" + s.get<std::string>() + ".scene");
+        Cube::Scene* scene = new Cube::Scene((config.sceneDirectory / (s.get<std::string>() + ".scene")).string());
         scenes.push_back({scene, true});
     }
     file.close();

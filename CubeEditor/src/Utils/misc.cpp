@@ -15,41 +15,41 @@
 #include "Cube/Utils/Utils.h"
 #include "json.hpp"
 
-std::string Utils::getUserConfigDir() {
+Cube::Path Utils::getUserConfigDir() {
 #ifdef _WIN32
     PWSTR pszPath = nullptr;
     HRESULT hr = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &pszPath);
     if (FAILED(hr)) {
-        return std::string();
+        return Cube::Path();
     }
     std::string dir = Cube::Utils::utf16To8(reinterpret_cast<const char16_t*>(pszPath));
     CoTaskMemFree(pszPath);
-    return dir;
+    return Cube::Path(dir);
 #elif defined(__APPLE__)
     @autoreleasepool {
         NSString *home = NSHomeDirectory();
         NSString *appSupport = [home stringByAppendingPathComponent:@"Library/Application Support"];
-        return std::string([appSupport UTF8String]);
+        return Cube::Path(std::string([appSupport UTF8String]));
     }
 #elif defined(__linux__)
     const char* xdg = std::getenv("XDG_CONFIG_HOME");
     if (xdg && xdg[0] != '\0') {
-        return std::string(xdg);
+        return Cube::Path(xdg);
     }
     const char* home = std::getenv("HOME");
     if (home && home[0] != '\0') {
-        return std::string(home) + "/.config";
+        return Cube::Path(home) / ".config";
     }
-    return std::string();
+    return Cube::Path();
 #else
     #error "Unsupported platform"
 #endif
 }
 
-nlohmann::json Utils::parseAtlasFile(const std::string &filePath){
+nlohmann::json Utils::parseAtlasFile(const Cube::Path& filePath){
     nlohmann::json sprites = nlohmann::json::object();
 
-    std::ifstream file(filePath);
+    std::ifstream file(filePath.string());
     if(!file.is_open()) {
         CB_EDITOR_ERROR("parseAtlasFile: Failed to open atlas file {}", filePath);
         return sprites;

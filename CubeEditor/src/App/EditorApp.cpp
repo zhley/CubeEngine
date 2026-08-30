@@ -29,7 +29,7 @@ EditorApp::EditorApp(const Cube::WindowPros& windowPros) : Cube::Application(win
         Page* curPage = static_cast<EditorApp*>(Cube::Engine::getApp())->currentPage.get();
         if(curPage && curPage->getType() == Page::Type::Editor) {
             for(int i = 0; i < path_count; ++i) {
-                static_cast<EditorPage*>(curPage)->getProject()->importResource(paths[i]);
+                static_cast<EditorPage*>(curPage)->getProject()->importResource(Cube::Path(paths[i]));
             }
         }
     });
@@ -63,13 +63,13 @@ void EditorApp::run() {
     }
 }
 
-std::filesystem::path EditorApp::getConfigDir() {
-    std::filesystem::path configDir = std::filesystem::path(Utils::getUserConfigDir()) / "CubeEditor"; // TODO: 改成域名倒写
+Cube::Path EditorApp::getConfigDir() {
+    Cube::Path configDir = Utils::getUserConfigDir() / "CubeEditor"; // TODO: 改成域名倒写
     std::error_code ec;
-    std::filesystem::create_directories(configDir, ec);
+    std::filesystem::create_directories(configDir.string(), ec);
     if (ec) {
-        CB_EDITOR_ERROR("Failed to create directory: {}, {}", configDir.string(), ec.message());
-        return std::filesystem::path();
+        CB_EDITOR_ERROR("Failed to create directory: {}, {}", configDir, ec.message());
+        return Cube::Path();
     }
     return configDir;
 }

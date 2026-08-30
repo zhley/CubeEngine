@@ -40,7 +40,7 @@ void AssetInspector::render(float deltaTime) {
                 ImGui::Separator();
 
                 if(ImGui::Button("Load Sprites From Atlas")) {
-                    std::string atlasPath = Utils::FileDialog::openFile();
+                    Cube::Path atlasPath = Utils::FileDialog::openFile();
                     if(!atlasPath.empty()) {
                         editingImporter["sprites"] = Utils::parseAtlasFile(atlasPath);
                     }
@@ -139,7 +139,7 @@ void AssetInspector::render(float deltaTime) {
                 ImGui::Text("path:");
                 ImGui::Text("%s", editingImporter.value("path", "").c_str());
                 if(ImGui::Button("Edit in Animation Editor")) {
-                    Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(editingImporter.value("path", "")));
+                    Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(Cube::Path(editingImporter.value("path", ""))));
                 }
                 break;
             } 

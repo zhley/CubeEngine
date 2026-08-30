@@ -77,10 +77,10 @@ static FilterSpecs buildFilterSpecs(const std::vector<FileDialog::FilterSpec>& f
 // ---------- 通用对话框显示辅助 ----------
 // 用于打开/保存单个文件，返回 UTF-8 路径
 template<typename DialogType>
-static std::string showDialog(
+static Cube::Path showDialog(
     const std::string& title,
     const std::vector<FileDialog::FilterSpec>& filters,
-    const std::string& defaultPath,
+    const Cube::Path& defaultPath,
     DWORD extraOptions = 0,
     bool isSave = false
 ) {
@@ -102,7 +102,7 @@ static std::string showDialog(
         // 设置默认文件夹
         if (!defaultPath.empty()) {
             IShellItem* pFolder = nullptr;
-            hr = SHCreateItemFromParsingName(utf8_to_utf16(defaultPath).c_str(),
+            hr = SHCreateItemFromParsingName(utf8_to_utf16(defaultPath.string()).c_str(),
                                              nullptr, IID_IShellItem, (void**)&pFolder);
             if (SUCCEEDED(hr)) {
                 pDlg->SetDefaultFolder(pFolder);
@@ -144,22 +144,22 @@ static std::string showDialog(
     if (comInit) {
         CoUninitialize();
     }
-    return result;
+    return Cube::Path(result);
 }
 
 } // anonymous namespace
 
 // ---------- 公共接口实现 ----------
 
-std::string FileDialog::openFile(const std::string& title,
+Cube::Path FileDialog::openFile(const std::string& title,
                                  const std::vector<FilterSpec>& filters,
-                                 const std::string& defaultPath) {
+                                 const Cube::Path& defaultPath) {
     return showDialog<IFileOpenDialog>(title, filters, defaultPath, 0, false);
 }
 
-std::string FileDialog::saveFile(const std::string& title,
+Cube::Path FileDialog::saveFile(const std::string& title,
                                  const std::vector<FilterSpec>& filters,
-                                 const std::string& defaultPath,
+                                 const Cube::Path& defaultPath,
                                  const std::string& defaultExtension) {
     // 对于保存对话框，我们需要单独处理，因为需要设置默认扩展名
     // 而且不能直接用模板，因为模板会统一处理，但我们需要额外的 SetDefaultExtension 调用
@@ -177,7 +177,7 @@ std::string FileDialog::saveFile(const std::string& title,
         }
         if (!defaultPath.empty()) {
             IShellItem* pFolder = nullptr;
-            hr = SHCreateItemFromParsingName(utf8_to_utf16(defaultPath).c_str(),
+            hr = SHCreateItemFromParsingName(utf8_to_utf16(defaultPath.string()).c_str(),
                                              nullptr, IID_IShellItem, (void**)&pFolder);
             if (SUCCEEDED(hr)) {
                 pDlg->SetDefaultFolder(pFolder);
@@ -210,20 +210,20 @@ std::string FileDialog::saveFile(const std::string& title,
     if (comInit) {
         CoUninitialize();
     }
-    return result;
+    return Cube::Path(result);
 }
 
-std::string FileDialog::selectDir(const std::string& title,
-                                  const std::string& defaultPath) {
+Cube::Path FileDialog::selectDir(const std::string& title,
+                                 const Cube::Path& defaultPath) {
     // 使用 IFileOpenDialog，并加上 FOS_PICKFOLDERS 选项
     // 此时 filters 参数无意义，我们传入空 vector
     return showDialog<IFileOpenDialog>(title, {}, defaultPath, FOS_PICKFOLDERS, false);
 }
 
-std::vector<std::string> FileDialog::openMultiFiles(const std::string& title,
-                                                    const std::vector<FilterSpec>& filters,
-                                                    const std::string& defaultPath) {
-    std::vector<std::string> results;
+std::vector<Cube::Path> FileDialog::openMultiFiles(const std::string& title,
+                                                   const std::vector<FilterSpec>& filters,
+                                                   const Cube::Path& defaultPath) {
+    std::vector<Cube::Path> results;
     HRESULT hr = CoInitialize(nullptr);
     bool comInit = SUCCEEDED(hr);
 
@@ -240,7 +240,7 @@ std::vector<std::string> FileDialog::openMultiFiles(const std::string& title,
         }
         if (!defaultPath.empty()) {
             IShellItem* pFolder = nullptr;
-            hr = SHCreateItemFromParsingName(utf8_to_utf16(defaultPath).c_str(),
+            hr = SHCreateItemFromParsingName(utf8_to_utf16(defaultPath.string()).c_str(),
                                              nullptr, IID_IShellItem, (void**)&pFolder);
             if (SUCCEEDED(hr)) {
                 pDlg->SetDefaultFolder(pFolder);
@@ -268,7 +268,7 @@ std::vector<std::string> FileDialog::openMultiFiles(const std::string& title,
                     if (SUCCEEDED(hr) && pItem) {
                         std::string path = getPathFromItem(pItem);
                         if (!path.empty()) {
-                            results.push_back(path);
+                            results.push_back(Cube::Path(path));
                         }
                         pItem->Release();
                     }

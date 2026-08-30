@@ -1,6 +1,5 @@
 #include "ResourcesPanel.h"
 
-#include <filesystem>
 #include <memory>
 #include <unordered_set>
 
@@ -13,8 +12,6 @@
 #include "Cube/Core/Engine.h"
 #include "Cube/Resource/ResourceType.h"
 #include "imgui/imgui.h"
-
-namespace fs = std::filesystem;
 
 struct SelectedManager {
     std::unordered_set<AssetNode*> nodes;
@@ -62,7 +59,6 @@ void ResourcesPanel::render(float deltaTime) {
     ImGui::Begin("Resources Panel");
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 
-    static const fs::path ASSETS_DIR(project->getConfig().assetsDirectory);
     const std::string topText = assetExplorer.getCurrentPath();
     float topHeight = ImGui::CalcTextSize(topText.c_str()).y;
 
@@ -308,7 +304,8 @@ void ResourcesPanel::render(float deltaTime) {
         }
         if(selectedManager.getSingleNode()->type == Cube::ResourceType::AnimationClip){
             if(ImGui::MenuItem("Edit")){
-                Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(assetExplorer.getAssetImporter(selectedManager.getSingleNode()->identifier)["path"].get<std::string>()));
+                const Cube::Path animPath(assetExplorer.getAssetImporter(selectedManager.getSingleNode()->identifier)["path"].get<std::string>());
+                Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(animPath));
             }
         }
         ImGui::EndPopup();

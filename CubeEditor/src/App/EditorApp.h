@@ -1,7 +1,6 @@
 #pragma once
 
-#include <filesystem>
-
+#include "Cube/Core/Path.h"
 #include "Cube/Core/Window.h"
 #include "Cube/Core/Application.h"
 
@@ -15,7 +14,7 @@ public:
     void switchPage(Page* page);
     void run() override;
 
-    static std::filesystem::path getConfigDir();
+    static Cube::Path getConfigDir();
 
 private:
     std::unique_ptr<Page> currentPage;

@@ -18,30 +18,37 @@
 
 GuidancePage::GuidancePage() {
     // load project path cache
-    std::filesystem::path projectPathCacheFile = static_cast<EditorApp*>(Cube::Engine::getApp())->getConfigDir() / "projects_path_cache.json";
-    std::ifstream file(projectPathCacheFile);
+    Cube::Path projectPathCacheFile = static_cast<EditorApp*>(Cube::Engine::getApp())->getConfigDir() / "projects_path_cache.json";
+    std::ifstream file(projectPathCacheFile.string());
     if (!file.is_open()) {
-        if (!std::filesystem::exists(projectPathCacheFile)) {
+        if (!std::filesystem::exists(projectPathCacheFile.string())) {
             return;
         }
-        CB_EDITOR_ERROR("GuidancePage::GuidancePage: Failed to open file: {}", projectPathCacheFile.string());
+        CB_EDITOR_ERROR("GuidancePage::GuidancePage: Failed to open file: {}", projectPathCacheFile);
         return;
     }
     nlohmann::json data;
     file >> data;
     file.close();
-    projectsPathCache = data;
+    for (const auto& item : data.get<std::vector<std::string>>()) {
+        projectsPathCache.push_back(Cube::Path(item));
+    }
 }
 
 GuidancePage::~GuidancePage() {
     // save project path cache
-    std::filesystem::path projectPathCacheFile = static_cast<EditorApp*>(Cube::Engine::getApp())->getConfigDir() / "projects_path_cache.json";
-    std::ofstream file(projectPathCacheFile);
+    Cube::Path projectPathCacheFile = static_cast<EditorApp*>(Cube::Engine::getApp())->getConfigDir() / "projects_path_cache.json";
+    std::ofstream file(projectPathCacheFile.string());
     if (!file.is_open()) {
-        CB_EDITOR_ERROR("GuidancePage::~GuidancePage: Failed to open file: {}", projectPathCacheFile.string());
+        CB_EDITOR_ERROR("GuidancePage::~GuidancePage: Failed to open file: {}", projectPathCacheFile);
         return;
     }
-    nlohmann::json data = projectsPathCache;
+    std::vector<std::string> cacheStrings;
+    cacheStrings.reserve(projectsPathCache.size());
+    for (const Cube::Path& p : projectsPathCache) {
+        cacheStrings.push_back(p.string());
+    }
+    nlohmann::json data = cacheStrings;
     file << data;
     file.close();
 }
@@ -60,13 +67,13 @@ void GuidancePage::render(float deltaTime) {
     bool switchPage = false;
     auto toRemoveIt = projectsPathCache.end();
     for(auto it = projectsPathCache.begin(); it != projectsPathCache.end(); ++it) {
-        const std::string& p = *it;
-        if(ImGui::Button(p.c_str())) {
-            proj = new Project(p);
+        const std::string& label = it->string();
+        if(ImGui::Button(label.c_str())) {
+            proj = new Project(*it);
             switchPage = true;
         }
         ImGui::SameLine();
-        if(ImGui::Button((std::string("X##") + p).c_str())) {
+        if(ImGui::Button((std::string("X##") + label).c_str())) {
             toRemoveIt = it;
         }
     }
@@ -100,7 +107,7 @@ void GuidancePage::render(float deltaTime) {
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Button, toImColor({70, 77, 88, 255}));
         if(ImGui::Button("...")) {
-            strcpy_s(path, Utils::FileDialog::selectDir().c_str());
+            strcpy_s(path, Utils::FileDialog::selectDir().string().c_str());
         }
         ImGui::PopStyleColor();
     }, [&switchPage, this] {
@@ -108,8 +115,8 @@ void GuidancePage::render(float deltaTime) {
         isPathValid = std::filesystem::exists(path);
         if(isNameValid && isPathValid){
             delete proj;
-            projectsPathCache.push_back(std::string(path) + "/" + name + ".cbproj");
-            proj = new Project(name, path);
+            projectsPathCache.push_back(Cube::Path(path) / (std::string(name) + ".cbproj"));
+            proj = new Project(name, Cube::Path(path));
             newProject->close();
             ImGui::CloseCurrentPopup();
 
@@ -140,7 +147,7 @@ void GuidancePage::render(float deltaTime) {
     ImGui::BeginGroup();
     if(ImGui::ImageButton("Open Project##1", open_project_png->getId(), buttonSize, {0, 1}, {1, 0})) {
         delete proj;
-        std::string path = Utils::FileDialog::openFile();
+        Cube::Path path = Utils::FileDialog::openFile();
         if(!path.empty()) {
             if(std::find(projectsPathCache.begin(), projectsPathCache.end(), path) == projectsPathCache.end()) {
                 projectsPathCache.push_back(path);
