@@ -1,4 +1,5 @@
 #include "Cube/Core/Engine.h"
+#include "Cube/Core/Log.h"
 #include "Cube/Utils/Utils.h"
 
 #include "App/EditorApp.h"
@@ -6,9 +7,7 @@
 
 int main() {
     Cube::Utils::setConsoleUtf8();
-
-    UINT acp = GetACP(); // 获取当前进程的 ANSI 代码页
-    std::cout << "Current ANSI Code Page: " << acp << std::endl;
+    CB_ASSERT(GetACP() == 65001);
     
     Cube::Engine::init();
     Cube::Engine::setApp(new EditorApp({1920, 1080, "Cube Editor"}));

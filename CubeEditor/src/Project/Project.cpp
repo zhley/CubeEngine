@@ -93,6 +93,7 @@ void importRes(const Cube::Path& source, const Cube::Path& target, Project* proj
     }else {
         if(target != source) {
             std::error_code ec;
+            // TODO: 允许覆盖, 但是给出确认弹窗
             std::filesystem::copy_file(source.string(), target.string(), std::filesystem::copy_options::none, ec);
             if(ec) {
                 CB_EDITOR_ERROR("Failed to copy file from {} to {}. Error Code: {}", source, target, ec.message());

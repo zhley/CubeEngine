@@ -298,15 +298,15 @@ void ResourcesPanel::render(float deltaTime) {
                 renamePopup->open();
             }
         }
-        if(ImGui::MenuItem("Delete")) {
-            assetExplorer.removeNode(selectedManager.getSingleNode());
-            selectedManager.cancel();
-        }
         if(selectedManager.getSingleNode()->type == Cube::ResourceType::AnimationClip){
             if(ImGui::MenuItem("Edit")){
                 const Cube::Path animPath(assetExplorer.getAssetImporter(selectedManager.getSingleNode()->identifier)["path"].get<std::string>());
                 Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(animPath));
             }
+        }
+        if(ImGui::MenuItem("Delete")) {
+            assetExplorer.removeNode(selectedManager.getSingleNode());
+            selectedManager.cancel();
         }
         ImGui::EndPopup();
     }
