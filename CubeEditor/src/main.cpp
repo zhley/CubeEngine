@@ -1,4 +1,3 @@
-#include "Cube/Core/Engine.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Utils/Utils.h"
 
@@ -9,11 +8,10 @@ int main() {
     Cube::Utils::setConsoleUtf8();
     CB_ASSERT(GetACP() == 65001);
     
-    Cube::Engine::init();
-    Cube::Engine::setApp(new EditorApp({1920, 1080, "Cube Editor"}));
-    EditorApp* app = static_cast<EditorApp*>(Cube::Engine::getApp());
+    EditorApp::init();
+    auto app = EditorApp::get();
     app->switchPage(new GuidancePage);
     app->run();
-    Cube::Engine::shutdown();
+    EditorApp::shutdown();
     return 0;
 }

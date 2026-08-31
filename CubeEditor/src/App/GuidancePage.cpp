@@ -18,7 +18,7 @@
 
 GuidancePage::GuidancePage() {
     // load project path cache
-    Cube::Path projectPathCacheFile = static_cast<EditorApp*>(Cube::Engine::getApp())->getConfigDir() / "projects_path_cache.json";
+    Cube::Path projectPathCacheFile = EditorApp::getConfigDir() / "projects_path_cache.json";
     std::ifstream file(projectPathCacheFile.string());
     if (!file.is_open()) {
         if (!std::filesystem::exists(projectPathCacheFile.string())) {
@@ -37,7 +37,7 @@ GuidancePage::GuidancePage() {
 
 GuidancePage::~GuidancePage() {
     // save project path cache
-    Cube::Path projectPathCacheFile = static_cast<EditorApp*>(Cube::Engine::getApp())->getConfigDir() / "projects_path_cache.json";
+    Cube::Path projectPathCacheFile = EditorApp::getConfigDir() / "projects_path_cache.json";
     std::ofstream file(projectPathCacheFile.string());
     if (!file.is_open()) {
         CB_EDITOR_ERROR("GuidancePage::~GuidancePage: Failed to open file: {}", projectPathCacheFile);
@@ -171,6 +171,6 @@ void GuidancePage::render(float deltaTime) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     if(switchPage) {
-        static_cast<EditorApp*>(Cube::Engine::getApp())->switchPage(new EditorPage(proj));
+        EditorApp::get()->switchPage(new EditorPage(proj));
     }
 }

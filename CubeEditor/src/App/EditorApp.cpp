@@ -26,7 +26,7 @@ EditorApp::EditorApp(const Cube::WindowPros& windowPros) : Cube::Application(win
     imGuiInit();
 
     glfwSetDropCallback(mainWindow->getNativeWindow(), [](GLFWwindow* window, int path_count, const char* paths[]) {
-        Page* curPage = static_cast<EditorApp*>(Cube::Engine::getApp())->currentPage.get();
+        Page* curPage = EditorApp::get()->currentPage.get();
         if(curPage && curPage->getType() == Page::Type::Editor) {
             for(int i = 0; i < path_count; ++i) {
                 static_cast<EditorPage*>(curPage)->getProject()->importResource(Cube::Path(paths[i]));
