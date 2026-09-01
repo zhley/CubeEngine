@@ -6,13 +6,21 @@
 #include "Cube/Script/ScriptRuntime.h"
 #include "Cube/Scene/RenderServer.h"
 #include "Cube/Scene/SceneManager.h"
+#include <memory>
 #include <vector>
 
 namespace Cube {
 
+class IGameController {
+public: 
+    virtual ~IGameController() = default;
+    virtual void init() {};
+    virtual void update(float deltaTime) = 0;
+};
+
 class Application {
 public:
-    Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths);
+    Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths, std::unique_ptr<IGameController> gameController = nullptr);
     virtual ~Application();
 
     virtual void run();
@@ -43,6 +51,7 @@ public:
 
 protected:
     Window* mainWindow;
+    std::unique_ptr<IGameController> gameController;
     bool running;
     ResourceManager resourceManager;
     RenderServer renderServer;

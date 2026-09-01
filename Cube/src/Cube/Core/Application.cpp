@@ -8,7 +8,7 @@
 
 namespace Cube {
 
-Application::Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths) : mainWindow(nullptr), running(true), scriptRuntime(moduleSearchPaths) {
+Application::Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths, std::unique_ptr<IGameController> gameController) : mainWindow(nullptr), gameController(std::move(gameController)), running(true), scriptRuntime(moduleSearchPaths) {
     mainWindow = new Window(windowPros, &eventDispatcher);
     eventDispatcher.subscribe<WindowCloseEvent>(std::bind(&Application::onWindowClose, this, std::placeholders::_1));
 }
@@ -18,15 +18,18 @@ Application::~Application() {
 }
 
 void Application::run() {
+    // init
+    if (gameController) gameController->init();
+
     running = true;
     CB_CORE_INFO("Application run");
-
     Timer timer;
-
     while(running) {
         float deltaTime = timer.getDuration();
 
         Renderer::clearBuffer();
+
+        if(gameController) gameController->update(deltaTime);
 
         if(Scene* scene = sceneManager.getActive()) {
             scene->update(deltaTime);
