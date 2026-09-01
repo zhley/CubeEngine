@@ -1,23 +1,32 @@
 #include "SceneView.h"
 
-#include <imgui/imgui.h>
+#include <filesystem>
+#include <string>
+#include <vector>
 
-#include <glm/ext/matrix_clip_space.hpp>
-#include <thread>
-
-#include "../App/EditorPage.h"
-#include "../App/EditorApp.h"
-#include "../Game.h"
-#include "../Project/Project.h"
-#include "../Utils/ImGuiExternal.h"
-#include "../Utils/EditorTextureCache.h"
-#include "../Utils/misc.h"
+#include "imgui/imgui.h"
+#include "glm/glm.hpp"
 #include "Cube/Animation/AnimationClip.h"
+#include "Cube/Core/Log.h"
 #include "Cube/Renderer/Renderer.h"
 #include "Cube/Scene/Camera2D.h"
 #include "Cube/Scene/SpriteRender.h"
 #include "Cube/Animation/Animation.h"
-#include "glm/ext/vector_float4.hpp"
+#include "Cube/Utils/Utils.h"
+
+#include "../App/EditorPage.h"
+#include "../Project/Project.h"
+#include "../Utils/ImGuiExternal.h"
+#include "../Utils/EditorTextureCache.h"
+#include "../Utils/misc.h"
+
+namespace {
+
+// TODO: 改为用户在设置中配置的路径, 并在重新构建后支持覆盖更新
+constexpr const char* kGameExeSourcePath = "D:/mycode/vsProject/CubeEngine/build/vscode/bin/CubeGame.exe";
+constexpr const char* kGameExeName = "CubeGame.exe";
+
+}  // namespace
 
 SceneView::SceneView(EditorPage& editorPage) : View(editorPage) {
     frameBuffer = new Cube::FrameBuffer();
@@ -25,6 +34,7 @@ SceneView::SceneView(EditorPage& editorPage) : View(editorPage) {
 }
 
 SceneView::~SceneView() {
+    stopGameProcess();
     delete frameBuffer;
 }
 
@@ -36,9 +46,8 @@ void SceneView::render(float deltaTime) {
     ImGui::BeginChild("ToolBar", {ImGui::GetWindowWidth(), 45});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
     ImVec2 toolButtonSize(37, 37);
-    EditorApp* app = EditorApp::get();
-    static bool isGameOver = true;
-    if(ImGui::ImageButton("play", play_png->getId(), toolButtonSize, ImVec2(0, 1), ImVec2(1, 0)) && isGameOver) {
+    if(ImGui::ImageButton("play", play_png->getId(), toolButtonSize, ImVec2(0, 1), ImVec2(1, 0))) {
+        openRunConfirm();
     }
     ImGui::SameLine();
     if(ImGui::Button("Reset")) {
@@ -233,6 +242,7 @@ void SceneView::render(float deltaTime) {
         }
     }
     ImGui::EndChild();
+    renderRunConfirm();
     ImGui::End();
 }
 
@@ -276,4 +286,117 @@ void SceneView::sceneRender(float deltaTime) {
     }
 
     Cube::Renderer2D::endFrame();
+}
+
+
+Cube::Path SceneView::currentScenePath() const {
+    if(!editorPage.selectedScene || !editorPage.selectedScene->scene) {
+        return Cube::Path();
+    }
+    const ProjectConfig& config = editorPage.getProject()->getConfig();
+    return config.sceneDirectory / (editorPage.selectedScene->scene->getName() + ".scene");
+}
+
+Cube::Path SceneView::ensureGameExecutable() const {
+    const Cube::Path target = editorPage.getProject()->getConfig().rootPath / kGameExeName;
+    if(std::filesystem::exists(target.string())) {
+        return target;
+    }
+    const Cube::Path source(kGameExeSourcePath);
+    if(!std::filesystem::exists(source.string())) {
+        CB_EDITOR_ERROR("SceneView: game executable not found at '{}'", source);
+        return Cube::Path();
+    }
+    std::filesystem::copy_file(source.string(), target.string());
+    CB_EDITOR_INFO("SceneView: copied game executable to '{}'", target);
+    return target;
+}
+
+void SceneView::startGameProcess(const Cube::Path& exePath, const Cube::Path& scenePath) {
+    stopGameProcess();
+
+    const std::string commandLine = '"' + exePath.string() + "\" --scene \"" + scenePath.string() + '"';
+    std::u16string commandLineUtf16 = Cube::Utils::utf8To16(commandLine);
+    const std::u16string workingDirUtf16 = Cube::Utils::utf8To16(editorPage.getProject()->getConfig().rootPath.string());
+    const std::wstring workingDir(workingDirUtf16.begin(), workingDirUtf16.end());
+
+    STARTUPINFOW startupInfo = {};
+    startupInfo.cb = sizeof(startupInfo);
+    bool success = CreateProcessW(nullptr, reinterpret_cast<LPWSTR>(&commandLineUtf16[0]), nullptr, nullptr, FALSE, 0, nullptr, workingDir.c_str(), &startupInfo, &gameProcess);
+    if(!success) {
+        CB_EDITOR_ERROR("SceneView: failed to start game process '{}'", exePath);
+        return;
+    }
+    gameRunning = true;
+    CB_EDITOR_INFO("SceneView: game started, scene = '{}'", scenePath);
+}
+
+void SceneView::stopGameProcess() {
+    if(!gameRunning) {
+        return;
+    }
+    gameRunning = false;
+    if(WaitForSingleObject(gameProcess.hProcess, 0) != WAIT_OBJECT_0) {
+        TerminateProcess(gameProcess.hProcess, 0);
+        CB_EDITOR_INFO("SceneView: game process terminated");
+    }
+    // NOTE: PROCESS_INFORMATION 含进程与线程两个句柄, 都要关闭
+    CloseHandle(gameProcess.hProcess);
+    CloseHandle(gameProcess.hThread);
+    gameProcess = {};
+}
+
+void SceneView::runGame() {
+    if(!editorPage.selectedScene || !editorPage.selectedScene->scene) {
+        CB_EDITOR_ERROR("SceneView: no scene selected, cannot run the game");
+        return;
+    }
+    const Cube::Path scenePath = currentScenePath();
+    const Cube::Path exePath = ensureGameExecutable();
+    if(exePath.empty()) {
+        return;
+    }
+    startGameProcess(exePath, scenePath);
+}
+
+void SceneView::openRunConfirm() {
+    if(!editorPage.selectedScene || !editorPage.selectedScene->scene) {
+        CB_EDITOR_ERROR("SceneView: no scene selected, cannot run the game");
+        return;
+    }
+    if(editorPage.selectedScene->isSaved) {
+        runGame();
+        return;
+    }
+    runConfirmOpen = true;
+}
+
+void SceneView::renderRunConfirm() {
+    if(!runConfirmOpen) {
+        return;
+    }
+    ImGui::OpenPopup("Run Game##SceneView");
+    if(ImGui::BeginPopupModal("Run Game##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted("The current scene has unsaved changes.");
+        ImGui::Spacing();
+        if(ImGui::Button("Save and Run", ImVec2(120, 0))) {
+            editorPage.selectedScene->scene->serialize(currentScenePath());
+            editorPage.selectedScene->isSaved = true;
+            runConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+            runGame();
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Run Without Saving", ImVec2(150, 0))) {
+            runConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+            runGame();
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Cancel", ImVec2(120, 0))) {
+            runConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
 }

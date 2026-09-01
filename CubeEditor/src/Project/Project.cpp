@@ -15,7 +15,7 @@ Project::Project(const std::string& name, const Cube::Path& rootPath) {
     config.projectDataDirectory = rootPath / ".cube";
     config.assetsDirectory = rootPath / "Assets";
     config.sceneDirectory = rootPath / "Scenes";
-    config.assetPathMapFilePath = config.rootPath / "AssetMap.json";
+    config.assetPathMapFilePath = config.rootPath / "asset.json";
 
     std::filesystem::create_directories(config.projectDataDirectory.string());
     std::filesystem::create_directories(config.sceneDirectory.string());
@@ -41,7 +41,7 @@ Project::Project(const Cube::Path& configFilePath) {
     config.projectDataDirectory = config.rootPath / ".cube";
     config.assetsDirectory = config.rootPath / "Assets";
     config.sceneDirectory = config.rootPath / "Scenes";
-    config.assetPathMapFilePath = config.rootPath / "AssetMap.json";
+    config.assetPathMapFilePath = config.rootPath / "asset.json";
     load();
 }
 
