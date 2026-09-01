@@ -18,6 +18,8 @@ public:
     virtual void update(float deltaTime) = 0;
 };
 
+// TODO: 有些错误处理太复杂, 将来可能还是要加上异常
+
 class Application {
 public:
     Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths, std::unique_ptr<IGameController> gameController = nullptr);

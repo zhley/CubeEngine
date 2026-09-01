@@ -59,11 +59,6 @@ target_link_libraries(Cube PUBLIC
     D:/GithubRepo/Zeta/build/lib/zeta_core.lib # temp
 )
 
-target_compile_definitions(Cube PRIVATE
-    $<$<CONFIG:Debug>:CB_DEBUG>
-    $<$<CONFIG:Release>:CB_RELEASE>
-)
-
 if(MSVC)
     target_compile_options(Cube PRIVATE /GR-)
 else()

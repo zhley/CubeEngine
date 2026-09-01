@@ -15,11 +15,6 @@ target_link_libraries(CubeEditor PRIVATE
     imgui
 )
 
-target_compile_definitions(CubeEditor PRIVATE
-    $<$<CONFIG:Debug>:CB_DEBUG>
-    $<$<CONFIG:Release>:CB_RELEASE>
-)
-
 if (MSVC) 
     target_sources(CubeEditor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cube_editor_utf8.manifest)
 endif()

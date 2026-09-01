@@ -9,6 +9,8 @@
 
 namespace Cube {
 
+// TODO: 考虑到易用性, 或许可以给 Zeta 加一层封装
+
 // Owns the Zeta VM. Each Application has its own engine.
 class ScriptRuntime {
 public:

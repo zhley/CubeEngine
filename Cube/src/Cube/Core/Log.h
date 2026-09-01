@@ -18,7 +18,7 @@ namespace Cube {
 
 // internal log of Cube
 
-#ifdef CB_DEBUG
+#ifndef NDEBUG
     #define CB_CORE_TRACE(...)      SPDLOG_LOGGER_TRACE(::Cube::Log::coreLogger, __VA_ARGS__)
     #define CB_CORE_INFO(...)       SPDLOG_LOGGER_INFO(::Cube::Log::coreLogger, __VA_ARGS__)
     #define CB_CORE_WARN(...)       SPDLOG_LOGGER_WARN(::Cube::Log::coreLogger, __VA_ARGS__)

@@ -653,6 +653,8 @@ void ScriptBindings::initialize(Zeta::VM& vm) {
     vm.registerFunction("cb_is_mouse_button_pressed", inputIsMouseButtonPressed);
     vm.registerFunction("cb_get_mouse_pos", inputGetMousePos);
 
+    // TODO: 提供更多绑定, 使其能操作 Application.
+
     // TODO: 也可以改成直接内嵌字符串源码或者字节码
     auto cubeCoreScriptPath = vm.searchModuleFile("cube").first.string(); 
     std::unique_ptr<Zeta::Module> coreModule = ScriptRuntime::parseModule(Cube::Path(cubeCoreScriptPath));
