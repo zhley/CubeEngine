@@ -1,19 +1,8 @@
 .vs/
 .vscode/
 .idea/
-.cache/
-**.sln
-**.vcxproj
-**.vcxproj.filters
-**.vcxproj.user
-**.sln.DotSettings.user
+.discard/
 
-bin/
-bin-obj/
-ai/
 Test/CubeEditorProject/
-SandBox/assets/
 build/
 vcpkg_installed/
-
-AGENTS.md
