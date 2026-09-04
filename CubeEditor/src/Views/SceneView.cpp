@@ -340,7 +340,6 @@ void SceneView::stopGameProcess() {
         TerminateProcess(gameProcess.hProcess, 0);
         CB_EDITOR_INFO("SceneView: game process terminated");
     }
-    // NOTE: PROCESS_INFORMATION 含进程与线程两个句柄, 都要关闭
     CloseHandle(gameProcess.hProcess);
     CloseHandle(gameProcess.hThread);
     gameProcess = {};
@@ -379,7 +378,7 @@ void SceneView::renderRunConfirm() {
     if(ImGui::BeginPopupModal("Run Game##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextUnformatted("The current scene has unsaved changes.");
         ImGui::Spacing();
-        if(ImGui::Button("Save and Run", ImVec2(120, 0))) {
+        if(ImGui::Button("Save and Run")) {
             editorPage.selectedScene->scene->serialize(currentScenePath());
             editorPage.selectedScene->isSaved = true;
             runConfirmOpen = false;
@@ -387,13 +386,13 @@ void SceneView::renderRunConfirm() {
             runGame();
         }
         ImGui::SameLine();
-        if(ImGui::Button("Run Without Saving", ImVec2(150, 0))) {
+        if(ImGui::Button("Run Without Saving")) {
             runConfirmOpen = false;
             ImGui::CloseCurrentPopup();
             runGame();
         }
         ImGui::SameLine();
-        if(ImGui::Button("Cancel", ImVec2(120, 0))) {
+        if(ImGui::Button("Cancel")) {
             runConfirmOpen = false;
             ImGui::CloseCurrentPopup();
         }

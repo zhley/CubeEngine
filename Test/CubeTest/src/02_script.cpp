@@ -19,7 +19,7 @@ void testScriptIntegration() {
     pathMap["tex:icon.png"] = {{"path", "D:/mycode/vsProject/CubeEngine/Test/CubeEditorProject/Test01/Assets/icon.png"}};
     app->getResourceManager().init(pathMap);
     app->getSceneManager().registerScene("scene", [&app]() {
-        Scene* scene = new Scene("scene", true);
+        Scene* scene = new Scene("scene");
 
         auto cameraEntity = scene->createEntity("camera");
         cameraEntity->addComponent<Camera2D>();

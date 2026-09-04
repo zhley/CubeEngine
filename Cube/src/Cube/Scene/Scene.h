@@ -12,7 +12,7 @@ namespace Cube {
     // GameObject-Component
     class Scene {
     public:
-        Scene(const std::string& name, bool tagNoSceneFile);
+        Scene(const std::string& name);
         Scene(const Cube::Path& sceneFilePath);
         virtual ~Scene() = default;
 

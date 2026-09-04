@@ -117,7 +117,7 @@ void EditorPage::render(float deltaTime) {
 
             if(ImGui::Button("Add##3")) {
                 if(!project->hasScene(name)){
-                    project->addScene(new Cube::Scene(name, true));
+                    project->addScene(new Cube::Scene(name));
                     selectedScene = &project->getScenes().back();
                     memset(name, '\0', sizeof(name));
                     showAddNewScene = false;
