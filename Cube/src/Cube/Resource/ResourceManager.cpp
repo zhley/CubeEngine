@@ -11,7 +11,7 @@
 namespace Cube {
 
     void ResourceManager::init(const Cube::Path& pathMapFilePath) {
-        std::ifstream file(pathMapFilePath.string());
+        std::ifstream file(pathMapFilePath.fspath());
         if(!file.is_open()) {
             CB_CORE_ERROR("Failed to open resource path map file: {}", pathMapFilePath);
         }

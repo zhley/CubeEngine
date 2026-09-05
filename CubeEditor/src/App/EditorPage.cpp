@@ -75,9 +75,9 @@ void EditorPage::render(float deltaTime) {
                             project->addScene(scene);
                             selectedScene = &project->getScenes().back();
                             Cube::Path target = project->getConfig().sceneDirectory / (scene->getName() + ".scene");
-                            if (!std::filesystem::equivalent(filePath.string(), target.string())) {
+                            if (!std::filesystem::equivalent(filePath.fspath(), target.fspath())) {
                                 // TODO: 覆盖警告
-                                std::filesystem::copy_file(filePath.string(), target.string(), std::filesystem::copy_options::overwrite_existing);
+                                std::filesystem::copy_file(filePath.fspath(), target.fspath(), std::filesystem::copy_options::overwrite_existing);
                             }
                         } else {
                             delete scene;

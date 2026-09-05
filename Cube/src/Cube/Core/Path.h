@@ -7,8 +7,11 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <filesystem>
 
-#include <spdlog/fmt/ostr.h>
+#include "spdlog/fmt/ostr.h" // IWYU pragma: keep
+
+#include "Cube/Utils/Utils.h"
 
 namespace Cube {
 
@@ -20,9 +23,10 @@ namespace Cube {
 //   - '.' components are dropped, '..' components are resolved lexically
 //   - trailing separators are dropped, a root such as "/" or "C:/" keeps its own
 //
-// NOTE: the file system is never accessed, every operation below is purely lexical.
-// NOTE: an empty path is valid and is simply stored as an empty string.
-// NOTE: the string views handed out below are invalidated by any non const operation.
+// NOTE:
+//  - the file system is never accessed, every operation below is purely lexical.
+//  - an empty path is valid and is simply stored as an empty string.
+//  - the string views handed out below are invalidated by any non const operation.
 class Path {
 public:
     // Separator used by the stored string, '\\' is only accepted as an input separator.
@@ -43,6 +47,9 @@ public:
     const std::string& string() const { return path; }
     const char* c_str() const { return path.c_str(); }
     bool empty() const { return path.empty(); }
+
+    // use this for file system operation
+    std::filesystem::path fspath() const { return std::filesystem::path(Utils::utf8ToWchar(path)); }
 
     // "C:" for "C:/dir/file.txt", empty otherwise, a UNC server name is not detected.
     std::string_view rootName() const;

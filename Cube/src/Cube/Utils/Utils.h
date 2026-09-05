@@ -15,6 +15,10 @@ std::string utf16To8(std::u16string_view utf16);
 std::u32string utf8To32(std::string_view utf8);
 std::string utf32To8(std::u32string_view utf32);
 
+// wide char <-> utf8 char
+std::string wcharToUtf8(std::wstring_view wstr);
+std::wstring utf8ToWchar(std::string_view str);
+
 };
 
 }

@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
 
     const Cube::Path controllerPath = exeDir / kControllerScriptName;
     std::unique_ptr<Cube::IGameController> controller;
-    if(std::filesystem::exists(controllerPath.string())) {
+    if(std::filesystem::exists(controllerPath.fspath())) {
         controller = std::make_unique<ScriptGameController>(controllerPath);
     } else {
         CB_INFO("Controller script not found, running without a game controller: {}", controllerPath);
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
     Cube::Application* app = Cube::Engine::getApp();
 
     const Cube::Path assetMapPath = exeDir / kAssetMapFileName;
-    if(std::filesystem::exists(assetMapPath.string())) {
+    if(std::filesystem::exists(assetMapPath.fspath())) {
         app->getResourceManager().init(assetMapPath);
         CB_INFO("Asset map loaded: {}", assetMapPath);
     } else {
@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
 
     if(nodeFilePath.empty()) {
         CB_INFO("No initial node file specified, use -n/--node <path> to load one");
-    } else if(!std::filesystem::exists(nodeFilePath.string())) {
+    } else if(!std::filesystem::exists(nodeFilePath.fspath())) {
         CB_ERROR("Node file not found: {}", nodeFilePath);
         Cube::Engine::shutdown();
         return 1;

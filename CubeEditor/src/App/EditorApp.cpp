@@ -66,7 +66,7 @@ void EditorApp::run() {
 Cube::Path EditorApp::getConfigDir() {
     Cube::Path configDir = Utils::getUserConfigDir() / "CubeEditor"; // TODO: 改成域名倒写
     std::error_code ec;
-    std::filesystem::create_directories(configDir.string(), ec);
+    std::filesystem::create_directories(configDir.fspath(), ec);
     if (ec) {
         CB_EDITOR_ERROR("Failed to create directory: {}, {}", configDir, ec.message());
         return Cube::Path();

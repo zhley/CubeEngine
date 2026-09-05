@@ -19,9 +19,9 @@
 GuidancePage::GuidancePage() {
     // load project path cache
     Cube::Path projectPathCacheFile = EditorApp::getConfigDir() / "projects_path_cache.json";
-    std::ifstream file(projectPathCacheFile.string());
+    std::ifstream file(projectPathCacheFile.fspath());
     if (!file.is_open()) {
-        if (!std::filesystem::exists(projectPathCacheFile.string())) {
+        if (!std::filesystem::exists(projectPathCacheFile.fspath())) {
             return;
         }
         CB_EDITOR_ERROR("GuidancePage::GuidancePage: Failed to open file: {}", projectPathCacheFile);
@@ -38,7 +38,7 @@ GuidancePage::GuidancePage() {
 GuidancePage::~GuidancePage() {
     // save project path cache
     Cube::Path projectPathCacheFile = EditorApp::getConfigDir() / "projects_path_cache.json";
-    std::ofstream file(projectPathCacheFile.string());
+    std::ofstream file(projectPathCacheFile.fspath());
     if (!file.is_open()) {
         CB_EDITOR_ERROR("GuidancePage::~GuidancePage: Failed to open file: {}", projectPathCacheFile);
         return;

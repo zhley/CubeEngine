@@ -299,15 +299,15 @@ Cube::Path SceneView::currentScenePath() const {
 
 Cube::Path SceneView::ensureGameExecutable() const {
     const Cube::Path target = editorPage.getProject()->getConfig().rootPath / kGameExeName;
-    if(std::filesystem::exists(target.string())) {
+    if(std::filesystem::exists(target.fspath())) {
         return target;
     }
     const Cube::Path source(kGameExeSourcePath);
-    if(!std::filesystem::exists(source.string())) {
+    if(!std::filesystem::exists(source.fspath())) {
         CB_EDITOR_ERROR("SceneView: game executable not found at '{}'", source);
         return Cube::Path();
     }
-    std::filesystem::copy_file(source.string(), target.string());
+    std::filesystem::copy_file(source.fspath(), target.fspath());
     CB_EDITOR_INFO("SceneView: copied game executable to '{}'", target);
     return target;
 }

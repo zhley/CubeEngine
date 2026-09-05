@@ -120,7 +120,7 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
 
     Cube::Path animPath = assetsDir / (baseName + ".anim");
     int index = 1;
-    while(std::filesystem::exists(animPath.string())) {
+    while(std::filesystem::exists(animPath.fspath()) {
         animPath = assetsDir / (baseName + "_" + std::to_string(index) + ".anim");
         ++index;
     }
@@ -132,7 +132,7 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
     animData["duration"] = 0.0f;
     animData["frames"] = nlohmann::json::array();
 
-    std::ofstream file(animPath.string());
+    std::ofstream file(animPath.fspath());
     if(!file.is_open()) {
         // TODO: Show user-level error prompt in unified notification system.
         CB_EDITOR_ERROR("AnimationEditor: Failed to create animation file {}", animPath);
@@ -166,7 +166,7 @@ bool AnimationEditor::loadTargetAnim() {
         return false;
     }
 
-    std::ifstream file(target.string());
+    std::ifstream file(target.fspath());
     if(!file.is_open()) {
         // TODO: Show user-level error prompt in unified notification system.
         CB_EDITOR_ERROR("AnimationEditor: Failed to open animation file {}", target);
@@ -225,7 +225,7 @@ bool AnimationEditor::saveTargetAnim() {
     }
     animData["duration"] = totalDuration;
 
-    std::ofstream file(target.string());
+    std::ofstream file(target.fspath());
     if(!file.is_open()) {
         CB_EDITOR_ERROR("AnimationEditor: Failed to open animation file for save {}", target);
         return false;

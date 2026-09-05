@@ -71,11 +71,11 @@ Cube::Path FileDialog::openFile(const std::string& title, const std::vector<Filt
             options |= FOS_NOREADONLYRETURN;
             pDlg->SetOptions(options);
             if (!title.empty()) {
-                pDlg->SetTitle((wchar_t*)(Cube::Utils::utf8To16(title).c_str()));
+                pDlg->SetTitle(Cube::Utils::utf8ToWchar(title).c_str());
             }
             if (!defaultPath.empty()) {
                 IShellItem* pFolder = nullptr;
-                hr = SHCreateItemFromParsingName((wchar_t*)(Cube::Utils::utf8To16(defaultPath.string()).c_str()), nullptr, IID_IShellItem, (void**)&pFolder);
+                hr = SHCreateItemFromParsingName(Cube::Utils::utf8ToWchar(defaultPath.string()).c_str(), nullptr, IID_IShellItem, (void**)&pFolder);
                 if (SUCCEEDED(hr)) {
                     pDlg->SetDefaultFolder(pFolder);
                     pFolder->Release();
@@ -119,18 +119,18 @@ Cube::Path FileDialog::saveFile(const std::string& title, const std::vector<Filt
             options |= FOS_OVERWRITEPROMPT;
             pDlg->SetOptions(options);
             if (!title.empty()) {
-                pDlg->SetTitle((wchar_t*)(Cube::Utils::utf8To16(title).c_str()));
+                pDlg->SetTitle(Cube::Utils::utf8ToWchar(title).c_str());
             }
             if (!defaultPath.empty()) {
                 IShellItem* pFolder = nullptr;
-                hr = SHCreateItemFromParsingName((wchar_t*)(Cube::Utils::utf8To16(defaultPath.string()).c_str()), nullptr, IID_IShellItem, (void**)&pFolder);
+                hr = SHCreateItemFromParsingName(Cube::Utils::utf8ToWchar(defaultPath.string()).c_str(), nullptr, IID_IShellItem, (void**)&pFolder);
                 if (SUCCEEDED(hr)) {
                     pDlg->SetDefaultFolder(pFolder);
                     pFolder->Release();
                 }
             }
             if (!defaultExtension.empty()) {
-                pDlg->SetDefaultExtension((wchar_t*)(Cube::Utils::utf8To16(defaultExtension).c_str()));
+                pDlg->SetDefaultExtension(Cube::Utils::utf8ToWchar(defaultPath.string()).c_str());
             }
             auto filterSpecs = buildFilterSpecs(filters);
             if (!filterSpecs.specs.empty()) {
@@ -169,11 +169,11 @@ Cube::Path FileDialog::selectDir(const std::string& title, const Cube::Path& def
             options |= FOS_PICKFOLDERS;
             pDlg->SetOptions(options);
             if (!title.empty()) {
-                pDlg->SetTitle((wchar_t*)(Cube::Utils::utf8To16(title).c_str()));
+                pDlg->SetTitle(Cube::Utils::utf8ToWchar(title).c_str());
             }
             if (!defaultPath.empty()) {
                 IShellItem* pFolder = nullptr;
-                hr = SHCreateItemFromParsingName((wchar_t*)(Cube::Utils::utf8To16(defaultPath.string()).c_str()), nullptr, IID_IShellItem, (void**)&pFolder);
+                hr = SHCreateItemFromParsingName(Cube::Utils::utf8ToWchar(defaultPath.string()).c_str(), nullptr, IID_IShellItem, (void**)&pFolder);
                 if (SUCCEEDED(hr)) {
                     pDlg->SetDefaultFolder(pFolder);
                     pFolder->Release();
@@ -213,11 +213,11 @@ std::vector<Cube::Path> FileDialog::openMultiFiles(const std::string& title, con
             options |= FOS_ALLOWMULTISELECT;
             pDlg->SetOptions(options);
             if (!title.empty()) {
-                pDlg->SetTitle((wchar_t*)(Cube::Utils::utf8To16(title).c_str()));
+                pDlg->SetTitle(Cube::Utils::utf8ToWchar(title).c_str());
             }
             if (!defaultPath.empty()) {
                 IShellItem* pFolder = nullptr;
-                hr = SHCreateItemFromParsingName((wchar_t*)(Cube::Utils::utf8To16(defaultPath.string()).c_str()), nullptr, IID_IShellItem, (void**)&pFolder);
+                hr = SHCreateItemFromParsingName(Cube::Utils::utf8ToWchar(defaultPath.string()).c_str(), nullptr, IID_IShellItem, (void**)&pFolder);
                 if (SUCCEEDED(hr)) {
                     pDlg->SetDefaultFolder(pFolder);
                     pFolder->Release();

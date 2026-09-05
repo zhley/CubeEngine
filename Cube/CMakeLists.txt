@@ -66,8 +66,5 @@ endif()
 # game
 add_executable(CubeGame)
 target_sources(CubeGame PRIVATE src/Game/main.cpp)
-if (MSVC)
-    target_sources(CubeGame PRIVATE src/Game/cube_game_utf8.manifest)
-endif()
     
 target_link_libraries(CubeGame PRIVATE Cube)

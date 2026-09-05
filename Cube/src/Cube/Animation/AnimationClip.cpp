@@ -9,7 +9,7 @@
 namespace Cube {
     // .anim
     AnimationClip::AnimationClip(const Cube::Path& animFilePath) {
-        std::ifstream file(animFilePath.string());
+        std::ifstream file(animFilePath.fspath());
         if(!file.is_open()) {
             CB_CORE_ERROR("Failed to open animation file {}", animFilePath);
             return;

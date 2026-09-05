@@ -10,7 +10,7 @@
 namespace Cube {
 
 NodeTree::NodeTree(const Cube::Path& filePath) {
-    std::ifstream file(filePath.string());
+    std::ifstream file(filePath.fspath());
     if(!file.is_open()) {
         CB_CORE_ERROR("NodeTree::NodeTree(): Failed to open node file '{}'", filePath);
         return;
@@ -30,7 +30,7 @@ std::unique_ptr<Node> NodeTree::instantiate() const {
 }
 
 bool NodeTree::save(const Cube::Path& filePath, const Node& rootNode) {
-    std::ofstream file(filePath.string());
+    std::ofstream file(filePath.fspath());
     if(!file.is_open()) {
         CB_CORE_ERROR("NodeTree::save(): Failed to open node file '{}'", filePath);
         return false;

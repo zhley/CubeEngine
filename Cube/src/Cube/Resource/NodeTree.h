@@ -11,6 +11,8 @@ namespace Cube {
     
 class Node;
 
+// TODO: 设计一个更好的结构, 不要用 json 来承载
+
 // A .node resource: a node tree serialized to a file, used as a blueprint.
 // It can be loaded through the ResourceManager with a "node:..." identifier
 // or constructed directly from a file path. instantiate() deep-copies the

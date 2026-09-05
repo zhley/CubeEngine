@@ -17,9 +17,9 @@ Project::Project(const std::string& name, const Cube::Path& rootPath) {
     config.sceneDirectory = rootPath / "Scenes";
     config.assetPathMapFilePath = config.rootPath / "asset.json";
 
-    std::filesystem::create_directories(config.projectDataDirectory.string());
-    std::filesystem::create_directories(config.sceneDirectory.string());
-    std::filesystem::create_directories(config.assetsDirectory.string());
+    std::filesystem::create_directories(config.projectDataDirectory.fspath());
+    std::filesystem::create_directories(config.sceneDirectory.fspath());
+    std::filesystem::create_directories(config.assetsDirectory.fspath());
     writeToConfigFile(rootPath / (name + ".cbproj"));
 
     assetExplorer.normalInit();
@@ -27,7 +27,7 @@ Project::Project(const std::string& name, const Cube::Path& rootPath) {
 
 Project::Project(const Cube::Path& configFilePath) {
     nlohmann::json data;
-    std::ifstream file(configFilePath.string());
+    std::ifstream file(configFilePath.fspath());
     if(!file.is_open()) {
         CB_ERROR("Project::Project: Failed to open file: {}", configFilePath);
         CB_ASSERT(false);
@@ -82,8 +82,8 @@ void importAnimClip(const Cube::Path& animPath, Project* project, AssetExplorer&
 }
 
 void importRes(const Cube::Path& source, const Cube::Path& target, Project* project, AssetExplorer& assetExplorer) {
-    std::filesystem::path sourcePath = source.string();
-    std::filesystem::path targetPath = target.string();
+    std::filesystem::path sourcePath = source.fspath();
+    std::filesystem::path targetPath = target.fspath();
     if(std::filesystem::is_directory(sourcePath)) {
         std::filesystem::create_directories(targetPath);
         for(const auto& entry : std::filesystem::directory_iterator(sourcePath)) {
@@ -94,7 +94,7 @@ void importRes(const Cube::Path& source, const Cube::Path& target, Project* proj
         if(target != source) {
             std::error_code ec;
             // TODO: 允许覆盖, 但是给出确认弹窗
-            std::filesystem::copy_file(source.string(), target.string(), std::filesystem::copy_options::none, ec);
+            std::filesystem::copy_file(source.fspath(), target.fspath(), std::filesystem::copy_options::none, ec);
             if(ec) {
                 CB_EDITOR_ERROR("Failed to copy file from {} to {}. Error Code: {}", source, target, ec.message());
                 return;
@@ -130,7 +130,7 @@ void Project::save() {
     }
 
     const Cube::Path scenesCacheFile = config.projectDataDirectory / "scenes.cache";
-    std::ofstream file(scenesCacheFile.string());
+    std::ofstream file(scenesCacheFile.fspath());
     if(!file.is_open()) {
         CB_ERROR("Project::save: failed to open file: {}", scenesCacheFile);
         CB_ASSERT(false);
@@ -146,7 +146,7 @@ void Project::writeToConfigFile(const Cube::Path& configFilePath) const {
     nlohmann::json data;
     data["name"] = config.name;
 
-    std::ofstream file(configFilePath.string());
+    std::ofstream file(configFilePath.fspath());
     if(!file.is_open()) {
         CB_ERROR("Project::Project: Failed to open file: {}", configFilePath);
         CB_ASSERT(false);
@@ -161,7 +161,7 @@ void Project::load() {
 
     // scenes.cache
     const Cube::Path scenesCacheFile = config.projectDataDirectory / "scenes.cache";
-    std::ifstream file(scenesCacheFile.string());
+    std::ifstream file(scenesCacheFile.fspath());
     if(!file.is_open()) {
         CB_ERROR("Project::load: failed to open file: {}", scenesCacheFile);
         CB_ASSERT(false);

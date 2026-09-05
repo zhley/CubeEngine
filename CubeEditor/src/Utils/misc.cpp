@@ -49,7 +49,7 @@ Cube::Path Utils::getUserConfigDir() {
 nlohmann::json Utils::parseAtlasFile(const Cube::Path& filePath){
     nlohmann::json sprites = nlohmann::json::object();
 
-    std::ifstream file(filePath.string());
+    std::ifstream file(filePath.fspath());
     if(!file.is_open()) {
         CB_EDITOR_ERROR("parseAtlasFile: Failed to open atlas file {}", filePath);
         return sprites;
