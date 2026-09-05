@@ -23,15 +23,13 @@ target_sources(Cube PRIVATE
     src/Cube/Renderer/Texture.cpp
     src/Cube/Renderer/VertexArray.cpp
     src/Cube/Resource/Atlas.cpp
+    src/Cube/Resource/NodeTree.cpp
     src/Cube/Resource/ResourceManager.cpp
     src/Cube/Resource/Script.cpp
     src/Cube/Resource/Sprite.cpp
     src/Cube/Scene/Camera2D.cpp
-    src/Cube/Scene/Entity.cpp
+    src/Cube/Scene/Node.cpp
     src/Cube/Scene/RenderServer.cpp
-    src/Cube/Scene/Scene.cpp
-    src/Cube/Scene/SceneManager.cpp
-    src/Cube/Scene/SpriteRender.cpp
     src/Cube/Scene/Transform.cpp
     src/Cube/Script/ScriptBindings.cpp
     src/Cube/Script/ScriptComponent.cpp

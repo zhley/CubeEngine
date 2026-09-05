@@ -13,7 +13,8 @@
 #include "Cube/Core/Path.h"
 #include "Cube/Core/Window.h"
 #include "Cube/Resource/ResourceManager.h"
-#include "Cube/Scene/SceneManager.h"
+#include "Cube/Resource/NodeTree.h"
+#include "Cube/Scene/Node.h"
 #include "Cube/Script/ScriptRuntime.h"
 #include "Cube/Utils/Utils.h"
 
@@ -36,18 +37,18 @@ enum class ParseResult {
 void printUsage(const char* programName) {
     std::printf("Usage: %s [options]\n", programName);
     std::printf("Options:\n");
-    std::printf("  -s, --scene <path>  Path of the initial scene file\n");
+    std::printf("  -n, --node <path>  Path of the initial .node node tree file\n");
     std::printf("  -h, --help          Show this help message\n");
 }
 
-ParseResult parseArgs(int argc, char* argv[], Cube::Path& scenePath) {
+ParseResult parseArgs(int argc, char* argv[], Cube::Path& nodeFilePath) {
     for(int i = 1; i < argc; ++i) {
         const std::string_view arg(argv[i]);
         if(arg == "-h" || arg == "--help") {
             printUsage(argv[0]);
             return ParseResult::ExitSuccess;
         }
-        // "-s path" and "-s=path" are both valid
+        // "-n path" and "-n=path" are both valid
         std::string_view option;
         std::string_view inlineValue;
         if(const std::size_t eq = arg.find('='); eq != std::string_view::npos) {
@@ -56,7 +57,7 @@ ParseResult parseArgs(int argc, char* argv[], Cube::Path& scenePath) {
         } else {
             option = arg;
         }
-        if(option != "-s" && option != "--scene") {
+        if(option != "-n" && option != "--node") {
             CB_ERROR("Unknown option: {}", arg);
             printUsage(argv[0]);
             return ParseResult::ExitFailure;
@@ -70,7 +71,7 @@ ParseResult parseArgs(int argc, char* argv[], Cube::Path& scenePath) {
             }
             value = argv[++i];
         }
-        scenePath = Cube::Path(value);
+        nodeFilePath = Cube::Path(value);
     }
     return ParseResult::Continue;
 }
@@ -139,8 +140,8 @@ int main(int argc, char* argv[]) {
     
     Cube::Engine::init();
 
-    Cube::Path scenePath;
-    switch(parseArgs(argc, argv, scenePath)) {
+    Cube::Path nodeFilePath;
+    switch(parseArgs(argc, argv, nodeFilePath)) {
         case ParseResult::ExitFailure: return 1;
         case ParseResult::ExitSuccess: return 0;
         case ParseResult::Continue: break;
@@ -172,18 +173,18 @@ int main(int argc, char* argv[]) {
         CB_INFO("Asset map not found, skip resource initialization: {}", assetMapPath);
     }
 
-    if(scenePath.empty()) {
-        CB_INFO("No initial scene specified, use -s/--scene <path> to load one");
-    } else if(!std::filesystem::exists(scenePath.string())) {
-        CB_ERROR("Scene file not found: {}", scenePath);
+    if(nodeFilePath.empty()) {
+        CB_INFO("No initial node file specified, use -n/--node <path> to load one");
+    } else if(!std::filesystem::exists(nodeFilePath.string())) {
+        CB_ERROR("Node file not found: {}", nodeFilePath);
         Cube::Engine::shutdown();
         return 1;
     } else {
-        const std::string sceneName(scenePath.stem());
-        app->getSceneManager().registerScene(sceneName, scenePath);
-        app->getSceneManager().load(sceneName);
-        app->getSceneManager().setActive(sceneName);
-        CB_INFO("Initial scene loaded: {}", scenePath);
+        // The initial .node file is a blueprint of a node tree: instantiate it
+        // and attach the subtree to the application root.
+        Cube::NodeTree nodeTree(nodeFilePath);
+        app->getRootNode()->addChildFromTree(&nodeTree);
+        CB_INFO("Initial node tree loaded: {}", nodeFilePath);
     }
 
     app->run();

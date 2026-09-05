@@ -3,8 +3,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
 
-#include "Entity.h"
-
+#include "Node.h"
 
 namespace Cube {
 
@@ -16,8 +15,9 @@ namespace Cube {
     }
 
     glm::mat4 Transform::getWorldMatrix() const {
+        // Every node carries a Transform, so the whole parent chain can be multiplied directly.
         glm::mat4 worldMatrix = getLocalMatrix();
-        if(Entity* parent = entity->getParent()) {
+        if(Node* parent = node->getParent()) {
             worldMatrix = parent->getTransform().getWorldMatrix() * worldMatrix;
         }
         return worldMatrix;

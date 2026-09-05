@@ -13,7 +13,7 @@ namespace Cube {
 		glm::vec2 scale = {1.0f, 1.0f};
 
 		Transform() = default;
-		explicit Transform(Entity* entity) : Component(entity) {}
+		explicit Transform(Node* node) : Component(node) {}
 		~Transform() override = default;
 		TypeID getType() const override { return getTypeID<Transform>(); }
 

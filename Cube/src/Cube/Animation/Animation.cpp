@@ -1,13 +1,13 @@
 #include "Animation.h"
 
 #include "AnimationClip.h"
-#include "Cube/Scene/Entity.h"
+#include "Cube/Scene/Node.h"
 #include "Cube/Scene/SpriteRender.h"
 
 namespace Cube {
 
     void Animation::start() {
-        spriteRender = entity->getComponent<SpriteRender>();
+        spriteRender = node->getComponent<SpriteRender>();
         CB_ASSERT(spriteRender && "No SpriteRender component!");
     }
 

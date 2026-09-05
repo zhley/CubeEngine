@@ -15,6 +15,7 @@ namespace Cube {
     class AnimationClip;
     class Font;
     class Script;
+    class NodeTree;
 
     class ResourceManager {
     public:
@@ -61,6 +62,8 @@ namespace Cube {
                     newRes = (ResourceBase*)loadAnimationClip(it2->second);
                 }else if constexpr (std::is_same_v<Font, T>) {
                     newRes = (ResourceBase*)loadFont(it2->second);
+                }else if constexpr (std::is_same_v<NodeTree, T>) {
+                    newRes = (ResourceBase*)loadNodeTree(it2->second);
                 }else {
                     static_assert(false);
                 }
@@ -95,5 +98,7 @@ namespace Cube {
         Script* loadScript(const nlohmann::json& path);
         AnimationClip* loadAnimationClip(const nlohmann::json& path);
         Font* loadFont(const nlohmann::json& path);
+        NodeTree* loadNodeTree(const nlohmann::json& path);
     };
+    
 }  // namespace Cube

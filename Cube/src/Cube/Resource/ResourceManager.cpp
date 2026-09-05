@@ -6,6 +6,7 @@
 #include "Sprite.h"
 #include "Cube/Animation/AnimationClip.h"
 #include "Cube/Renderer/Font.h"
+#include "NodeTree.h"
 
 namespace Cube {
 
@@ -112,4 +113,9 @@ namespace Cube {
     Font* ResourceManager::loadFont(const nlohmann::json& path) {
         return new Font(Cube::Path(path["fontFilePath"].get<std::string>()), path.value("fontSize", 16));
     }
+
+    NodeTree* ResourceManager::loadNodeTree(const nlohmann::json& path) {
+        return new NodeTree(Cube::Path(path["path"].get<std::string>()));
+    }
+    
 }  // namespace Cube

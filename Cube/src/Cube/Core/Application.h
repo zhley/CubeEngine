@@ -1,15 +1,16 @@
-﻿#pragma once
+#pragma once
 
 #include "Window.h"
 #include "Cube/Event/Event.h"
 #include "Cube/Resource/ResourceManager.h"
 #include "Cube/Script/ScriptRuntime.h"
 #include "Cube/Scene/RenderServer.h"
-#include "Cube/Scene/SceneManager.h"
 #include <memory>
 #include <vector>
 
 namespace Cube {
+
+class Node;
 
 class IGameController {
 public: 
@@ -36,9 +37,6 @@ public:
     RenderServer& getRenderServer() {
         return renderServer;
     }
-    SceneManager& getSceneManager() {
-        return sceneManager;
-    }
     EventDispatcher& getEventDispatcher() {
         return eventDispatcher;
     }
@@ -47,6 +45,9 @@ public:
     }
     ScriptRuntime& getScriptRuntime() {
         return scriptRuntime;
+    }
+    Node* getRootNode() {
+        return rootNode.get();
     }
 
     bool onWindowClose(const Event& e);
@@ -57,9 +58,9 @@ protected:
     bool running;
     ResourceManager resourceManager;
     RenderServer renderServer;
-    SceneManager sceneManager;
     EventDispatcher eventDispatcher;
     ScriptRuntime scriptRuntime;
+    std::unique_ptr<Node> rootNode;
 };
 
 }

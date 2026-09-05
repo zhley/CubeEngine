@@ -7,6 +7,8 @@
 
 namespace Cube {
 
+    // Renders the node's sprite. Nodes holding this component are collected and
+    // drawn by RenderServer during a tree render.
     class SpriteRender : public Component {
     public:
         ResPtr<Sprite> sprite;
@@ -14,9 +16,8 @@ namespace Cube {
         int order = 0;
 
         SpriteRender() = default;
-        ~SpriteRender() override;
+        ~SpriteRender() override = default;
         TypeID getType() const override { return getTypeID<SpriteRender>(); }
-        void start() override;
     };
 
 }

@@ -11,7 +11,8 @@ namespace Cube {
         Sprite,
         AnimationClip,
         Font,
-        Script
+        Script,
+        NodeTree
     };
 
     inline ResourceType getResType(const std::string& identifier) {
@@ -22,6 +23,8 @@ namespace Cube {
         if(type == "anim") return ResourceType::AnimationClip;
         if(type == "font") return ResourceType::Font;
         if(type == "script") return ResourceType::Script;
+        if(type == "node") return ResourceType::NodeTree;
         return ResourceType::Unknown;
     }
+    
 }

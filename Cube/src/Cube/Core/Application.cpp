@@ -4,13 +4,14 @@
 #include "Cube/Core/Timer.h"
 #include "Cube/Event/ApplicationEvent.h"
 #include "Cube/Renderer/Renderer.h"
-#include "Cube/Scene/Scene.h"
+#include "Cube/Scene/Node.h"
 
 namespace Cube {
 
 Application::Application(const WindowPros& windowPros, const std::vector<std::string>& moduleSearchPaths, std::unique_ptr<IGameController> gameController) : mainWindow(nullptr), gameController(std::move(gameController)), running(true), scriptRuntime(moduleSearchPaths) {
     mainWindow = new Window(windowPros, &eventDispatcher);
     eventDispatcher.subscribe<WindowCloseEvent>(std::bind(&Application::onWindowClose, this, std::placeholders::_1));
+    rootNode = std::make_unique<Node>("Root");
 }
 
 Application::~Application() {
@@ -31,10 +32,9 @@ void Application::run() {
 
         if(gameController) gameController->update(deltaTime);
 
-        if(Scene* scene = sceneManager.getActive()) {
-            scene->update(deltaTime);
-            renderServer.renderScene(scene);
-        }
+        // The whole game is one rooted node tree.
+        rootNode->update(deltaTime);
+        renderServer.renderNodeTree(rootNode.get());
 
         mainWindow->update();
     }

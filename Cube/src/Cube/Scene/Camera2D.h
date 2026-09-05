@@ -13,10 +13,10 @@ namespace Cube {
         bool available = true;
 
         Camera2D() = default;
-        ~Camera2D() override;
+        ~Camera2D() override = default;
         TypeID getType() const override { return getTypeID<Camera2D>(); }
-        void start() override;
 
         glm::mat4 getPVMatrix() const;
     };
+    
 }
