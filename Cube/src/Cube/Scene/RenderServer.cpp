@@ -9,41 +9,37 @@
 
 namespace Cube {
 
-    void RenderServer::renderNodeTree(Node* root) {
-        Camera2D* camera = nullptr;
-        for(Node* node : root->getAllNodes()) {
-            if(!node->isAlive()) {
-                continue;
-            }
-            if(Camera2D* cam = node->getComponent<Camera2D>(); cam && cam->available) {
-                camera = cam;
-                break;
-            }
-        }
-        if(camera == nullptr) {
-            CB_CORE_ERROR("RenderServer::renderNodeTree(): no available Camera2D found in the node tree");
-            return;
-        }
-        std::vector<Node*> renderableNodes;
-        for(Node* node : root->getAllNodes()) {
-            if(node->isAlive() && node->getComponent<SpriteRender>()) {
-                renderableNodes.push_back(node);
-            }
-        }
-        std::sort(renderableNodes.begin(), renderableNodes.end(), [](const Node* a, const Node* b) {
-            SpriteRender* spriteA = a->getComponent<SpriteRender>();
-            SpriteRender* spriteB = b->getComponent<SpriteRender>();
-            if(spriteA->order != spriteB->order) {
-                return spriteA->order < spriteB->order;
-            }
-            return (spriteA->sprite && spriteA->sprite->getTexture() ? spriteA->sprite->getTexture()->getId() : -1) < (spriteB->sprite && spriteB->sprite->getTexture() ? spriteB->sprite->getTexture()->getId() : -1);
-        });
-
-        Renderer2D::beginFrame(camera->getPVMatrix());
-        for(Node* node : renderableNodes) {
-            SpriteRender* sprite = node->getComponent<SpriteRender>();
-            Renderer2D::drawQuad(node->getTransform().getWorldMatrix(), sprite->tintColor, sprite->sprite->getTexture(), sprite->sprite->getTexRegion().getUVCoord());
-        }
-        Renderer2D::endFrame();
+void RenderServer::renderNodeTree(Node* root) {
+    Camera2D* camera = nullptr;
+    root->forEachNode([&camera](Node* node) {
+        camera = node->getComponent<Camera2D>();
+        if (camera && camera->available) return false;
+        return true;
+    });
+    if(camera == nullptr || !camera->available) {
+        CB_CORE_ERROR("RenderServer::renderNodeTree(): no available Camera2D found in the node tree");
+        return;
     }
+    std::vector<SpriteRender*> spriteRenders;
+    root->forEachNode([&spriteRenders](Node* node) {
+        SpriteRender* sprite = node->getComponent<SpriteRender>();
+        if (sprite && sprite->sprite) {
+            spriteRenders.push_back(sprite);
+        }
+        return true;
+    });
+    std::sort(spriteRenders.begin(), spriteRenders.end(), [](const SpriteRender* a, const SpriteRender* b) {
+        if(a->order != b->order) {
+            return a->order < b->order;
+        }
+        return (a->sprite->getTexture() ? a->sprite->getTexture()->getId() : -1) < (b->sprite->getTexture() ? b->sprite->getTexture()->getId() : -1);
+    });
+
+    Renderer2D::beginFrame(camera->getPVMatrix());
+    for(SpriteRender* sprite : spriteRenders) {
+        Renderer2D::drawQuad(sprite->getNode()->getWorldMatrix(), sprite->tintColor, sprite->sprite->getTexture(), sprite->sprite->getTexRegion().getUVCoord());
+    }
+    Renderer2D::endFrame();
+}
+
 }  // namespace Cube

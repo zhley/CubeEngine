@@ -30,7 +30,6 @@ target_sources(Cube PRIVATE
     src/Cube/Scene/Camera2D.cpp
     src/Cube/Scene/Node.cpp
     src/Cube/Scene/RenderServer.cpp
-    src/Cube/Scene/Transform.cpp
     src/Cube/Script/ScriptBindings.cpp
     src/Cube/Script/ScriptComponent.cpp
     src/Cube/Script/ScriptRuntime.cpp

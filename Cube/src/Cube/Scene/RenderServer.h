@@ -1,14 +1,15 @@
 #pragma once
 
 namespace Cube {
-    class Node;
+    
+class Node;
 
-    class RenderServer {
-    public:
-        RenderServer() = default;
-        ~RenderServer() = default;
+class RenderServer {
+public:
+    RenderServer() = default;
+    ~RenderServer() = default;
 
-        void renderNodeTree(Node* root);
-    };
+    void renderNodeTree(Node* root);
+};
 
 }
