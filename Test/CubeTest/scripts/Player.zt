@@ -2,23 +2,24 @@ import "cube";
 
 class Player {
     var update_count = 0;
-    var entity = null;
+    var node = null;
 
-    fn _init(entity) {
-        this.entity = entity;
+    fn _init(node) {
+        this.node = node;
         print("Player._init\n");
-        cb_log("_init: entity name = " + this.entity.get_name());
+        cb_log("_init: node name = " + this.node.get_name());
         return this;
     }
 
     fn start() {
         print("Player.start\n");
-        var spriteRender = this.entity.add_component("SpriteRender");
-        spriteRender.set("sprite", "spr:tex:icon.png");
+        var spriteRender = this.node.add_component("SpriteRender");
+        spriteRender.sprite = "spr:tex:icon.png";
     }
 
     fn update(dt) {
-        var pos = this.entity.get_transform().get_pos();
+        this.update_count = this.update_count + 1;
+        var pos = this.node.pos;
         if (cb_is_key_pressed(KEY_W)) {
             pos.y += 1000.0 * dt;
         }
@@ -31,6 +32,6 @@ class Player {
         if (cb_is_key_pressed(KEY_D)) {
             pos.x += 1000.0 * dt;
         }
-        this.entity.get_transform().set_pos(pos);
+        this.node.pos = pos;
     }
 }

@@ -1,41 +1,80 @@
 #pragma once
 
+#include <memory>
+#include <unordered_map>
+
+#include "zeta/vm/value.h"
 #include "zeta/vm/vm.h"
+
+#include "Cube/Reflection/Type.h"
 
 namespace Cube {
 
-class Entity;
-class Scene;
+class Class;
+class Component;
+class Node;
 
-// 向 Zeta VM 注册引擎原生类与全局函数, 使脚本可以操控实体与游戏逻辑
+// Host NativeType for engine Node. Only public data members are properties.
+class NodeType final : public Zeta::NativeType {
+public:
+    explicit NodeType(Zeta::VM* vm);
+
+    void getField(void* instance, Zeta::String* fieldName) override;
+    void setField(void* instance, Zeta::String* fieldName, const Zeta::Value& value) override;
+    void callMethod(void* instance, Zeta::String* methodName, int argc) override;
+
+private:
+    Zeta::String* namePos = nullptr;
+    Zeta::String* nameRotation = nullptr;
+    Zeta::String* nameScale = nullptr;
+    Zeta::String* nameEquals = nullptr;
+    Zeta::String* nameGetName = nullptr;
+    Zeta::String* nameGetParent = nullptr;
+    Zeta::String* nameFindChild = nullptr;
+    Zeta::String* nameAddChild = nullptr;
+    Zeta::String* nameRemoveChild = nullptr;
+    Zeta::String* nameHasComponent = nullptr;
+    Zeta::String* nameGetComponent = nullptr;
+    Zeta::String* nameAddComponent = nullptr;
+    Zeta::String* nameRemoveComponent = nullptr;
+};
+
+// Per reflected-component-class NativeType. Different component types are
+// different UserData instances that share this C++ base but not this pointer.
+// Fields/methods forward to Cube reflection Class.
+class ComponentType final : public Zeta::NativeType {
+public:
+    ComponentType(Zeta::VM* vm, Class* classInfo);
+
+    void getField(void* instance, Zeta::String* fieldName) override;
+    void setField(void* instance, Zeta::String* fieldName, const Zeta::Value& value) override;
+    void callMethod(void* instance, Zeta::String* methodName, int argc) override;
+
+private:
+    Class* classInfo = nullptr;
+    Zeta::String* nameEquals = nullptr;
+};
+
 class ScriptBindings {
 public:
     static void initialize(Zeta::VM& vm);
+    static void shutdown();
 
-    // 供 ScriptComponent 在实例化脚本时把实体包装为 Zeta 对象, 包装结果压入栈顶
-    static void wrapEntity(Zeta::VM& vm, Entity* entity);
-    static void wrapScene(Zeta::VM& vm, Scene* scene);
+    static void wrapNode(Zeta::VM& vm, Node* node);
+    static void wrapComponent(Zeta::VM& vm, Component* component);
 
-    template<typename T>
-    static void equalFunction(Zeta::VM* vm, int argc) {
-        T* a = static_cast<T*>(vm->unwrapPointer());
-        T* b = static_cast<T*>(vm->unwrapPointer());
-        if(argc != 2 || !a || !b) {
-            vm->reportError("equal: argument mismatch");
-            vm->push(Zeta::Value::Error);
-            return;
-        }
-        vm->push(Zeta::Value(a == b));
-    }
-
-    // 原生类全局索引缓存, 供 wrapPointer 使用
-    static int entityClass;
-    static int transformClass;
-    static int componentClass;
-    static int sceneClass;
+    // cube module global indices for value types
     static int vec2Class;
     static int vec3Class;
     static int vec4Class;
+    static int colorClass;
+
+private:
+    static Zeta::VM* vm;
+    static std::unique_ptr<NodeType> nodeType;
+    static std::unordered_map<TypeID, std::unique_ptr<ComponentType>> componentTypes;
+
+    static ComponentType* getComponentType(Class* classInfo);
 };
 
 }  // namespace Cube

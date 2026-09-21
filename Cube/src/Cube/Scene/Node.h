@@ -28,6 +28,7 @@ public:
     float rotation = 0.0f; // degrees
     glm::vec2 scale = {1.0f, 1.0f};
 
+    Node() = default;
     explicit Node(const std::string& name) : name(name) {}
     ~Node() = default;
 

@@ -15,7 +15,7 @@ namespace Cube {
 class ScriptRuntime {
 public:
     ScriptRuntime(const std::vector<std::string>& moduleSearchPaths);
-    ~ScriptRuntime() = default;
+    ~ScriptRuntime();
 
     Zeta::VM& getVM() { return vm; }
     const Zeta::VM& getVM() const { return vm; }

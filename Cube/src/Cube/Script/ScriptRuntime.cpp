@@ -63,6 +63,10 @@ ScriptRuntime::ScriptRuntime(const std::vector<std::string>& moduleSearchPaths) 
     ScriptBindings::initialize(vm);
 }
 
+ScriptRuntime::~ScriptRuntime() {
+    ScriptBindings::shutdown();
+}
+
 std::unique_ptr<Zeta::Module> ScriptRuntime::parseModule(const Cube::Path& filePath) {
     if (filePath.extension() == ZETA_SRC_EXT) {
         std::string error;
