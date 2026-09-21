@@ -153,7 +153,7 @@ std::string Utils::wcharToUtf8(std::wstring_view wstr) {
 #endif
 }
 
-std::wstring utf8ToWchar(std::string_view str) {
+std::wstring Utils::utf8ToWchar(std::string_view str) {
     if (str.empty()) return std::wstring();
 #ifdef _WIN32
     int wlen = MultiByteToWideChar(CP_UTF8, 0, str.data(), str.size(), nullptr, 0);
