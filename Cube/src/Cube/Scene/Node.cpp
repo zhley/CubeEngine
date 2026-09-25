@@ -202,11 +202,9 @@ void Node::deserialize(const nlohmann::json& data) {
 nlohmann::json Node::serialize() const {
     nlohmann::json data;
     data["name"] = name;
-    nlohmann::json tr;
-    tr["pos"] = {pos.x, pos.y};
-    tr["rotation"] = rotation;
-    tr["scale"] = {scale.x, scale.y};
-    data["transform"] = tr;
+    data["pos"] = {pos.x, pos.y};
+    data["rotation"] = rotation;
+    data["scale"] = {scale.x, scale.y};
     data["components"] = nlohmann::json::array();
     for (auto& comp : componentsCache) {
         if (comp->getType() == getTypeID<ScriptComponent>()) {
