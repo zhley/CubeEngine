@@ -8,13 +8,11 @@
 
 using namespace Cube;
 
-// 脚本集成冒烟测试: 验证 parseModule -> loadModule -> instantiate -> start/update 全链路
 void testScriptIntegration() {
     Engine::init();
 
     Engine::setApp(new Application({1920, 1080, "test02_script"}, {"D:/mycode/vsProject/CubeEngine/Cube/scripts"}, nullptr));
     Application* app = Engine::getApp();
-    // 注册脚本资源路径, 使 ResPtr<Script>("script:player") 可被加载
     std::unordered_map<std::string, nlohmann::json> pathMap;
     pathMap["script:player"] = {{"path", "D:/mycode/vsProject/CubeEngine/Test/CubeTest/scripts/Player.zt"}};
     pathMap["tex:icon.png"] = {{"path", "D:/mycode/vsProject/CubeEngine/Test/CubeEditorProject/Test01/Assets/icon.png"}};

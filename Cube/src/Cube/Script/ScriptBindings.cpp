@@ -85,9 +85,17 @@ void pushColor(Zeta::VM* vm, const Color& c) {
     vm->newInstance(4);
 }
 
+static Zeta::Value instanceField(Zeta::VM* vm, const Zeta::Value& value, const char* name) {
+    if (value.type == Zeta::Value::Type::Object &&
+        value.ptrValue->getType() == Zeta::Object::Type::Instance) {
+        return static_cast<Zeta::Instance*>(value.ptrValue)->getField(vm->internString(name)).value_or(Zeta::Value::Error);
+    }
+    return Zeta::Value::Error;
+}
+
 std::optional<glm::vec2> toVec2(Zeta::VM* vm, const Zeta::Value& value) {
-    auto xVal = Zeta::Value(value[vm->internString("x")]).as<float>();
-    auto yVal = Zeta::Value(value[vm->internString("y")]).as<float>();
+    auto xVal = instanceField(vm, value, "x").as<float>();
+    auto yVal = instanceField(vm, value, "y").as<float>();
     if (xVal.has_value() && yVal.has_value()) {
         return glm::vec2(*xVal, *yVal);
     }
@@ -95,9 +103,9 @@ std::optional<glm::vec2> toVec2(Zeta::VM* vm, const Zeta::Value& value) {
 }
 
 std::optional<glm::vec3> toVec3(Zeta::VM* vm, const Zeta::Value& value) {
-    auto xVal = Zeta::Value(value[vm->internString("x")]).as<float>();
-    auto yVal = Zeta::Value(value[vm->internString("y")]).as<float>();
-    auto zVal = Zeta::Value(value[vm->internString("z")]).as<float>();
+    auto xVal = instanceField(vm, value, "x").as<float>();
+    auto yVal = instanceField(vm, value, "y").as<float>();
+    auto zVal = instanceField(vm, value, "z").as<float>();
     if (xVal.has_value() && yVal.has_value() && zVal.has_value()) {
         return glm::vec3(*xVal, *yVal, *zVal);
     }
@@ -105,10 +113,10 @@ std::optional<glm::vec3> toVec3(Zeta::VM* vm, const Zeta::Value& value) {
 }
 
 std::optional<glm::vec4> toVec4(Zeta::VM* vm, const Zeta::Value& value) {
-    auto xVal = Zeta::Value(value[vm->internString("x")]).as<float>();
-    auto yVal = Zeta::Value(value[vm->internString("y")]).as<float>();
-    auto zVal = Zeta::Value(value[vm->internString("z")]).as<float>();
-    auto wVal = Zeta::Value(value[vm->internString("w")]).as<float>();
+    auto xVal = instanceField(vm, value, "x").as<float>();
+    auto yVal = instanceField(vm, value, "y").as<float>();
+    auto zVal = instanceField(vm, value, "z").as<float>();
+    auto wVal = instanceField(vm, value, "w").as<float>();
     if (xVal.has_value() && yVal.has_value() && zVal.has_value() && wVal.has_value()) {
         return glm::vec4(*xVal, *yVal, *zVal, *wVal);
     }
@@ -116,10 +124,10 @@ std::optional<glm::vec4> toVec4(Zeta::VM* vm, const Zeta::Value& value) {
 }
 
 std::optional<Color> toColor(Zeta::VM* vm, const Zeta::Value& value) {
-    auto rVal = Zeta::Value(value[vm->internString("r")]).as<float>();
-    auto gVal = Zeta::Value(value[vm->internString("g")]).as<float>();
-    auto bVal = Zeta::Value(value[vm->internString("b")]).as<float>();
-    auto aVal = Zeta::Value(value[vm->internString("a")]).as<float>();
+    auto rVal = instanceField(vm, value, "r").as<float>();
+    auto gVal = instanceField(vm, value, "g").as<float>();
+    auto bVal = instanceField(vm, value, "b").as<float>();
+    auto aVal = instanceField(vm, value, "a").as<float>();
     if (rVal.has_value() && gVal.has_value() && bVal.has_value() && aVal.has_value()) {
         return Color(*rVal, *gVal, *bVal, *aVal);
     }
@@ -421,33 +429,34 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
         pushError(vm, "Node.call_method: node is null");
         return;
     }
+    // Native argc excludes `this`; locals remain [this, arg0, ...].
     if (methodName == nameEquals) {
-        if (argc != 2) {
-            pushError(vm, "Node._equals: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Node._equals: argc must be 1");
             return;
         }
         vm->push(Zeta::Value(equalsUserData(vm->getLocal(1), this, instance)));
         return;
     }
     if (methodName == nameGetName) {
-        if (argc != 1) {
-            pushError(vm, "Node.get_name: argc must be 1");
+        if (argc != 0) {
+            pushError(vm, "Node.get_name: argc must be 0");
             return;
         }
         vm->newStrObj(node->getName());
         return;
     }
     if (methodName == nameGetParent) {
-        if (argc != 1) {
-            pushError(vm, "Node.get_parent: argc must be 1");
+        if (argc != 0) {
+            pushError(vm, "Node.get_parent: argc must be 0");
             return;
         }
         wrapUserData(vm, node->getParent(), this);
         return;
     }
     if (methodName == nameFindChild) {
-        if (argc != 2) {
-            pushError(vm, "Node.find_child: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Node.find_child: argc must be 1");
             return;
         }
         auto name = vm->getLocal(1).as<std::string>();
@@ -459,8 +468,8 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
         return;
     }
     if (methodName == nameAddChild) {
-        if (argc != 2) {
-            pushError(vm, "Node.add_child: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Node.add_child: argc must be 1");
             return;
         }
         auto name = vm->getLocal(1).as<std::string>();
@@ -472,8 +481,8 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
         return;
     }
     if (methodName == nameRemoveChild) {
-        if (argc != 2) {
-            pushError(vm, "Node.remove_child: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Node.remove_child: argc must be 1");
             return;
         }
         auto name = vm->getLocal(1).as<std::string>();
@@ -486,8 +495,8 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
         return;
     }
     if (methodName == nameHasComponent) {
-        if (argc != 2) {
-            pushError(vm, "Node.has_component: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Node.has_component: argc must be 1");
             return;
         }
         auto typeName = vm->getLocal(1).as<std::string>();
@@ -499,8 +508,8 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
         return;
     }
     if (methodName == nameGetComponent) {
-        if (argc != 2) {
-            pushError(vm, "Node.get_component: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Node.get_component: argc must be 1");
             return;
         }
         auto typeName = vm->getLocal(1).as<std::string>();
@@ -523,7 +532,7 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
         return;
     }
     if (methodName == nameAddComponent) {
-        if (argc == 2) {
+        if (argc == 1) {
             auto typeName = vm->getLocal(1).as<std::string>();
             if (!typeName.has_value()) {
                 pushError(vm, "Node.add_component: type must be string");
@@ -531,9 +540,9 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
             }
             ScriptBindings::wrapComponent(*vm, node->addComponent(*typeName));
             return;
-        } else if (argc == 3) {
-            auto scriptIdentifier = vm->getLocal(1).as<std::string>();
-            auto scriptComponentName = vm->getLocal(2).as<std::string>();
+        } else if (argc == 2) {
+            auto scriptComponentName = vm->getLocal(1).as<std::string>();
+            auto scriptIdentifier = vm->getLocal(2).as<std::string>();
             if (!scriptIdentifier.has_value() || !scriptComponentName.has_value()) {
                 pushError(vm, "Node.add_component: scriptIdentifier and scriptComponentName must be strings");
                 return;
@@ -546,13 +555,13 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
             vm->push(*scriptComp->getInstance());
             return;
         } else {
-            pushError(vm, "Node.add_component: argc must be 2 or 3");
+            pushError(vm, "Node.add_component: argc must be 1 or 2");
             return;
         }
     }
     if (methodName == nameRemoveComponent) {
-        if (argc != 2) {
-            pushError(vm, "Node.remove_component: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Node.remove_component: argc must be 1");
             return;
         }
         auto typeName = vm->getLocal(1).as<std::string>();
@@ -609,8 +618,8 @@ void ComponentType::callMethod(void* instance, Zeta::String* methodName, int arg
         return;
     }
     if (methodName == nameEquals) {
-        if (argc != 2) {
-            pushError(vm, "Component._equals: argc must be 2");
+        if (argc != 1) {
+            pushError(vm, "Component._equals: argc must be 1");
             return;
         }
         vm->push(Zeta::Value(equalsUserData(vm->getLocal(1), this, instance)));
@@ -621,7 +630,7 @@ void ComponentType::callMethod(void* instance, Zeta::String* methodName, int arg
         pushError(vm, "Component.call_method: unknown method '" + toString(methodName) + "'");
         return;
     }
-    const int argCount = argc - 1;
+    const int argCount = argc;
     const std::vector<TypeID>& params = method->getParameters();
     if (static_cast<int>(params.size()) != argCount) {
         pushError(vm, "Component.call_method: argument count mismatch for '" + toString(methodName) + "'");

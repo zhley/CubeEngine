@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "zeta/compiler/bytecode.h"
+
 #include "Cube/Core/Application.h"
 #include "Cube/Core/Engine.h"
 #include "Cube/Core/Log.h"
@@ -183,7 +184,7 @@ int main(int argc, char* argv[]) {
         // The initial .node file is a blueprint of a node tree: instantiate it
         // and attach the subtree to the application root.
         Cube::NodeTree nodeTree(nodeFilePath);
-        app->getRootNode()->addChildFromTree(&nodeTree);
+        app->getRootNode()->addChild(&nodeTree);
         CB_INFO("Initial node tree loaded: {}", nodeFilePath);
     }
 
