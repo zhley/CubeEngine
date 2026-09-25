@@ -9,6 +9,7 @@
 #include "glm/glm.hpp"
 
 #include "Component.h"
+#include "Cube/Script/ScriptComponent.h"
 #include "Cube/Reflection/Type.h"
 
 namespace Cube {
@@ -41,27 +42,45 @@ public:
     Component* addComponent(const std::string& typeName);
 
     template<typename T>
-    requires std::is_base_of_v<Component, T>
+    requires (std::is_base_of_v<Component, T> && !std::is_same_v<T, ScriptComponent>)
     T* addComponent() {
         return static_cast<T*>(addComponent(std::make_unique<T>()));
+    }
+
+    template<typename T>
+    requires std::is_same_v<T, ScriptComponent>
+    ScriptComponent* addComponent(const std::string& scriptIdentifier, const std::string& scriptComponentName) {
+        return static_cast<ScriptComponent*>(addComponent(std::make_unique<T>(this, scriptIdentifier, scriptComponentName)));
     }
 
     void removeComponent(TypeID typeID);
     void removeComponent(const std::string& typeName);
 
     template<typename T>
-    requires std::is_base_of_v<Component, T>
+    requires (std::is_base_of_v<Component, T> && !std::is_same_v<T, ScriptComponent>)
     void removeComponent() {
         removeComponent(getTypeID<T>());
+    }
+
+    template<typename T>
+    requires std::is_same_v<T, ScriptComponent>
+    void removeComponent(const std::string& scriptComponentName) {
+        removeComponent(scriptComponentName);
     }
 
     Component* getComponent(TypeID typeID) const;
     Component* getComponent(const std::string& typeName) const;
 
     template<typename T>
-    requires std::is_base_of_v<Component, T>
+    requires (std::is_base_of_v<Component, T> && !std::is_same_v<T, ScriptComponent>)
     T* getComponent() const {
         return static_cast<T*>(getComponent(getTypeID<T>()));
+    }
+
+    template<typename T>
+    requires std::is_same_v<T, ScriptComponent>
+    T* getComponent(const std::string& scriptComponentName) const {
+        return static_cast<T*>(getComponent(scriptComponentName));
     }
 
     bool hasComponent(TypeID typeID) const;
@@ -71,6 +90,12 @@ public:
     requires std::is_base_of_v<Component, T>
     bool hasComponent() const {
         return hasComponent(getTypeID<T>());
+    }
+
+    template<typename T>
+    requires std::is_same_v<T, ScriptComponent>
+    bool hasComponent(const std::string& scriptComponentName) const {
+        return hasComponent(scriptComponentName);
     }
     
     const std::vector<Component*>& getComponents() const { return componentsCache; }
@@ -108,6 +133,7 @@ private:
     Node* parent = nullptr;
     
     std::unordered_map<TypeID, std::unique_ptr<Component>> components; // owner
+    std::unordered_map<std::string, std::unique_ptr<ScriptComponent>> scriptComps; // a node can keep multiple script components.
     std::vector<Component*> componentsCache; // cache for iteration
     std::unordered_map<std::string, std::unique_ptr<Node>> children;
     std::vector<Node*> childrenCache;
@@ -120,7 +146,7 @@ private:
             ComponentRemove,
         };
         Type type;
-        std::variant<std::unique_ptr<Node>, std::string, std::unique_ptr<Component>, TypeID> data;
+        std::variant<std::unique_ptr<Node>, std::string, std::unique_ptr<Component>, std::variant<TypeID, std::string>> data;
     };
     std::vector<Command> commandQueue;
     std::vector<Component*> pendingStart;

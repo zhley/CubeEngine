@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "glm/glm.hpp"
+#include "json.hpp"
 #include "zeta/compiler/bytecode.h"
 
 #include "Cube/Animation/AnimationClip.h"
@@ -507,21 +508,47 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
             pushError(vm, "Node.get_component: type must be string");
             return;
         }
-        ScriptBindings::wrapComponent(*vm, node->getComponent(*typeName));
+        Component* component = node->getComponent(*typeName);
+        if (!component) {
+            pushNull(vm);
+            return;
+        }
+        if (component->getType() == getTypeID<ScriptComponent>()) {
+            // For ScriptComponent, return the original Zeta instance
+            ScriptComponent* scriptComp = static_cast<ScriptComponent*>(component);
+            vm->push(scriptComp->getInstance() ? *scriptComp->getInstance() : Zeta::Value::Null);
+        } else {
+            ScriptBindings::wrapComponent(*vm, component);
+        }
         return;
     }
     if (methodName == nameAddComponent) {
-        if (argc != 2) {
-            pushError(vm, "Node.add_component: argc must be 2");
+        if (argc == 2) {
+            auto typeName = vm->getLocal(1).as<std::string>();
+            if (!typeName.has_value()) {
+                pushError(vm, "Node.add_component: type must be string");
+                return;
+            }
+            ScriptBindings::wrapComponent(*vm, node->addComponent(*typeName));
+            return;
+        } else if (argc == 3) {
+            auto scriptIdentifier = vm->getLocal(1).as<std::string>();
+            auto scriptComponentName = vm->getLocal(2).as<std::string>();
+            if (!scriptIdentifier.has_value() || !scriptComponentName.has_value()) {
+                pushError(vm, "Node.add_component: scriptIdentifier and scriptComponentName must be strings");
+                return;
+            }
+            ScriptComponent* scriptComp = node->addComponent<ScriptComponent>(*scriptIdentifier, *scriptComponentName);
+            if (!scriptComp || !scriptComp->getInstance()) {
+                pushError(vm, "Node.add_component: failed to add ScriptComponent");
+                return;
+            }
+            vm->push(*scriptComp->getInstance());
+            return;
+        } else {
+            pushError(vm, "Node.add_component: argc must be 2 or 3");
             return;
         }
-        auto typeName = vm->getLocal(1).as<std::string>();
-        if (!typeName.has_value()) {
-            pushError(vm, "Node.add_component: type must be string");
-            return;
-        }
-        ScriptBindings::wrapComponent(*vm, node->addComponent(*typeName));
-        return;
     }
     if (methodName == nameRemoveComponent) {
         if (argc != 2) {
@@ -658,6 +685,103 @@ void ScriptBindings::wrapComponent(Zeta::VM& runtimeVm, Component* component) {
     }
     ComponentType* type = getComponentType(classInfo);
     wrapUserData(&runtimeVm, component, type);
+}
+
+nlohmann::json ScriptBindings::serializeBasicValue(const Zeta::Value& value) {
+    nlohmann::json data;
+    switch (value.type) {
+        case Zeta::Value::Type::Null:
+            data["type"] = "Null";
+            data["value"] = nullptr;
+            break;
+        case Zeta::Value::Type::Int:
+            data["type"] = "Int";
+            data["value"] = *value.as<int64_t>();
+            break;
+        case Zeta::Value::Type::Float:
+            data["type"] = "Float";
+            data["value"] = *value.as<double>();
+            break;
+        case Zeta::Value::Type::Bool:
+            data["type"] = "Bool";
+            data["value"] = *value.as<bool>();
+            break;
+        case Zeta::Value::Type::String:
+            data["type"] = "String";
+            data["value"] = *value.as<std::string>();
+            break;
+        case Zeta::Value::Type::Object:{
+            Zeta::Object* obj = static_cast<Zeta::Object*>(value.ptrValue);
+            switch (obj->getType()) {
+                case Zeta::Object::Type::StrObj: {
+                    data["type"] = "StrObj";
+                    data["value"] = *value.as<std::string>();
+                    break;
+                }
+                case Zeta::Object::Type::Array: {
+                    data["type"] = "Array";
+                    nlohmann::json arrayData = nlohmann::json::array();
+                    Zeta::Array* arr = static_cast<Zeta::Array*>(obj);
+                    arr->forEach([&arrayData](const Zeta::Value& elem) {
+                        arrayData.push_back(serializeBasicValue(elem));
+                    });
+                    data["value"] = arrayData;
+                    break;
+                }
+                case Zeta::Object::Type::Map: {
+                    data["type"] = "Map";
+                    nlohmann::json mapData;
+                    Zeta::Map* map = static_cast<Zeta::Map*>(obj);
+                    map->forEach([&mapData](const Zeta::String* key, const Zeta::Value& val) {
+                        mapData[std::string(key->getData(), key->getLength())] = serializeBasicValue(val);
+                    });
+                    data["value"] = mapData;
+                    break;
+                }
+                default:
+                    data["type"] = "unsupported";
+                    break;
+            }
+        }
+        default:
+            data["type"] = "unsupported";
+            break;
+    }
+    return data;
+}
+
+Zeta::Value ScriptBindings::deserializeBasicValue(const nlohmann::json& data) {
+    if (!data.contains("type") || !data.contains("value")) {
+        return Zeta::Value::Null;
+    }
+    std::string type = data["type"];
+    if (type == "Null") {
+        return Zeta::Value::Null;
+    } else if (type == "Int") {
+        return Zeta::Value(data["value"].get<int64_t>());
+    } else if (type == "Float") {
+        return Zeta::Value(data["value"].get<double>());
+    } else if (type == "Bool") {
+        return Zeta::Value(data["value"].get<bool>());
+    } else if (type == "String") {
+        return Zeta::Value(vm->internString(data["value"].get<std::string>()));
+    } else if (type == "Array") {
+        const auto& arrayData = data["value"];
+        vm->newArray(arrayData.size());
+        for (int i = 0; i < arrayData.size(); ++i) {
+            (*vm->peek(-1)->as<Zeta::Array*>())->set(i, deserializeBasicValue(arrayData[i]));
+        }
+        return vm->pop();
+    } else if (type == "Map") {
+        const auto& mapData = data["value"];
+        vm->newMap();
+        for (auto& [key, val] : mapData.items()) {
+            (*vm->peek(-1)->as<Zeta::Map*>())->set(vm->internString(key), deserializeBasicValue(val));
+        }
+        return vm->pop();
+    } else {
+        return Zeta::Value::Null;
+    }
 }
 
 ComponentType* ScriptBindings::getComponentType(Class* classInfo) {

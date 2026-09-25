@@ -20,8 +20,14 @@ namespace Cube {
 			    return it->second.get();
 			}
 
-			auto cls = std::make_unique<Class>(name, id, sizeof(T), [] {
-			    return static_cast<void*>(new T());
+			auto cls = std::make_unique<Class>(name, id, sizeof(T), [name]() -> void* {
+			    if constexpr (std::is_default_constructible_v<T>) {
+			        return static_cast<void*>(new T());
+			    } else {
+			        // Type is registered for reflection lookup only (e.g. ScriptComponent).
+			        CB_CORE_ERROR("Reflection: '{}' is not default-constructible, createInstance() is unavailable", name);
+			        return nullptr;
+			    }
 			}, [](void* ptr) {
 			    delete static_cast<T*>(ptr);
 			});

@@ -27,7 +27,6 @@ namespace Cube {
 					T* instance = static_cast<T*>(obj);
 					instance->*memberPtr = value.as<PropertyType>();
 				}
-			    
 			}, [memberPtr](void* obj, Any&& value) {
 			    if constexpr (!std::is_move_assignable_v<PropertyType>) {
 					CB_CORE_ERROR("Reflection: Attempting to move-assign value to a non-move-assignable property.");
@@ -48,8 +47,22 @@ namespace Cube {
 
 		template<typename ReturnType, typename... Args>
 		ClassBuilder& method(const std::string& name, ReturnType(T::*methodPtr)(Args...)) {
-		    classInfo->addMethod(name, getTypeID<ReturnType>(), {getTypeID<Args>()...}, [methodPtr, this](void* obj, const std::vector<Any>& args) {
+		    classInfo->addMethod(name, getTypeID<ReturnType>(), {getTypeID<Args>()...}, [methodPtr](void* obj, const std::vector<Any>& args) {
 		        T* instance = static_cast<T*>(obj);
+				if(args.size() != sizeof...(Args)) {
+					CB_CORE_ERROR("Reflection: Mismatched number of function parameter");
+				    CB_ASSERT(0);
+					return Any();
+				}
+				return invokeImpl(instance, methodPtr, args, std::make_index_sequence<sizeof...(Args)>{});
+		    });
+			return *this;
+		}
+
+		template<typename ReturnType, typename... Args>
+		ClassBuilder& method(const std::string& name, ReturnType(T::*methodPtr)(Args...) const) {
+		    classInfo->addMethod(name, getTypeID<ReturnType>(), {getTypeID<Args>()...}, [methodPtr](void* obj, const std::vector<Any>& args) {
+		        const T* instance = static_cast<const T*>(obj);
 				if(args.size() != sizeof...(Args)) {
 					CB_CORE_ERROR("Reflection: Mismatched number of function parameter");
 				    CB_ASSERT(0);
@@ -80,12 +93,22 @@ namespace Cube {
 		Class* classInfo;
 
 		template<typename ReturnType, typename... Args, size_t... Idx>
-		Any invokeImpl(T* instance, ReturnType(T::*methodPtr)(Args...), const std::vector<Any>& args, std::index_sequence<Idx...>) {
+		static Any invokeImpl(T* instance, ReturnType(T::*methodPtr)(Args...), const std::vector<Any>& args, std::index_sequence<Idx...>) {
 		    if constexpr (std::is_void_v<ReturnType>) {
-		        (instance->*methodPtr)(args[Idx].template as<std::tuple_element_t<Idx, std::tuple<Args...>>>()...);
+		        (instance->*methodPtr)(args[Idx].template as<std::decay_t<Args>>()...);
 				return Any();
 		    }else {
-				return Any((instance->*methodPtr)(args[Idx].template as<std::tuple_element_t<Idx, std::tuple<Args...>>>()...));
+				return Any((instance->*methodPtr)(args[Idx].template as<std::decay_t<Args>>()...));
+		    }
+		}
+
+		template<typename ReturnType, typename... Args, size_t... Idx>
+		static Any invokeImpl(const T* instance, ReturnType(T::*methodPtr)(Args...) const, const std::vector<Any>& args, std::index_sequence<Idx...>) {
+		    if constexpr (std::is_void_v<ReturnType>) {
+		        (instance->*methodPtr)(args[Idx].template as<std::decay_t<Args>>()...);
+				return Any();
+		    }else {
+				return Any((instance->*methodPtr)(args[Idx].template as<std::decay_t<Args>>()...));
 		    }
 		}
 	};

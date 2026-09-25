@@ -82,11 +82,16 @@ void Node::removeComponent(TypeID typeID) {
 
 void Node::removeComponent(const std::string& typeName) {
     Class* classInfo = ClassRegistry::get().getClass(typeName);
-    if (!classInfo) {
-        CB_CORE_ERROR("Node::removeComponent(): Unknown component type '{}'", typeName);
-        return;
+    if (classInfo) {
+        commandQueue.push_back({Command::Type::ComponentRemove, classInfo->getTypeID()});
+    } else {
+        auto it = scriptComps.find(typeName);
+        if (it != scriptComps.end()) {
+            commandQueue.push_back({Command::Type::ComponentRemove, typeName});
+        } else {
+            CB_CORE_ERROR("Node::removeComponent(): Unknown component type '{}'", typeName);
+        }
     }
-    removeComponent(classInfo->getTypeID());
 }
 
 Component* Node::getComponent(TypeID typeID) const {
@@ -96,11 +101,15 @@ Component* Node::getComponent(TypeID typeID) const {
 
 Component* Node::getComponent(const std::string& typeName) const {
     Class* classInfo = ClassRegistry::get().getClass(typeName);
-    if (!classInfo) {
+    if (classInfo) {
+        return getComponent(classInfo->getTypeID());
+    }
+    auto it = scriptComps.find(typeName);
+    if (it == scriptComps.end()) {
         CB_CORE_ERROR("Node::getComponent(): Unknown component type '{}'", typeName);
         return nullptr;
     }
-    return getComponent(classInfo->getTypeID());
+    return it->second.get();
 }
 
 bool Node::hasComponent(TypeID typeID) const {
@@ -109,7 +118,10 @@ bool Node::hasComponent(TypeID typeID) const {
 
 bool Node::hasComponent(const std::string& typeName) const {
     Class* classInfo = ClassRegistry::get().getClass(typeName);
-    return classInfo && hasComponent(classInfo->getTypeID());
+    if (classInfo) {
+        return hasComponent(classInfo->getTypeID());
+    }
+    return scriptComps.contains(typeName);
 }
 
 Node* Node::addChild(const std::string& name) {
@@ -165,9 +177,15 @@ void Node::deserialize(const nlohmann::json& data) {
         scale = {data["scale"][0], data["scale"][1]};
         for(const nlohmann::json& c : data["components"]) {
             Class* classInfo = ClassRegistry::get().getClass(c["type"].get<std::string>());
-            Any componentIns = Serializer::get().deserialize(classInfo->getTypeID(), c);
-            Component* component = componentIns.moveToBase<Component>();
-            addComponent(std::unique_ptr<Component>(component));
+            if (classInfo->getTypeID() == getTypeID<ScriptComponent>()) {
+                std::unique_ptr<ScriptComponent> scriptComp = std::make_unique<ScriptComponent>(this, c["script"].get<std::string>(), c["name"].get<std::string>());
+                scriptComp->deserializeInstance(c["instance"]);
+                addComponent(std::move(scriptComp));
+            } else {
+                Any componentIns = Serializer::get().deserialize(classInfo->getTypeID(), c);
+                Component* component = componentIns.moveToBase<Component>();
+                addComponent(std::unique_ptr<Component>(component));
+            }
         }
         for(const nlohmann::json& childData : data["children"]) {
             // the child is built before being queued, so it never has to be observed through a raw pointer
@@ -190,11 +208,21 @@ nlohmann::json Node::serialize() const {
     tr["scale"] = {scale.x, scale.y};
     data["transform"] = tr;
     data["components"] = nlohmann::json::array();
-    for(const auto& [typeID, component] : components) {
-        Class* classInfo = ClassRegistry::get().getClass(typeID);
-        nlohmann::json c = Serializer::get().serialize(typeID, Any(component.get()));
-        c["type"] = classInfo->getName();
-        data["components"].push_back(c);
+    for (auto& comp : componentsCache) {
+        if (comp->getType() == getTypeID<ScriptComponent>()) {
+            ScriptComponent* scriptComp = static_cast<ScriptComponent*>(comp);
+            nlohmann::json c;
+            c["type"] = "ScriptComponent";
+            c["name"] = scriptComp->getName();
+            c["script"] = scriptComp->getScript()->getIdentifier();
+            c["instance"] = scriptComp->serializeInstance();
+            data["components"].push_back(c);
+        } else {
+            Class* classInfo = ClassRegistry::get().getClass(comp->getType());
+            nlohmann::json c = Serializer::get().serialize(classInfo->getTypeID(), Any(comp));
+            c["type"] = classInfo->getName();
+            data["components"].push_back(c);
+        }
     }
     data["children"] = nlohmann::json::array();
     for(Node* child : childrenCache) {
@@ -235,27 +263,45 @@ void Node::flushCommands() {
             }
             case Command::Type::ComponentAdd: {
                 auto component = std::move(std::get<std::unique_ptr<Component>>(cmd.data));
-                TypeID typeID = component->getType();
-                auto it = components.find(typeID);
-                if (it != components.end()) break; // component of the same type already exists, ignore
-                if (componentEnd < componentsCache.size()) {
-                    componentsCache[componentEnd++] = component.get();
+                Component* compPtr = component.get();
+                if (component->getType() == getTypeID<ScriptComponent>()) {
+                    std::unique_ptr<ScriptComponent> scriptComp(static_cast<ScriptComponent*>(component.release()));
+                    auto it = scriptComps.find(scriptComp->getName());
+                    if (it != scriptComps.end()) break;
+                    scriptComps.emplace(scriptComp->getName(), std::move(scriptComp));
                 } else {
-                    componentsCache.push_back(component.get());
+                    TypeID typeID = component->getType();
+                    auto it = components.find(typeID);
+                    if (it != components.end()) break; // component of the same type already exists, ignore
+                    components.emplace(typeID, std::move(component));
+                }
+                if (componentEnd < componentsCache.size()) {
+                    componentsCache[componentEnd++] = compPtr;
+                } else {
+                    componentsCache.push_back(compPtr);
                     componentEnd++;
                 }
-                components.emplace(typeID, std::move(component));
                 break;
             }
             case Command::Type::ComponentRemove: {
-                TypeID typeID = std::get<TypeID>(cmd.data);
-                auto it = components.find(typeID);
-                if (it == components.end()) break; // component not found, ignore
-                Component* removed = it->second.get();
+                auto data = std::get<std::variant<TypeID, std::string>>(cmd.data);
+                Component* removed = nullptr;
+                if (TypeID* typePtr = std::get_if<TypeID>(&data)) {
+                    TypeID typeID = std::get<TypeID>(data);
+                    auto it = components.find(typeID);
+                    if (it == components.end()) break; // component not found, ignore
+                    removed = it->second.get();
+                    components.erase(it);
+                } else {
+                    const std::string& scriptCompName = std::get<std::string>(data);
+                    auto it = scriptComps.find(scriptCompName);
+                    if (it == scriptComps.end()) break; 
+                    removed = it->second.get();
+                    scriptComps.erase(it);
+                }
                 auto cacheIt = std::find(componentsCache.begin(), componentsCache.begin() + componentEnd, removed);
                 CB_ASSERT(cacheIt != componentsCache.begin() + componentEnd);
                 std::swap(*cacheIt, componentsCache[--componentEnd]);
-                components.erase(it);
                 break;
             }
         }

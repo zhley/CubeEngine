@@ -5,6 +5,7 @@
 
 #include "zeta/vm/value.h"
 #include "zeta/vm/vm.h"
+#include "json.hpp"
 
 #include "Cube/Reflection/Type.h"
 
@@ -14,13 +15,14 @@ class Class;
 class Component;
 class Node;
 
-// Host NativeType for engine Node. Only public data members are properties.
 class NodeType final : public Zeta::NativeType {
 public:
     explicit NodeType(Zeta::VM* vm);
 
     void getField(void* instance, Zeta::String* fieldName) override;
     void setField(void* instance, Zeta::String* fieldName, const Zeta::Value& value) override;
+    // add_component and get_component return the original Zeta instance if the component is a script component.
+    // add_component receives 2 arguments (scriptComponentName, scriptIdentifier) if the component is a script component
     void callMethod(void* instance, Zeta::String* methodName, int argc) override;
 
 private:
@@ -62,6 +64,9 @@ public:
 
     static void wrapNode(Zeta::VM& vm, Node* node);
     static void wrapComponent(Zeta::VM& vm, Component* component);
+
+    static nlohmann::json serializeBasicValue(const Zeta::Value& value);
+    static Zeta::Value deserializeBasicValue(const nlohmann::json& data);
 
     // cube module global indices for value types
     static int vec2Class;

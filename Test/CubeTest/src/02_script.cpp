@@ -25,9 +25,7 @@ void testScriptIntegration() {
     cameraNode->addComponent<Camera2D>();
 
     auto entity = scene->addChild("player");
-    ScriptComponent* component = entity->addComponent<ScriptComponent>();
-    component->script.reset("script:player");
-    component->name = "Player";
+    entity->addComponent<ScriptComponent>("script:player", "Player");
 
     app->run();
 
