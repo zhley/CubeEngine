@@ -34,6 +34,7 @@ private:
     Zeta::String* nameGetParent = nullptr;
     Zeta::String* nameFindChild = nullptr;
     Zeta::String* nameAddChild = nullptr;
+    Zeta::String* nameAddChildFrom = nullptr;
     Zeta::String* nameRemoveChild = nullptr;
     Zeta::String* nameHasComponent = nullptr;
     Zeta::String* nameGetComponent = nullptr;

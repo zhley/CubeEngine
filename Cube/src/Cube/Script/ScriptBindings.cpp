@@ -21,6 +21,7 @@
 #include "Cube/Renderer/Texture.h"
 #include "Cube/Renderer/Font.h"
 #include "Cube/Resource/ResPtr.h"
+#include "Cube/Resource/NodeTree.h"
 #include "Cube/Resource/Script.h"
 #include "Cube/Resource/Sprite.h"
 #include "Cube/Scene/Component.h"
@@ -359,6 +360,7 @@ NodeType::NodeType(Zeta::VM* vm) : Zeta::NativeType(vm) {
     nameGetParent = vm->internString("get_parent");
     nameFindChild = vm->internString("find_child");
     nameAddChild = vm->internString("add_child");
+    nameAddChildFrom = vm->internString("add_child_from");
     nameRemoveChild = vm->internString("remove_child");
     nameHasComponent = vm->internString("has_component");
     nameGetComponent = vm->internString("get_component");
@@ -478,6 +480,19 @@ void NodeType::callMethod(void* instance, Zeta::String* methodName, int argc) {
             return;
         }
         wrapUserData(vm, node->addChild(*name), this);
+        return;
+    }
+    if (methodName == nameAddChildFrom) {
+        if (argc != 1) {
+            pushError(vm, "Node.add_child_from: argc must be 1");
+            return;
+        }
+        auto identifier = vm->getLocal(1).as<std::string>();
+        if (!identifier.has_value()) {
+            pushError(vm, "Node.add_child_from: identifier must be string");
+            return;
+        }
+        wrapUserData(vm, node->addChildFrom(ResPtr<NodeTree>(*identifier)), this);
         return;
     }
     if (methodName == nameRemoveChild) {

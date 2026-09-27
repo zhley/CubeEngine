@@ -143,10 +143,14 @@ Node* Node::addChild(std::unique_ptr<Node> child) {
     return result;
 }
 
-Node* Node::addChild(NodeTree* nodeTree) {
+Node* Node::addChildFrom(const ResPtr<NodeTree>& nodeTree) {
+    if (!nodeTree) {
+        CB_CORE_ERROR("Node::addChildFrom(): node tree resource is null");
+        return nullptr;
+    }
     std::unique_ptr<Node> subtree = nodeTree->instantiate();
     if (!subtree) {
-        CB_CORE_ERROR("Node::addChild(): Failed to instantiate the node tree");
+        CB_CORE_ERROR("Node::addChildFrom(): Failed to instantiate the node tree");
         return nullptr;
     }
     return addChild(std::move(subtree));

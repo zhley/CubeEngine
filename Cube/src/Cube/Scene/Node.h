@@ -107,7 +107,7 @@ public:
 
     Node* addChild(const std::string& name);
     Node* addChild(std::unique_ptr<Node> child);
-    Node* addChild(NodeTree* nodeTree);
+    Node* addChildFrom(const ResPtr<NodeTree>& nodeTree);
     void removeChild(Node* child);
     void removeChild(const std::string& name);
     Node* findChild(const std::string& name) const;
