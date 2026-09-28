@@ -16,7 +16,7 @@ target_link_libraries(CubeEditor PRIVATE
 )
 
 add_custom_command(TARGET CubeEditor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/assets
         $<TARGET_FILE_DIR:CubeEditor>/assets
     COMMENT "Copying assets to output directory..."
