@@ -1,5 +1,6 @@
 #include "SceneView.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -9,7 +10,9 @@
 #include "Cube/Animation/AnimationClip.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Renderer/Renderer.h"
+#include "Cube/Resource/NodeTree.h"
 #include "Cube/Scene/Camera2D.h"
+#include "Cube/Scene/Node.h"
 #include "Cube/Scene/SpriteRender.h"
 #include "Cube/Animation/Animation.h"
 #include "Cube/Utils/Utils.h"
@@ -26,6 +29,30 @@ namespace {
 constexpr const char* kGameExeSourcePath = "D:/mycode/vsProject/CubeEngine/build/vscode/bin/CubeGame.exe";
 constexpr const char* kGameExeName = "CubeGame.exe";
 
+std::vector<Cube::Node*> collectRenderableNodes(Cube::Node* root) {
+    std::vector<Cube::Node*> nodes;
+    if(!root) {
+        return nodes;
+    }
+    root->forEachNode([&nodes](Cube::Node* node) {
+        Cube::SpriteRender* sprite = node->getComponent<Cube::SpriteRender>();
+        if(sprite && sprite->sprite) {
+            nodes.push_back(node);
+        }
+        return true;
+    });
+    std::sort(nodes.begin(), nodes.end(), [](Cube::Node* a, Cube::Node* b) {
+        Cube::SpriteRender* sa = a->getComponent<Cube::SpriteRender>();
+        Cube::SpriteRender* sb = b->getComponent<Cube::SpriteRender>();
+        if(sa->order != sb->order) {
+            return sa->order < sb->order;
+        }
+        return (sa->sprite->getTexture() ? sa->sprite->getTexture()->getId() : -1)
+            < (sb->sprite->getTexture() ? sb->sprite->getTexture()->getId() : -1);
+    });
+    return nodes;
+}
+
 }  // namespace
 
 SceneView::SceneView(EditorPage& editorPage) : View(editorPage) {
@@ -38,11 +65,17 @@ SceneView::~SceneView() {
     delete frameBuffer;
 }
 
+void SceneView::markDirty() {
+    if(editorPage.selectedDoc) {
+        editorPage.selectedDoc->isSaved = false;
+    }
+}
+
 void SceneView::render(float deltaTime) {
     Cube::Texture2D* play_png = EditorTextureCache::get().request("assets/icons/play.png");
 
-    ImGui::Begin("Scene View");
-    
+    ImGui::Begin("World View");
+
     ImGui::BeginChild("ToolBar", {ImGui::GetWindowWidth(), 45});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
     ImVec2 toolButtonSize(37, 37);
@@ -57,9 +90,17 @@ void SceneView::render(float deltaTime) {
     }
     ImGui::PopStyleColor();
     ImGui::EndChild();
-    
-    ImGui::BeginChild("Scene");
-    if(editorPage.selectedScene) {
+
+    if(ImGui::BeginTabBar("WorldTabs", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
+        for(NodeDocument& doc : editorPage.getProject()->getDocuments()) {
+            ImGui::PushID(&doc);
+            std::string tabLabel = doc.identifier + (doc.isSaved ? "" : "*") + "###doc";
+            if(ImGui::BeginTabItem(tabLabel.c_str())) {
+                if(editorPage.selectedDoc != &doc) {
+                    editorPage.selectedDoc = &doc;
+                    editorPage.selectedNode = nullptr;
+                }
+                ImGui::BeginChild("World");
         ImVec2 currentSize = ImGui::GetContentRegionAvail();
         if(currentSize.x <= 0) currentSize.x = 1;
         if(currentSize.y <= 0) currentSize.y = 1;
@@ -69,18 +110,16 @@ void SceneView::render(float deltaTime) {
             frameBuffer->resize((int)sceneViewSize.x, (int)sceneViewSize.y);
         }
 
-        editorPage.selectedScene->scene->update(deltaTime);
-    
+        editorPage.selectedDoc->root->update(deltaTime);
+
         frameBuffer->bind();
         Cube::Renderer2D::setViewport((int)sceneViewSize.x, (int)sceneViewSize.y);
         Cube::Renderer2D::setClearColor(0.3f, 0.3f, 0.3f, 1.0f);
         Cube::Renderer2D::clearBuffer();
-        // scene render
-        sceneRender(deltaTime);
-    
+        worldRender(deltaTime);
+
         Cube::FrameBuffer::bindDefaultFrameBuffer();
-    
-        static bool showSelectSubTexturePopup = false;
+
         ImGui::Image(frameBuffer->getTexture(), sceneViewSize, ImVec2(0, 1), ImVec2(1, 0));
         if(ImGui::BeginDragDropTarget()) {
             if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset")) {
@@ -90,22 +129,22 @@ void SceneView::render(float deltaTime) {
                 pos += editorPage.editorCamera.position;
                 switch(asset->type) {
                     case Cube::ResourceType::Texture: {
-                        auto e = editorPage.selectedScene->scene->createEntity(asset->identifier);
-                        e->getTransform().pos = pos;
-                        auto spriteRender = e->addComponent<Cube::SpriteRender>();
+                        Cube::Node* n = editorPage.selectedDoc->root->addChild(asset->identifier);
+                        n->pos = pos;
+                        auto spriteRender = n->addComponent<Cube::SpriteRender>();
                         spriteRender->sprite = Cube::ResPtr<Cube::Sprite>("spr:" + asset->identifier);
-                        editorPage.selectedScene->isSaved = false;
+                        markDirty();
                     } break;
                     case Cube::ResourceType::AnimationClip: {
-                        auto e = editorPage.selectedScene->scene->createEntity(asset->identifier);
-                        e->getTransform().pos = pos;
-                        e->addComponent<Cube::SpriteRender>();
-                        auto anim = e->addComponent<Cube::Animation>();
+                        Cube::Node* n = editorPage.selectedDoc->root->addChild(asset->identifier);
+                        n->pos = pos;
+                        n->addComponent<Cube::SpriteRender>();
+                        auto anim = n->addComponent<Cube::Animation>();
                         Cube::AnimationClip* clip = anim->addClip(asset->identifier);
                         if(clip) {
                             anim->play(clip->getName());
                         }
-                        editorPage.selectedScene->isSaved = false;
+                        markDirty();
                     } break;
                     default: break;
                 }
@@ -118,11 +157,11 @@ void SceneView::render(float deltaTime) {
                     pos *= editorPage.editorCamera.zoom;
                     pos += editorPage.editorCamera.position;
                     std::string spriteName = spriteIdentifier.substr(posStr + 1);
-                    auto e = editorPage.selectedScene->scene->createEntity(spriteName);
-                    e->getTransform().pos = pos;
-                    auto spriteRender = e->addComponent<Cube::SpriteRender>();
+                    Cube::Node* n = editorPage.selectedDoc->root->addChild(spriteName);
+                    n->pos = pos;
+                    auto spriteRender = n->addComponent<Cube::SpriteRender>();
                     spriteRender->sprite = Cube::ResPtr<Cube::Sprite>(spriteIdentifier);
-                    editorPage.selectedScene->isSaved = false;
+                    markDirty();
                 }
             }
             ImGui::EndDragDropTarget();
@@ -141,7 +180,7 @@ void SceneView::render(float deltaTime) {
             if(ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
                 editorCamera.position.y -= deltaTime * 500;
             }
-    
+
             static bool isPanning = false;
             ImGuiIO& io = ImGui::GetIO();
             if(ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
@@ -151,12 +190,12 @@ void SceneView::render(float deltaTime) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
                 glm::vec2 delta = {-io.MouseDelta.x * editorCamera.zoom, io.MouseDelta.y * editorCamera.zoom};
                 editorCamera.position += delta;
-    
+
                 if(!ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
                     isPanning = false;
                 }
             }
-    
+
             if(io.MouseWheel != 0.0f) {
                 // TODO: 设一个缩放界限
                 glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
@@ -172,12 +211,11 @@ void SceneView::render(float deltaTime) {
                 bool choose = false;
                 glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
                 glm::vec4 mouseWorldPos = editorCamera.getTransformMatrix() * glm::vec4(mousePos, 0.0f, 1.0f);
-                Cube::Entity* selected = nullptr;
-                for(auto& e : editorPage.selectedScene->scene->getSortedRenderableEntities()) {
-                    Cube::Transform& tc = e->getTransform();
-                    Cube::SpriteRender* sprite = e->getComponent<Cube::SpriteRender>();
+                Cube::Node* selected = nullptr;
+                for(Cube::Node* n : collectRenderableNodes(editorPage.selectedDoc->root.get())) {
+                    Cube::SpriteRender* sprite = n->getComponent<Cube::SpriteRender>();
                     if(!sprite || !sprite->sprite) continue;
-                    glm::mat4 model = tc.getWorldMatrix();
+                    glm::mat4 model = n->getWorldMatrix();
                     glm::mat4 corner = model * glm::mat4({
                         {0.0f, 0.0f, 0.0f, 1.0f},
                         {sprite->sprite->getSize().x, 0.0f, 0.0f, 1.0f},
@@ -185,11 +223,11 @@ void SceneView::render(float deltaTime) {
                         {0.0f, sprite->sprite->getSize().y, 0.0f, 1.0f}
                     });
                     if(Utils::isPointInPolygon({mouseWorldPos.x, mouseWorldPos.y}, {{corner[0].x, corner[0].y}, {corner[1].x, corner[1].y}, {corner[2].x, corner[2].y}, {corner[3].x, corner[3].y}})) {
-                        selected = e;
+                        selected = n;
                     }
                 }
                 if(selected) {
-                    if(editorPage.selectedEntity == selected) {
+                    if(editorPage.selectedNode == selected) {
                         if(io.KeyShift) {
                             isScaling = true;
                             isDragging = false;
@@ -198,11 +236,11 @@ void SceneView::render(float deltaTime) {
                             isScaling = false;
                         }
                     }
-                    editorPage.selectedEntity = selected;
+                    editorPage.selectedNode = selected;
                     choose = true;
                 }
                 if(!choose) {
-                    editorPage.selectedEntity = nullptr;
+                    editorPage.selectedNode = nullptr;
                     isDragging = false;
                     isScaling = false;
                 }
@@ -210,10 +248,9 @@ void SceneView::render(float deltaTime) {
             if(isDragging) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                 glm::vec2 delta = {io.MouseDelta.x * editorCamera.zoom, -io.MouseDelta.y * editorCamera.zoom};
-                if(editorPage.selectedEntity) {
-                    Cube::Transform& tc = editorPage.selectedEntity->getTransform();
-                    tc.pos = tc.pos + delta;
-                    editorPage.selectedScene->isSaved = false;
+                if(editorPage.selectedNode) {
+                    editorPage.selectedNode->pos = editorPage.selectedNode->pos + delta;
+                    markDirty();
                 }
                 if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
                     isDragging = false;
@@ -221,9 +258,8 @@ void SceneView::render(float deltaTime) {
             }
             if(isScaling) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
-                if(editorPage.selectedEntity) {
-                    Cube::Transform& tc = editorPage.selectedEntity->getTransform();
-                    glm::vec2 scale = tc.scale;
+                if(editorPage.selectedNode) {
+                    glm::vec2 scale = editorPage.selectedNode->scale;
 
                     const float scaleFactor = 1.0f + (io.MouseDelta.x - io.MouseDelta.y) * 0.01f;
                     const float safeScaleFactor = scaleFactor < 0.01f ? 0.01f : scaleFactor;
@@ -232,23 +268,28 @@ void SceneView::render(float deltaTime) {
                     if(scale.x < 0.01f) scale.x = 0.01f;
                     if(scale.y < 0.01f) scale.y = 0.01f;
 
-                    tc.scale = scale;
-                    editorPage.selectedScene->isSaved = false;
+                    editorPage.selectedNode->scale = scale;
+                    markDirty();
                 }
                 if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
                     isScaling = false;
                 }
             }
+        } // if focused/hovered
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            ImGui::PopID();
         }
+        ImGui::EndTabBar();
     }
-    ImGui::EndChild();
     renderRunConfirm();
     ImGui::End();
 }
 
-void SceneView::sceneRender(float deltaTime) {
-    Cube::Scene* scene = editorPage.selectedScene->scene;
-    
+void SceneView::worldRender(float deltaTime) {
+    Cube::Node* root = editorPage.selectedDoc->root.get();
+
     const EditorCamera& editorCamera = editorPage.editorCamera;
     Cube::Renderer2D::beginFrame(editorCamera.getPVMatrix());
     // the axis lines
@@ -259,27 +300,25 @@ void SceneView::sceneRender(float deltaTime) {
     Cube::Renderer2D::drawLine({left, 0}, {right, 0}, {1.0f, 0.0f, 0.0f, 1.0f}, 1.0f * editorCamera.zoom);
     Cube::Renderer2D::drawLine({0, bottom}, {0, top}, {0.0f, 0.0f, 1.0f, 1.0f}, 1.0f * editorCamera.zoom);
 
-    for(auto& camera : scene->getCameras()) {
-        auto* tc = &camera->getTransform();
-        auto* cc = camera->getComponent<Cube::Camera2D>();
-        if(cc->available) {
+    root->forEachNode([&editorCamera](Cube::Node* node) {
+        Cube::Camera2D* cc = node->getComponent<Cube::Camera2D>();
+        if(cc && cc->available) {
             glm::vec2 size = cc->viewport;
             Cube::Color color = {113, 96, 232, 255};
-            Cube::Renderer2D::drawRect(tc->getWorldMatrix(), size, color, 1.0f * editorCamera.zoom);
+            Cube::Renderer2D::drawRect(node->getWorldMatrix(), size, color, 1.0f * editorCamera.zoom);
         }
+        return true;
+    });
+
+    for(Cube::Node* n : collectRenderableNodes(root)) {
+        auto* sc = n->getComponent<Cube::SpriteRender>();
+        Cube::Renderer2D::drawQuad(n->getWorldMatrix(), sc->tintColor, sc->sprite->getTexture(), sc->sprite->getTexRegion().getUVCoord());
     }
 
-    for(auto& e : scene->getSortedRenderableEntities()) {
-        auto* sc = e->getComponent<Cube::SpriteRender>();
-        if(sc->sprite){
-            Cube::Renderer2D::drawQuad(e->getTransform().getWorldMatrix(), sc->tintColor, sc->sprite->getTexture(), sc->sprite->getTexRegion().getUVCoord());
-        }
-    }
-
-    // the outline of selected entity
-    if(editorPage.selectedEntity && editorPage.selectedEntity->hasComponent<Cube::SpriteRender>() && editorPage.selectedEntity->getComponent<Cube::SpriteRender>()->sprite) {
-        Cube::SpriteRender* sr = editorPage.selectedEntity->getComponent<Cube::SpriteRender>();
-        glm::mat4 model = editorPage.selectedEntity->getTransform().getWorldMatrix();
+    // the outline of selected node
+    if(editorPage.selectedNode && editorPage.selectedNode->hasComponent<Cube::SpriteRender>() && editorPage.selectedNode->getComponent<Cube::SpriteRender>()->sprite) {
+        Cube::SpriteRender* sr = editorPage.selectedNode->getComponent<Cube::SpriteRender>();
+        glm::mat4 model = editorPage.selectedNode->getWorldMatrix();
         glm::vec2 size = sr->sprite->getSize();
         Cube::Color color = {255, 255, 0, 255};
         Cube::Renderer2D::drawRect(model, size, color, 1.0f * editorCamera.zoom);
@@ -289,12 +328,18 @@ void SceneView::sceneRender(float deltaTime) {
 }
 
 
-Cube::Path SceneView::currentScenePath() const {
-    if(!editorPage.selectedScene || !editorPage.selectedScene->scene) {
+Cube::Path SceneView::currentNodePath() const {
+    if(!editorPage.selectedDoc) {
         return Cube::Path();
     }
-    const ProjectConfig& config = editorPage.getProject()->getConfig();
-    return config.sceneDirectory / (editorPage.selectedScene->scene->getName() + ".scene");
+    return editorPage.getProject()->resolveResourcePath(editorPage.selectedDoc->identifier);
+}
+
+std::string SceneView::currentNodeResourceId() const {
+    if(!editorPage.selectedDoc) {
+        return {};
+    }
+    return editorPage.selectedDoc->identifier;
 }
 
 Cube::Path SceneView::ensureGameExecutable() const {
@@ -312,10 +357,10 @@ Cube::Path SceneView::ensureGameExecutable() const {
     return target;
 }
 
-void SceneView::startGameProcess(const Cube::Path& exePath, const Cube::Path& scenePath) {
+void SceneView::startGameProcess(const Cube::Path& exePath, const std::string& nodeResourceId) {
     stopGameProcess();
 
-    const std::string commandLine = '"' + exePath.string() + "\" --scene \"" + scenePath.string() + '"';
+    const std::string commandLine = '"' + exePath.string() + "\" -n " + nodeResourceId;
     std::u16string commandLineUtf16 = Cube::Utils::utf8To16(commandLine);
     const std::u16string workingDirUtf16 = Cube::Utils::utf8To16(editorPage.getProject()->getConfig().rootPath.string());
     const std::wstring workingDir(workingDirUtf16.begin(), workingDirUtf16.end());
@@ -328,7 +373,7 @@ void SceneView::startGameProcess(const Cube::Path& exePath, const Cube::Path& sc
         return;
     }
     gameRunning = true;
-    CB_EDITOR_INFO("SceneView: game started, scene = '{}'", scenePath);
+    CB_EDITOR_INFO("SceneView: game started, node = '{}'", nodeResourceId);
 }
 
 void SceneView::stopGameProcess() {
@@ -346,24 +391,31 @@ void SceneView::stopGameProcess() {
 }
 
 void SceneView::runGame() {
-    if(!editorPage.selectedScene || !editorPage.selectedScene->scene) {
-        CB_EDITOR_ERROR("SceneView: no scene selected, cannot run the game");
+    if(!editorPage.selectedDoc || !editorPage.selectedDoc->root) {
+        CB_EDITOR_ERROR("SceneView: no node document selected, cannot run the game");
         return;
     }
-    const Cube::Path scenePath = currentScenePath();
+    const std::string resourceId = currentNodeResourceId();
+    nlohmann::json importConfig;
+    importConfig["path"] = currentNodePath().string();
+    if(editorPage.getProject()->getAssetExplorer().getAssetPathMap().contains(resourceId)) {
+        editorPage.getProject()->getAssetExplorer().reimportResource(resourceId, importConfig);
+    } else {
+        editorPage.getProject()->getAssetExplorer().createResource(resourceId, importConfig);
+    }
     const Cube::Path exePath = ensureGameExecutable();
     if(exePath.empty()) {
         return;
     }
-    startGameProcess(exePath, scenePath);
+    startGameProcess(exePath, resourceId);
 }
 
 void SceneView::openRunConfirm() {
-    if(!editorPage.selectedScene || !editorPage.selectedScene->scene) {
-        CB_EDITOR_ERROR("SceneView: no scene selected, cannot run the game");
+    if(!editorPage.selectedDoc || !editorPage.selectedDoc->root) {
+        CB_EDITOR_ERROR("SceneView: no node document selected, cannot run the game");
         return;
     }
-    if(editorPage.selectedScene->isSaved) {
+    if(editorPage.selectedDoc->isSaved) {
         runGame();
         return;
     }
@@ -376,11 +428,11 @@ void SceneView::renderRunConfirm() {
     }
     ImGui::OpenPopup("Run Game##SceneView");
     if(ImGui::BeginPopupModal("Run Game##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::TextUnformatted("The current scene has unsaved changes.");
+        ImGui::TextUnformatted("The current node tree has unsaved changes.");
         ImGui::Spacing();
         if(ImGui::Button("Save and Run")) {
-            editorPage.selectedScene->scene->serialize(currentScenePath());
-            editorPage.selectedScene->isSaved = true;
+            Cube::NodeTree::save(currentNodePath(), *editorPage.selectedDoc->root);
+            editorPage.selectedDoc->isSaved = true;
             runConfirmOpen = false;
             ImGui::CloseCurrentPopup();
             runGame();

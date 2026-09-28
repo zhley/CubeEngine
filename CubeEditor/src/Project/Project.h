@@ -1,22 +1,28 @@
 #pragma once
 
+#include <deque>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "AssetExplorer.h"
 #include "Cube/Core/Path.h"
-#include "Cube/Scene/Scene.h"
+
+namespace Cube {
+class Node;
+}
 
 struct ProjectConfig {
 	std::string name;
 	Cube::Path rootPath; // project root directory
 	Cube::Path projectDataDirectory;
 	Cube::Path assetsDirectory;
-	Cube::Path sceneDirectory;
 	Cube::Path assetPathMapFilePath;
 };
 
-struct SceneData {
-    Cube::Scene* scene = nullptr;
+struct NodeDocument {
+    std::string identifier;
+    std::unique_ptr<Cube::Node> root;
 	bool isSaved = false;
 };
 
@@ -26,10 +32,14 @@ public:
 	Project(const Cube::Path& configFilePath);
 	~Project();
 
-	const std::vector<SceneData>& getScenes() const;
-	std::vector<SceneData>& getScenes();
-	void addScene(Cube::Scene* scene);
-	bool hasScene(const std::string& sceneName) const;
+	const std::deque<NodeDocument>& getDocuments() const;
+	// deque: push_back does not move existing elements, so NodeDocument* stays valid.
+	std::deque<NodeDocument>& getDocuments();
+	void addDocument(const std::string& identifier, std::unique_ptr<Cube::Node> root);
+	bool hasDocument(const std::string& identifier) const;
+
+	// Resolve a resource identifier to its file path via the asset map.
+	Cube::Path resolveResourcePath(const std::string& identifier) const;
 
 	void importResource(const Cube::Path& path);
 
@@ -42,6 +52,6 @@ private:
 	void save();
 
 	ProjectConfig config;
-    std::vector<SceneData> scenes;
+    std::deque<NodeDocument> documents;
 	AssetExplorer assetExplorer;
 };

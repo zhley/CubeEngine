@@ -1,5 +1,4 @@
 #pragma once
-#include "Cube/Scene/Entity.h"
 #include "View.h"
 #include "Views/ResourcePickerDialog.h"
 

@@ -6,7 +6,6 @@
 
 int main() {
     Cube::Utils::setConsoleUtf8();
-    CB_ASSERT(GetACP() == 65001);
     
     EditorApp::init();
     auto app = EditorApp::get();

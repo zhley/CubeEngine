@@ -1,4 +1,4 @@
-﻿#include "EditorPage.h"
+#include "EditorPage.h"
 
 #include <filesystem>
 #include <string>
@@ -7,6 +7,7 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "Cube/Core/Log.h"
+#include "Cube/Resource/NodeTree.h"
 #include "Cube/Utils/Utils.h"
 #include "Cube/Core/Engine.h"
 
@@ -29,9 +30,9 @@ EditorPage::EditorPage(Project* project) : project(project) {
     views.push_back(std::make_unique<AnimationEditor>(*this));
     views.push_back(std::make_unique<LogView>(*this));
 
-    auto& scenes = project->getScenes();
-    if(!scenes.empty()) {
-        selectedScene = &scenes.front();
+    auto& docs = project->getDocuments();
+    if(!docs.empty()) {
+        selectedDoc = &docs.front();
     }
 
 }
@@ -60,67 +61,92 @@ void EditorPage::render(float deltaTime) {
             }
             ImGui::EndMenu();
         }
-        static bool showAddNewScene = false;
-        if(ImGui::BeginMenu("Scene")) {
-            if(ImGui::MenuItem("Add New Scene")) {
-                showAddNewScene = true;
+        static bool showAddNewDoc = false;
+        if(ImGui::BeginMenu("Node Tree")) {
+            if(ImGui::MenuItem("New Node Tree")) {
+                showAddNewDoc = true;
             }
 
-            if(ImGui::MenuItem("Load Scene")) {
-                Cube::Path filePath = Utils::FileDialog::openFile("Load Scene", {{"Cube Scene File (*.scene)", "*.scene"}}, project->getConfig().sceneDirectory);
+            if(ImGui::MenuItem("Load Node Tree")) {
+                Cube::Path filePath = Utils::FileDialog::openFile("Load Node Tree", {{"Cube Node Tree (*.node)", "*.node"}}, project->getConfig().assetsDirectory);
                 if(!filePath.empty()) {
-                    Cube::Scene* scene = new Cube::Scene(filePath);
-                    if(filePath.stem() == scene->getName()){
-                        if(!project->hasScene(scene->getName())){
-                            project->addScene(scene);
-                            selectedScene = &project->getScenes().back();
-                            Cube::Path target = project->getConfig().sceneDirectory / (scene->getName() + ".scene");
-                            if (!std::filesystem::equivalent(filePath.fspath(), target.fspath())) {
+                    Cube::NodeTree nodeTree(filePath);
+                    std::unique_ptr<Cube::Node> root = nodeTree.instantiate();
+                    if(!root) {
+                        CB_ERROR("Failed to load node tree '{}'", filePath);
+                    } else {
+                        Cube::Path relPath = filePath.lexicallyRelative(project->getConfig().assetsDirectory);
+                        if(relPath.empty()) {
+                            relPath = Cube::Path(std::string(filePath.filename()));
+                        }
+                        const std::string identifier = "node:" + relPath.string();
+                        if(!project->hasDocument(identifier)) {
+                            // Keep the file under Assets and register it as a node resource.
+                            Cube::Path target = project->getConfig().assetsDirectory / relPath;
+                            if(!std::filesystem::equivalent(filePath.fspath(), target.fspath())) {
                                 // TODO: 覆盖警告
                                 std::filesystem::copy_file(filePath.fspath(), target.fspath(), std::filesystem::copy_options::overwrite_existing);
                             }
+                            nlohmann::json importConfig;
+                            importConfig["path"] = target.string();
+                            if(project->getAssetExplorer().getAssetPathMap().contains(identifier)) {
+                                project->getAssetExplorer().reimportResource(identifier, importConfig);
+                            } else {
+                                project->getAssetExplorer().createResource(identifier, importConfig);
+                            }
+                            project->addDocument(identifier, std::move(root));
+                            selectedDoc = &project->getDocuments().back();
                         } else {
-                            delete scene;
-                            CB_WARN("The scene has existed"); // TODO: 提醒用户
+                            CB_WARN("The node tree has existed"); // TODO: 提醒用户
                         }
-                    } else {
-                        delete scene;
-                        CB_ERROR("The scene file name does not match the scene name"); // TODO: 提醒用户
                     }
                 }
             }
-            if(ImGui::MenuItem("Save Scene") && this->selectedScene) {
-                if(!this->selectedScene->isSaved){
-                    this->selectedScene->scene->serialize(project->getConfig().sceneDirectory / (this->selectedScene->scene->getName() + ".scene"));
-                    this->selectedScene->isSaved = true;
+            if(ImGui::MenuItem("Save Node Tree") && this->selectedDoc) {
+                if(!this->selectedDoc->isSaved){
+                    const Cube::Path path = project->resolveResourcePath(this->selectedDoc->identifier);
+                    Cube::NodeTree::save(path, *this->selectedDoc->root);
+                    this->selectedDoc->isSaved = true;
                 }
             }
-            if(ImGui::MenuItem("Save All Scene")) {
-                for(auto& scene : project->getScenes()){
-                    if(!scene.isSaved){
-                        scene.scene->serialize(project->getConfig().sceneDirectory / (scene.scene->getName() + ".scene"));
-                        scene.isSaved = true;
+            if(ImGui::MenuItem("Save All Node Trees")) {
+                for(auto& doc : project->getDocuments()){
+                    if(!doc.isSaved){
+                        const Cube::Path path = project->resolveResourcePath(doc.identifier);
+                        Cube::NodeTree::save(path, *doc.root);
+                        doc.isSaved = true;
                     }
                 }
             }
             ImGui::EndMenu();
         }
-        if(showAddNewScene) ImGui::OpenPopup("Add New Scene##1");
-        if(ImGui::BeginPopupModal("Add New Scene##1")) {
+        if(showAddNewDoc) ImGui::OpenPopup("Add New Node Tree##1");
+        if(ImGui::BeginPopupModal("Add New Node Tree##1")) {
             static char name[50] = {};
             ImGui::Text("Name: ");
             ImGui::SameLine();
             ImGui::InputText("##NameInputText", name, IM_ARRAYSIZE(name));
 
             static bool showTip = false;
-            if(showTip) ImGui::Text("This scene has existed!");
+            if(showTip) ImGui::Text("This node tree has existed!");
 
             if(ImGui::Button("Add##3")) {
-                if(!project->hasScene(name)){
-                    project->addScene(new Cube::Scene(name));
-                    selectedScene = &project->getScenes().back();
+                const std::string identifier = std::string("node:") + name + ".node";
+                if(!project->hasDocument(identifier)){
+                    auto root = std::make_unique<Cube::Node>(name);
+                    const Cube::Path target = project->getConfig().assetsDirectory / (std::string(name) + ".node");
+                    Cube::NodeTree::save(target, *root);
+                    nlohmann::json importConfig;
+                    importConfig["path"] = target.string();
+                    if(project->getAssetExplorer().getAssetPathMap().contains(identifier)) {
+                        project->getAssetExplorer().reimportResource(identifier, importConfig);
+                    } else {
+                        project->getAssetExplorer().createResource(identifier, importConfig);
+                    }
+                    project->addDocument(identifier, std::move(root));
+                    selectedDoc = &project->getDocuments().back();
                     memset(name, '\0', sizeof(name));
-                    showAddNewScene = false;
+                    showAddNewDoc = false;
                     showTip = false;
                     ImGui::CloseCurrentPopup();
                 }else {
@@ -130,7 +156,7 @@ void EditorPage::render(float deltaTime) {
             ImGui::SameLine();
             if(ImGui::Button("Cancel##3")) {
                 memset(name, '\0', sizeof(name));
-                showAddNewScene = false;
+                showAddNewDoc = false;
                 showTip = false;
                 ImGui::CloseCurrentPopup();
             }

@@ -120,13 +120,13 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
 
     Cube::Path animPath = assetsDir / (baseName + ".anim");
     int index = 1;
-    while(std::filesystem::exists(animPath.fspath()) {
+    while(std::filesystem::exists(animPath.fspath())) {
         animPath = assetsDir / (baseName + "_" + std::to_string(index) + ".anim");
         ++index;
     }
 
     nlohmann::json animData;
-    animData["name"] = animPath.stem();
+    animData["name"] = std::string(animPath.stem());
     animData["looping"] = true;
     animData["speed"] = 1.0f;
     animData["duration"] = 0.0f;

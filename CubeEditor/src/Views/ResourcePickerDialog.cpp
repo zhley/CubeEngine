@@ -188,8 +188,8 @@ bool ResourcePickerDialog::render(std::vector<std::string>& pickedIdentifiers, E
                             const bool shiftPressed = io.KeyShift;
 
                             if(shiftPressed && selectionAnchorIndex >= 0) {
-                                const int begin = std::min(selectionAnchorIndex, static_cast<int>(i));
-                                const int end = std::max(selectionAnchorIndex, static_cast<int>(i));
+                                const int begin = (std::min)(selectionAnchorIndex, static_cast<int>(i));
+                                const int end = (std::max)(selectionAnchorIndex, static_cast<int>(i));
 
                                 if(!ctrlPressed) {
                                     selectedIdentifiers.clear();

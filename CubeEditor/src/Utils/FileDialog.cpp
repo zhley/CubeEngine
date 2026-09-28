@@ -159,7 +159,7 @@ Cube::Path FileDialog::selectDir(const std::string& title, const Cube::Path& def
     if (SUCCEEDED(hr)) {
         std::string result;
         IFileOpenDialog* pDlg = nullptr;
-        hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog, (void**)(&pDlg));
+        hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog, (void**)(&pDlg));
         if (SUCCEEDED(hr)) {
             FILEOPENDIALOGOPTIONS options = 0;
             pDlg->GetOptions(&options);

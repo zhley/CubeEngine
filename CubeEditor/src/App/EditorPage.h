@@ -4,15 +4,12 @@
 
 #include "../Views/View.h"
 #include "Page.h"
-#include "Cube/Scene/Entity.h"
+#include "Cube/Scene/Node.h"
 #include "../Scene/EditorCamera.h"
 #include "../Project/AssetExplorer.h"
 #include "Views/ThumbnailManager.h"
 
-namespace Cube {
-    class Scene;
-}
-struct SceneData;
+struct NodeDocument;
 class Project;
 class EditorApp;
 
@@ -29,8 +26,8 @@ public:
     Project* getProject() const { return project.get(); }
 
     // Editor state
-    SceneData* selectedScene = nullptr;
-    Cube::Entity* selectedEntity = nullptr;
+    NodeDocument* selectedDoc = nullptr;
+    Cube::Node* selectedNode = nullptr;
     AssetNode* selectedAssetNode = nullptr;
     EditorCamera editorCamera;
 

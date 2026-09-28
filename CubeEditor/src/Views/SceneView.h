@@ -21,12 +21,14 @@ private:
     bool gameRunning = false;
     bool runConfirmOpen = false;
 
-    void sceneRender(float deltaTime);
-    Cube::Path currentScenePath() const;
+    void worldRender(float deltaTime);
+    Cube::Path currentNodePath() const;
+    std::string currentNodeResourceId() const;
     Cube::Path ensureGameExecutable() const;
-    void startGameProcess(const Cube::Path& exePath, const Cube::Path& scenePath);
+    void startGameProcess(const Cube::Path& exePath, const std::string& nodeResourceId);
     void stopGameProcess();
     void runGame();
     void openRunConfirm();
     void renderRunConfirm();
+    void markDirty();
 };
