@@ -66,9 +66,7 @@ SceneView::~SceneView() {
 }
 
 void SceneView::markDirty() {
-    if(editorPage.selectedDoc) {
-        editorPage.selectedDoc->isSaved = false;
-    }
+    editorPage.markActiveDirty();
 }
 
 void SceneView::render(float deltaTime) {
@@ -92,13 +90,19 @@ void SceneView::render(float deltaTime) {
     ImGui::EndChild();
 
     if(ImGui::BeginTabBar("WorldTabs", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs)) {
-        for(NodeDocument& doc : editorPage.getProject()->getDocuments()) {
-            ImGui::PushID(&doc);
-            std::string tabLabel = doc.identifier + (doc.isSaved ? "" : "*") + "###doc";
-            if(ImGui::BeginTabItem(tabLabel.c_str())) {
-                if(editorPage.selectedDoc != &doc) {
-                    editorPage.selectedDoc = &doc;
-                    editorPage.selectedNode = nullptr;
+        // Snapshot pointers: close removes the document from Project.
+        std::vector<NodeDocument*> docs;
+        for(const auto& doc : editorPage.getDocuments()) {
+            docs.push_back(doc.get());
+        }
+        for(NodeDocument* doc : docs) {
+            ImGui::PushID(doc->getIdentifier().c_str());
+            std::string tabLabel = doc->getIdentifier() + (doc->isDirty() ? "*" : "") + "###doc";
+            bool open = true;
+            const bool selected = ImGui::BeginTabItem(tabLabel.c_str(), &open);
+            if(selected) {
+                if(editorPage.activeDocument != doc) {
+                    editorPage.setActiveDocument(doc);
                 }
                 ImGui::BeginChild("World");
         ImVec2 currentSize = ImGui::GetContentRegionAvail();
@@ -110,7 +114,7 @@ void SceneView::render(float deltaTime) {
             frameBuffer->resize((int)sceneViewSize.x, (int)sceneViewSize.y);
         }
 
-        editorPage.selectedDoc->root->update(deltaTime);
+        doc->getRoot()->update(deltaTime);
 
         frameBuffer->bind();
         Cube::Renderer2D::setViewport((int)sceneViewSize.x, (int)sceneViewSize.y);
@@ -129,14 +133,14 @@ void SceneView::render(float deltaTime) {
                 pos += editorPage.editorCamera.position;
                 switch(asset->type) {
                     case Cube::ResourceType::Texture: {
-                        Cube::Node* n = editorPage.selectedDoc->root->addChild(asset->identifier);
+                        Cube::Node* n = editorPage.activeDocument->getRoot()->addChild(asset->identifier);
                         n->pos = pos;
                         auto spriteRender = n->addComponent<Cube::SpriteRender>();
                         spriteRender->sprite = Cube::ResPtr<Cube::Sprite>("spr:" + asset->identifier);
                         markDirty();
                     } break;
                     case Cube::ResourceType::AnimationClip: {
-                        Cube::Node* n = editorPage.selectedDoc->root->addChild(asset->identifier);
+                        Cube::Node* n = editorPage.activeDocument->getRoot()->addChild(asset->identifier);
                         n->pos = pos;
                         n->addComponent<Cube::SpriteRender>();
                         auto anim = n->addComponent<Cube::Animation>();
@@ -157,7 +161,7 @@ void SceneView::render(float deltaTime) {
                     pos *= editorPage.editorCamera.zoom;
                     pos += editorPage.editorCamera.position;
                     std::string spriteName = spriteIdentifier.substr(posStr + 1);
-                    Cube::Node* n = editorPage.selectedDoc->root->addChild(spriteName);
+                    Cube::Node* n = editorPage.activeDocument->getRoot()->addChild(spriteName);
                     n->pos = pos;
                     auto spriteRender = n->addComponent<Cube::SpriteRender>();
                     spriteRender->sprite = Cube::ResPtr<Cube::Sprite>(spriteIdentifier);
@@ -212,7 +216,7 @@ void SceneView::render(float deltaTime) {
                 glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
                 glm::vec4 mouseWorldPos = editorCamera.getTransformMatrix() * glm::vec4(mousePos, 0.0f, 1.0f);
                 Cube::Node* selected = nullptr;
-                for(Cube::Node* n : collectRenderableNodes(editorPage.selectedDoc->root.get())) {
+                for(Cube::Node* n : collectRenderableNodes(editorPage.activeDocument->getRoot())) {
                     Cube::SpriteRender* sprite = n->getComponent<Cube::SpriteRender>();
                     if(!sprite || !sprite->sprite) continue;
                     glm::mat4 model = n->getWorldMatrix();
@@ -236,11 +240,11 @@ void SceneView::render(float deltaTime) {
                             isScaling = false;
                         }
                     }
-                    editorPage.selectedNode = selected;
+                    editorPage.setSelectedNode(selected);
                     choose = true;
                 }
                 if(!choose) {
-                    editorPage.selectedNode = nullptr;
+                    editorPage.clearNodeSelection();
                     isDragging = false;
                     isScaling = false;
                 }
@@ -279,6 +283,11 @@ void SceneView::render(float deltaTime) {
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
+            if(!open) {
+                editorPage.closeDocument(doc);
+                ImGui::PopID();
+                break;
+            }
             ImGui::PopID();
         }
         ImGui::EndTabBar();
@@ -288,7 +297,7 @@ void SceneView::render(float deltaTime) {
 }
 
 void SceneView::worldRender(float deltaTime) {
-    Cube::Node* root = editorPage.selectedDoc->root.get();
+    Cube::Node* root = editorPage.activeDocument->getRoot();
 
     const EditorCamera& editorCamera = editorPage.editorCamera;
     Cube::Renderer2D::beginFrame(editorCamera.getPVMatrix());
@@ -329,17 +338,17 @@ void SceneView::worldRender(float deltaTime) {
 
 
 Cube::Path SceneView::currentNodePath() const {
-    if(!editorPage.selectedDoc) {
+    if(!editorPage.activeDocument) {
         return Cube::Path();
     }
-    return editorPage.getProject()->resolveResourcePath(editorPage.selectedDoc->identifier);
+    return Cube::Path(editorPage.getProject()->getAssetExplorer().getAssetImporter(editorPage.activeDocument->getIdentifier()).at("path").get<std::string>());
 }
 
 std::string SceneView::currentNodeResourceId() const {
-    if(!editorPage.selectedDoc) {
+    if(!editorPage.activeDocument) {
         return {};
     }
-    return editorPage.selectedDoc->identifier;
+    return editorPage.activeDocument->getIdentifier();
 }
 
 Cube::Path SceneView::ensureGameExecutable() const {
@@ -391,7 +400,7 @@ void SceneView::stopGameProcess() {
 }
 
 void SceneView::runGame() {
-    if(!editorPage.selectedDoc || !editorPage.selectedDoc->root) {
+    if(!editorPage.activeDocument || !editorPage.activeDocument->getRoot()) {
         CB_EDITOR_ERROR("SceneView: no node document selected, cannot run the game");
         return;
     }
@@ -411,11 +420,11 @@ void SceneView::runGame() {
 }
 
 void SceneView::openRunConfirm() {
-    if(!editorPage.selectedDoc || !editorPage.selectedDoc->root) {
+    if(!editorPage.activeDocument || !editorPage.activeDocument->getRoot()) {
         CB_EDITOR_ERROR("SceneView: no node document selected, cannot run the game");
         return;
     }
-    if(editorPage.selectedDoc->isSaved) {
+    if(editorPage.activeDocument->isDirty()) {
         runGame();
         return;
     }
@@ -431,8 +440,8 @@ void SceneView::renderRunConfirm() {
         ImGui::TextUnformatted("The current node tree has unsaved changes.");
         ImGui::Spacing();
         if(ImGui::Button("Save and Run")) {
-            Cube::NodeTree::save(currentNodePath(), *editorPage.selectedDoc->root);
-            editorPage.selectedDoc->isSaved = true;
+            editorPage.saveDocument(editorPage.activeDocument);
+            editorPage.activeDocument->markSaved();
             runConfirmOpen = false;
             ImGui::CloseCurrentPopup();
             runGame();

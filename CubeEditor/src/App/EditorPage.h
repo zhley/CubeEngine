@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "../Views/View.h"
@@ -9,7 +10,7 @@
 #include "../Project/AssetExplorer.h"
 #include "Views/ThumbnailManager.h"
 
-struct NodeDocument;
+class NodeDocument;
 class Project;
 class EditorApp;
 
@@ -25,9 +26,25 @@ public:
 
     Project* getProject() const { return project.get(); }
 
-    // Editor state
-    NodeDocument* selectedDoc = nullptr;
+    // Open documents are editor runtime state (not persisted).
+    const std::vector<std::unique_ptr<NodeDocument>>& getDocuments() const { return documents; }
+    NodeDocument* findDocument(const std::string& identifier) const;
+    NodeDocument* openDocumentFromFile(const Cube::Path& filePath);
+    NodeDocument* createAndOpenDocument(const std::string& name);
+    void saveDocument(NodeDocument* document);
+    void saveAllDocuments();
+    void closeDocument(NodeDocument* document);
+
+    void setActiveDocument(NodeDocument* document);
+    void setSelectedNode(Cube::Node* node);
+    void clearNodeSelection();
+    void markActiveDirty();
+
+    // Active document pointer is stable (documents are unique_ptr).
+    // selectedNode is only valid inside that document tree.
+    NodeDocument* activeDocument = nullptr;
     Cube::Node* selectedNode = nullptr;
+
     AssetNode* selectedAssetNode = nullptr;
     EditorCamera editorCamera;
 
@@ -36,4 +53,5 @@ public:
 private:
     std::vector<std::unique_ptr<View>> views;
     std::unique_ptr<Project> project;
+    std::vector<std::unique_ptr<NodeDocument>> documents;
 };

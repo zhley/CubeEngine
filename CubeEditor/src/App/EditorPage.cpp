@@ -1,5 +1,6 @@
 #include "EditorPage.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <string>
 
@@ -29,17 +30,126 @@ EditorPage::EditorPage(Project* project) : project(project) {
     views.push_back(std::make_unique<AssetInspector>(*this));
     views.push_back(std::make_unique<AnimationEditor>(*this));
     views.push_back(std::make_unique<LogView>(*this));
-
-    auto& docs = project->getDocuments();
-    if(!docs.empty()) {
-        selectedDoc = &docs.front();
-    }
-
 }
 
 EditorPage::~EditorPage() {
     if(project) {
         project->getAssetExplorer().saveToFile(project->getConfig().projectDataDirectory / "resources.cache", project->getConfig().assetPathMapFilePath);
+    }
+}
+
+NodeDocument* EditorPage::findDocument(const std::string& identifier) const {
+    auto it = std::find_if(documents.begin(), documents.end(), [&identifier](const std::unique_ptr<NodeDocument>& doc) {
+        return doc->getIdentifier() == identifier;
+    });
+    return it == documents.end() ? nullptr : it->get();
+}
+
+NodeDocument* EditorPage::openDocumentFromFile(const Cube::Path& filePath) {
+    Cube::Path relPath = filePath.lexicallyRelative(project->getConfig().assetsDirectory);
+    if(relPath.empty()) {
+        relPath = Cube::Path(std::string(filePath.filename()));
+    }
+    const std::string identifier = "node:" + relPath.string();
+    if(NodeDocument* existing = findDocument(identifier)) {
+        setActiveDocument(existing);
+        return existing;
+    }
+
+    std::unique_ptr<Cube::Node> root = project->loadNodeTree(filePath);
+    if(!root) {
+        return nullptr;
+    }
+
+    const Cube::Path target = project->getConfig().assetsDirectory / relPath;
+    if(!std::filesystem::equivalent(filePath.fspath(), target.fspath())) {
+        // TODO: 覆盖警告
+        std::filesystem::copy_file(filePath.fspath(), target.fspath(), std::filesystem::copy_options::overwrite_existing);
+    }
+    nlohmann::json importConfig;
+    importConfig["path"] = target.string();
+    AssetExplorer& assets = project->getAssetExplorer();
+    if(assets.getAssetPathMap().contains(identifier)) {
+        assets.reimportResource(identifier, importConfig);
+    } else {
+        assets.createResource(identifier, importConfig);
+    }
+
+    documents.push_back(std::make_unique<NodeDocument>(identifier, std::move(root)));
+    NodeDocument* doc = documents.back().get();
+    doc->markSaved();
+    setActiveDocument(doc);
+    return doc;
+}
+
+NodeDocument* EditorPage::createAndOpenDocument(const std::string& name) {
+    const std::string identifier = "node:" + name + ".node";
+    if(findDocument(identifier) || std::filesystem::exists((project->getConfig().assetsDirectory / (name + ".node")).fspath())) {
+        return nullptr;
+    }
+    if(!project->createNodeTreeFile(name)) {
+        return nullptr;
+    }
+    auto root = std::make_unique<Cube::Node>(name);
+    documents.push_back(std::make_unique<NodeDocument>(identifier, std::move(root)));
+    NodeDocument* doc = documents.back().get();
+    setActiveDocument(doc);
+    return doc;
+}
+
+void EditorPage::saveDocument(NodeDocument* document) {
+    if(!document || !document->getRoot()) {
+        return;
+    }
+    if(project->saveNodeTree(document->getIdentifier(), *document->getRoot())) {
+        document->markSaved();
+    }
+}
+
+void EditorPage::saveAllDocuments() {
+    for(auto& doc : documents) {
+        if(doc->isDirty()) {
+            saveDocument(doc.get());
+        }
+    }
+}
+
+void EditorPage::closeDocument(NodeDocument* document) {
+    if(!document) {
+        return;
+    }
+    const std::string identifier = document->getIdentifier();
+    documents.erase(std::remove_if(documents.begin(), documents.end(), [&identifier](const std::unique_ptr<NodeDocument>& doc) {
+        return doc->getIdentifier() == identifier;
+    }), documents.end());
+    if(activeDocument != document) {
+        return;
+    }
+    activeDocument = nullptr;
+    selectedNode = nullptr;
+    if(!documents.empty()) {
+        activeDocument = documents.front().get();
+    }
+}
+
+void EditorPage::setActiveDocument(NodeDocument* document) {
+    if(activeDocument != document) {
+        activeDocument = document;
+        selectedNode = nullptr;
+    }
+}
+
+void EditorPage::setSelectedNode(Cube::Node* node) {
+    selectedNode = node;
+}
+
+void EditorPage::clearNodeSelection() {
+    selectedNode = nullptr;
+}
+
+void EditorPage::markActiveDirty() {
+    if(activeDocument) {
+        activeDocument->markDirty();
     }
 }
 
@@ -70,53 +180,14 @@ void EditorPage::render(float deltaTime) {
             if(ImGui::MenuItem("Load Node Tree")) {
                 Cube::Path filePath = Utils::FileDialog::openFile("Load Node Tree", {{"Cube Node Tree (*.node)", "*.node"}}, project->getConfig().assetsDirectory);
                 if(!filePath.empty()) {
-                    Cube::NodeTree nodeTree(filePath);
-                    std::unique_ptr<Cube::Node> root = nodeTree.instantiate();
-                    if(!root) {
-                        CB_ERROR("Failed to load node tree '{}'", filePath);
-                    } else {
-                        Cube::Path relPath = filePath.lexicallyRelative(project->getConfig().assetsDirectory);
-                        if(relPath.empty()) {
-                            relPath = Cube::Path(std::string(filePath.filename()));
-                        }
-                        const std::string identifier = "node:" + relPath.string();
-                        if(!project->hasDocument(identifier)) {
-                            // Keep the file under Assets and register it as a node resource.
-                            Cube::Path target = project->getConfig().assetsDirectory / relPath;
-                            if(!std::filesystem::equivalent(filePath.fspath(), target.fspath())) {
-                                // TODO: 覆盖警告
-                                std::filesystem::copy_file(filePath.fspath(), target.fspath(), std::filesystem::copy_options::overwrite_existing);
-                            }
-                            nlohmann::json importConfig;
-                            importConfig["path"] = target.string();
-                            if(project->getAssetExplorer().getAssetPathMap().contains(identifier)) {
-                                project->getAssetExplorer().reimportResource(identifier, importConfig);
-                            } else {
-                                project->getAssetExplorer().createResource(identifier, importConfig);
-                            }
-                            project->addDocument(identifier, std::move(root));
-                            selectedDoc = &project->getDocuments().back();
-                        } else {
-                            CB_WARN("The node tree has existed"); // TODO: 提醒用户
-                        }
-                    }
+                    openDocumentFromFile(filePath);
                 }
             }
-            if(ImGui::MenuItem("Save Node Tree") && this->selectedDoc) {
-                if(!this->selectedDoc->isSaved){
-                    const Cube::Path path = project->resolveResourcePath(this->selectedDoc->identifier);
-                    Cube::NodeTree::save(path, *this->selectedDoc->root);
-                    this->selectedDoc->isSaved = true;
-                }
+            if(ImGui::MenuItem("Save Node Tree")) {
+                saveDocument(activeDocument);
             }
             if(ImGui::MenuItem("Save All Node Trees")) {
-                for(auto& doc : project->getDocuments()){
-                    if(!doc.isSaved){
-                        const Cube::Path path = project->resolveResourcePath(doc.identifier);
-                        Cube::NodeTree::save(path, *doc.root);
-                        doc.isSaved = true;
-                    }
-                }
+                saveAllDocuments();
             }
             ImGui::EndMenu();
         }
@@ -131,20 +202,7 @@ void EditorPage::render(float deltaTime) {
             if(showTip) ImGui::Text("This node tree has existed!");
 
             if(ImGui::Button("Add##3")) {
-                const std::string identifier = std::string("node:") + name + ".node";
-                if(!project->hasDocument(identifier)){
-                    auto root = std::make_unique<Cube::Node>(name);
-                    const Cube::Path target = project->getConfig().assetsDirectory / (std::string(name) + ".node");
-                    Cube::NodeTree::save(target, *root);
-                    nlohmann::json importConfig;
-                    importConfig["path"] = target.string();
-                    if(project->getAssetExplorer().getAssetPathMap().contains(identifier)) {
-                        project->getAssetExplorer().reimportResource(identifier, importConfig);
-                    } else {
-                        project->getAssetExplorer().createResource(identifier, importConfig);
-                    }
-                    project->addDocument(identifier, std::move(root));
-                    selectedDoc = &project->getDocuments().back();
+                if(createAndOpenDocument(name)){
                     memset(name, '\0', sizeof(name));
                     showAddNewDoc = false;
                     showTip = false;

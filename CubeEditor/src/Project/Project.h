@@ -1,6 +1,5 @@
 #pragma once
 
-#include <deque>
 #include <memory>
 #include <string>
 #include <vector>
@@ -20,10 +19,21 @@ struct ProjectConfig {
 	Cube::Path assetPathMapFilePath;
 };
 
-struct NodeDocument {
-    std::string identifier;
-    std::unique_ptr<Cube::Node> root;
-	bool isSaved = false;
+// In-memory editable NodeTree instance. Owned by the editor session, not the project.
+class NodeDocument {
+public:
+	NodeDocument(std::string identifier, std::unique_ptr<Cube::Node> root);
+
+	const std::string& getIdentifier() const { return identifier; }
+	Cube::Node* getRoot() const { return root.get(); }
+	bool isDirty() const { return dirty; }
+	void markDirty() { dirty = true; }
+	void markSaved() { dirty = false; }
+
+private:
+	std::string identifier;
+	std::unique_ptr<Cube::Node> root;
+	bool dirty = false;
 };
 
 class Project final{
@@ -32,26 +42,20 @@ public:
 	Project(const Cube::Path& configFilePath);
 	~Project();
 
-	const std::deque<NodeDocument>& getDocuments() const;
-	// deque: push_back does not move existing elements, so NodeDocument* stays valid.
-	std::deque<NodeDocument>& getDocuments();
-	void addDocument(const std::string& identifier, std::unique_ptr<Cube::Node> root);
-	bool hasDocument(const std::string& identifier) const;
-
-	// Resolve a resource identifier to its file path via the asset map.
-	Cube::Path resolveResourcePath(const std::string& identifier) const;
-
 	void importResource(const Cube::Path& path);
+
+	// NodeTree files under Assets
+	bool createNodeTreeFile(const std::string& name); // "node:<name>.node"
+	bool saveNodeTree(const std::string& identifier, const Cube::Node& root);
+	std::unique_ptr<Cube::Node> loadNodeTree(const Cube::Path& filePath) const;
 
 	const ProjectConfig& getConfig() const;
     AssetExplorer& getAssetExplorer() { return assetExplorer; }
 
 private:
 	void writeToConfigFile(const Cube::Path& configFilePath) const;
-	void load();
 	void save();
 
 	ProjectConfig config;
-    std::deque<NodeDocument> documents;
 	AssetExplorer assetExplorer;
 };

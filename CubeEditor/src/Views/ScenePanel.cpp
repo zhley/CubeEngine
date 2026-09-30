@@ -17,8 +17,8 @@ void ScenePanel::render(float deltaTime) {
         return;
     }
 
-    NodeDocument* doc = editorPage.selectedDoc;
-    if(!doc || !doc->root) {
+    NodeDocument* doc = editorPage.activeDocument;
+    if(!doc || !doc->getRoot()) {
         ImGui::TextUnformatted("No open node tree.");
         ImGui::End();
         return;
@@ -30,16 +30,17 @@ void ScenePanel::render(float deltaTime) {
         ImGui::Text("Name:");
         ImGui::InputText("##input", name, IM_ARRAYSIZE(name));
     }, [this] {
-        if(!editorPage.selectedDoc || !editorPage.selectedDoc->root) {
+        NodeDocument* doc = editorPage.activeDocument;
+        if(!doc || !doc->getRoot()) {
             addNodePopup->close();
             return;
         }
         if(addParent) {
             addParent->addChild(name);
         } else {
-            editorPage.selectedDoc->root->addChild(name);
+            doc->getRoot()->addChild(name);
         }
-        editorPage.selectedDoc->isSaved = false;
+        doc->markDirty();
         addNodePopup->close();
     }, [] {
         memset(name, '\0', sizeof(name));
@@ -61,7 +62,7 @@ void ScenePanel::render(float deltaTime) {
 
         bool isOpen = ImGui::TreeNodeEx("##node", flags, "%s", node->getName().c_str());
         if(ImGui::IsItemClicked()) {
-            editorPage.selectedNode = node;
+            editorPage.setSelectedNode(node);
         }
 
         if(ImGui::BeginPopupContextItem()) {
@@ -71,10 +72,10 @@ void ScenePanel::render(float deltaTime) {
             }
             if(node->getParent() && ImGui::MenuItem("Delete")) {
                 if(node == editorPage.selectedNode) {
-                    editorPage.selectedNode = nullptr;
+                    editorPage.clearNodeSelection();
                 }
                 node->getParent()->removeChild(node);
-                doc->isSaved = false;
+                doc->markDirty();
             }
             ImGui::EndPopup();
         }
@@ -90,13 +91,13 @@ void ScenePanel::render(float deltaTime) {
 
     if(ImGui::BeginPopupContextWindow("HierarchyEmpty", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
         if(ImGui::MenuItem("Add Node")) {
-            addParent = doc->root.get();
+            addParent = doc->getRoot();
             addNodePopup->open();
         }
         ImGui::EndPopup();
     }
 
-    drawNodeTree(drawNodeTree, doc->root.get());
+    drawNodeTree(drawNodeTree, doc->getRoot());
 
     ImGui::End();
 }

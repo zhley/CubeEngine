@@ -1,6 +1,5 @@
 #include "Project.h"
 
-#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <json.hpp>
@@ -11,6 +10,9 @@
 #include "Cube/Resource/ResourceManager.h"
 #include "Cube/Scene/Node.h"
 #include "Cube/Utils/Utils.h"
+
+NodeDocument::NodeDocument(std::string identifier, std::unique_ptr<Cube::Node> root)
+    : identifier(std::move(identifier)), root(std::move(root)) {}
 
 Project::Project(const std::string& name, const Cube::Path& rootPath) {
     config.name = name;
@@ -42,32 +44,39 @@ Project::Project(const Cube::Path& configFilePath) {
     config.projectDataDirectory = config.rootPath / ".cube";
     config.assetsDirectory = config.rootPath / "Assets";
     config.assetPathMapFilePath = config.rootPath / "asset.json";
-    load();
+    assetExplorer.loadFromFile(config.projectDataDirectory / "resources.cache", config.assetPathMapFilePath);
 }
 
 Project::~Project() {
     save();
 }
 
-const std::deque<NodeDocument>& Project::getDocuments() const { return documents; }
-
-std::deque<NodeDocument>& Project::getDocuments() { return documents; }
-
-void Project::addDocument(const std::string& identifier, std::unique_ptr<Cube::Node> root) {
-    documents.push_back({identifier, std::move(root), false});
-}
-
-bool Project::hasDocument(const std::string& identifier) const {
-    return std::any_of(documents.begin(), documents.end(), [&identifier](const NodeDocument& doc) { return doc.identifier == identifier; });
-}
-
-Cube::Path Project::resolveResourcePath(const std::string& identifier) const {
-    try {
-        return Cube::Path(assetExplorer.getAssetImporter(identifier).at("path").get<std::string>());
-    } catch (const std::exception& e) {
-        CB_ERROR("Project::resolveResourcePath: failed to resolve '{}': {}", identifier, e.what());
-        return Cube::Path();
+bool Project::createNodeTreeFile(const std::string& name) {
+    const std::string identifier = "node:" + name + ".node";
+    const Cube::Path target = config.assetsDirectory / (name + ".node");
+    if(std::filesystem::exists(target.fspath())) {
+        return false;
     }
+    auto root = std::make_unique<Cube::Node>(name);
+    if(!Cube::NodeTree::save(target, *root)) {
+        return false;
+    }
+    importResource(target);
+    return true;
+}
+
+bool Project::saveNodeTree(const std::string& identifier, const Cube::Node& root) {
+    const Cube::Path path(assetExplorer.getAssetImporter(identifier).value("path", ""));
+    return !path.empty() && Cube::NodeTree::save(path, root);
+}
+
+std::unique_ptr<Cube::Node> Project::loadNodeTree(const Cube::Path& filePath) const {
+    Cube::NodeTree nodeTree(filePath);
+    std::unique_ptr<Cube::Node> root = nodeTree.instantiate();
+    if(!root) {
+        CB_ERROR("Project::loadNodeTree: failed to load '{}'", filePath);
+    }
+    return root;
 }
 
 
@@ -135,23 +144,6 @@ const ProjectConfig& Project::getConfig() const {
 }
 
 void Project::save() {
-
-    nlohmann::json data;
-    data["nodes"] = nlohmann::json::array();
-    for(auto& doc : documents) {
-        data["nodes"].push_back(doc.identifier);
-    }
-
-    const Cube::Path nodesCacheFile = config.projectDataDirectory / "nodes.cache";
-    std::ofstream file(nodesCacheFile.fspath());
-    if(!file.is_open()) {
-        CB_ERROR("Project::save: failed to open file: {}", nodesCacheFile);
-        CB_ASSERT(false);
-        return;
-    }
-    file << data.dump(4);
-    file.close();
-
     assetExplorer.saveToFile(config.projectDataDirectory / "resources.cache", config.assetPathMapFilePath);
 }
 
@@ -166,36 +158,4 @@ void Project::writeToConfigFile(const Cube::Path& configFilePath) const {
         return;
     }
     file << data.dump(4);
-}
-
-void Project::load() {
-    // resources.cache
-    assetExplorer.loadFromFile(config.projectDataDirectory / "resources.cache", config.assetPathMapFilePath);
-
-    // nodes.cache
-    const Cube::Path nodesCacheFile = config.projectDataDirectory / "nodes.cache";
-    std::ifstream file(nodesCacheFile.fspath());
-    if(!file.is_open()) {
-        CB_ERROR("Project::load: failed to open file: {}", nodesCacheFile);
-        CB_ASSERT(false);
-        return;
-    }
-    nlohmann::json data;
-    file >> data;
-    for(auto& s : data["nodes"]) {
-        const std::string identifier = s.get<std::string>();
-        const Cube::Path path = resolveResourcePath(identifier);
-        if(path.empty()) {
-            CB_ERROR("Project::load: failed to resolve node document '{}'", identifier);
-            continue;
-        }
-        Cube::NodeTree nodeTree(path);
-        std::unique_ptr<Cube::Node> root = nodeTree.instantiate();
-        if(!root) {
-            CB_ERROR("Project::load: failed to load node document '{}'", identifier);
-            continue;
-        }
-        documents.push_back({identifier, std::move(root), true});
-    }
-    file.close();
 }
