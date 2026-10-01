@@ -9,7 +9,8 @@
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "D:/GitHubRepo/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_MAKE_PROGRAM": "D:/Programs/Ninja/ninja.exe"
       }
     },
     {

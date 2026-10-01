@@ -4,6 +4,7 @@
 #include "Cube/Resource/ResourceType.h"
 
 #include <json.hpp>
+#include <optional>
 #include <stack>
 #include <string>
 #include <vector>
@@ -68,7 +69,13 @@ public:
 
     AssetNode* getRootNode() const { return rootNode.get(); }
     const std::string& getCurrentPath() const { return currentPath; }
-    const nlohmann::json& getAssetImporter(const std::string& identifier) const { return assetPathMap.at(identifier); }
+    std::optional<std::reference_wrapper<const nlohmann::json>> getAssetImporter(const std::string& identifier) const {
+        auto it = assetPathMap.find(identifier);
+        if(it == assetPathMap.end()) {
+            return std::nullopt;
+        }
+        return std::cref(it->second);
+    }
     const std::unordered_map<std::string, nlohmann::json>& getAssetPathMap() const { return assetPathMap; }
 
 private:

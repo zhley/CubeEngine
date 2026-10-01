@@ -114,7 +114,9 @@ void ResourcesPanel::render(float deltaTime) {
                 switch(entry->type) {
                     case Cube::ResourceType::Texture:
                         {
-                            textureImporter = &assetExplorer.getAssetImporter(entry->identifier);
+                            if(auto imp = assetExplorer.getAssetImporter(entry->identifier)) {
+                                textureImporter = &imp->get();
+                            }
                             textureThumbnail = editorPage.thumbnailManager.request((*textureImporter)["path"].get<std::string>());
                             if(!textureThumbnail) textureThumbnail = file_png;
                             textureHasSprites = textureImporter->contains("sprites") && (*textureImporter)["sprites"].is_object() && !(*textureImporter)["sprites"].empty();
@@ -150,7 +152,10 @@ void ResourcesPanel::render(float deltaTime) {
                     AssetNode* src = entry.get();
                     ImGui::SetDragDropPayload("Asset", &src, sizeof(src));
                     if(src->type == Cube::ResourceType::Texture) {
-                        Cube::Texture2D* tex = editorPage.thumbnailManager.request(assetExplorer.getAssetImporter(src->identifier)["path"].get<std::string>());
+                        Cube::Texture2D* tex = nullptr;
+                        if(auto imp = assetExplorer.getAssetImporter(src->identifier)) {
+                            tex = editorPage.thumbnailManager.request(imp->get()["path"].get<std::string>());
+                        }
                         ImGui::Image(tex ? tex->getId() : file_png->getId(), {64, 64}, {0, 1}, {1, 0});
                     }
                     ImGui::EndDragDropSource();
@@ -300,8 +305,10 @@ void ResourcesPanel::render(float deltaTime) {
         }
         if(selectedManager.getSingleNode()->type == Cube::ResourceType::AnimationClip){
             if(ImGui::MenuItem("Edit")){
-                const Cube::Path animPath(assetExplorer.getAssetImporter(selectedManager.getSingleNode()->identifier)["path"].get<std::string>());
-                Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(animPath));
+                if(auto imp = assetExplorer.getAssetImporter(selectedManager.getSingleNode()->identifier)) {
+                    const Cube::Path animPath(imp->get()["path"].get<std::string>());
+                    Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(animPath));
+                }
             }
         }
         if(ImGui::MenuItem("Delete")) {

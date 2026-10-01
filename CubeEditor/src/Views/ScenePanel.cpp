@@ -17,7 +17,7 @@ void ScenePanel::render(float deltaTime) {
         return;
     }
 
-    NodeDocument* doc = editorPage.activeDocument;
+    NodeDocument* doc = editorPage.documentManager.getActive();
     if(!doc || !doc->getRoot()) {
         ImGui::TextUnformatted("No open node tree.");
         ImGui::End();
@@ -30,7 +30,7 @@ void ScenePanel::render(float deltaTime) {
         ImGui::Text("Name:");
         ImGui::InputText("##input", name, IM_ARRAYSIZE(name));
     }, [this] {
-        NodeDocument* doc = editorPage.activeDocument;
+        NodeDocument* doc = editorPage.documentManager.getActive();
         if(!doc || !doc->getRoot()) {
             addNodePopup->close();
             return;
@@ -50,7 +50,7 @@ void ScenePanel::render(float deltaTime) {
 
     auto drawNodeTree = [&](auto&& self, Cube::Node* node) -> void {
         ImGui::PushID(node);
-        const bool isSelected = editorPage.selectedNode == node;
+        const bool isSelected = editorPage.documentManager.getActive()->getSelectedNode() == node;
         const bool hasChildren = !node->getChildren().empty();
         ImGuiTreeNodeFlags flags = Utils::TREENODE_FLAGS;
         if(isSelected) {
@@ -62,7 +62,7 @@ void ScenePanel::render(float deltaTime) {
 
         bool isOpen = ImGui::TreeNodeEx("##node", flags, "%s", node->getName().c_str());
         if(ImGui::IsItemClicked()) {
-            editorPage.setSelectedNode(node);
+            editorPage.documentManager.getActive()->selectNode(node);
         }
 
         if(ImGui::BeginPopupContextItem()) {
@@ -71,8 +71,8 @@ void ScenePanel::render(float deltaTime) {
                 addNodePopup->open();
             }
             if(node->getParent() && ImGui::MenuItem("Delete")) {
-                if(node == editorPage.selectedNode) {
-                    editorPage.clearNodeSelection();
+                if(node == editorPage.documentManager.getActive()->getSelectedNode()) {
+                    editorPage.documentManager.getActive()->selectNode(nullptr);
                 }
                 node->getParent()->removeChild(node);
                 doc->markDirty();

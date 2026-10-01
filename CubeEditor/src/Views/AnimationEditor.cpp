@@ -33,12 +33,11 @@ bool resolveSpritePreview(const std::string& spriteIdentifier,
     const size_t hashPos = resourcePart.find('#');
     const std::string texIdentifier = hashPos == std::string::npos ? resourcePart : resourcePart.substr(0, hashPos);
 
-    nlohmann::json importer;
-    try {
-        importer = assetExplorer.getAssetImporter(texIdentifier);
-    } catch(const std::out_of_range&) {
+    auto importerRef = assetExplorer.getAssetImporter(texIdentifier);
+    if(!importerRef) {
         return false;
     }
+    const nlohmann::json& importer = importerRef->get();
 
     const std::string texPath = importer.value("path", "");
     if(texPath.empty()) {

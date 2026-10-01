@@ -24,7 +24,13 @@ void AssetInspector::render(float deltaTime) {
         static nlohmann::json editingImporter;
 
         ImGui::Text("identifier: %s", node->identifier.c_str());
-        const nlohmann::json& importer = assetExplorer.getAssetImporter(node->identifier);
+        auto importerRef = assetExplorer.getAssetImporter(node->identifier);
+        if(!importerRef) {
+            ImGui::Text("No importer");
+            ImGui::End();
+            return;
+        }
+        const nlohmann::json& importer = importerRef->get();
         if(editingIdentifier != node->identifier) {
             editingIdentifier = node->identifier;
             editingImporter = importer;
@@ -161,7 +167,9 @@ void AssetInspector::render(float deltaTime) {
         }
         if(ImGui::Button("Reimport")) {
             assetExplorer.reimportResource(node->identifier, editingImporter);
-            editingImporter = assetExplorer.getAssetImporter(node->identifier);
+            if(auto updated = assetExplorer.getAssetImporter(node->identifier)) {
+                editingImporter = updated->get();
+            }
         }
         ImGui::Separator();
         // DEBUG

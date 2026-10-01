@@ -6,13 +6,7 @@
 
 #include "Cube/Core/Log.h"
 #include "Cube/Core/Path.h"
-#include "Cube/Resource/NodeTree.h"
-#include "Cube/Resource/ResourceManager.h"
-#include "Cube/Scene/Node.h"
 #include "Cube/Utils/Utils.h"
-
-NodeDocument::NodeDocument(std::string identifier, std::unique_ptr<Cube::Node> root)
-    : identifier(std::move(identifier)), root(std::move(root)) {}
 
 Project::Project(const std::string& name, const Cube::Path& rootPath) {
     config.name = name;
@@ -51,54 +45,31 @@ Project::~Project() {
     save();
 }
 
-bool Project::createNodeTreeFile(const std::string& name) {
-    const std::string identifier = "node:" + name + ".node";
-    const Cube::Path target = config.assetsDirectory / (name + ".node");
-    if(std::filesystem::exists(target.fspath())) {
-        return false;
-    }
-    auto root = std::make_unique<Cube::Node>(name);
-    if(!Cube::NodeTree::save(target, *root)) {
-        return false;
-    }
-    importResource(target);
-    return true;
-}
-
-bool Project::saveNodeTree(const std::string& identifier, const Cube::Node& root) {
-    const Cube::Path path(assetExplorer.getAssetImporter(identifier).value("path", ""));
-    return !path.empty() && Cube::NodeTree::save(path, root);
-}
-
-std::unique_ptr<Cube::Node> Project::loadNodeTree(const Cube::Path& filePath) const {
-    Cube::NodeTree nodeTree(filePath);
-    std::unique_ptr<Cube::Node> root = nodeTree.instantiate();
-    if(!root) {
-        CB_ERROR("Project::loadNodeTree: failed to load '{}'", filePath);
-    }
-    return root;
-}
-
-
-void importTexture(const Cube::Path& texturePath, Project* project, AssetExplorer& assetExplorer) {
+std::string importTexture(const Cube::Path& texturePath, Project* project, AssetExplorer& assetExplorer) {
     Cube::Path relPath = texturePath.lexicallyRelative(project->getConfig().assetsDirectory);
     nlohmann::json importConfig;
     importConfig["path"] = texturePath.string();
-    assetExplorer.createResource("tex:" + relPath.string(), importConfig);
+    std::string identifier = "tex:" + relPath.string();
+    assetExplorer.createResource(identifier, importConfig);
+    return identifier;
 }
 
-void importAnimClip(const Cube::Path& animPath, Project* project, AssetExplorer& assetExplorer) {
+std::string importAnimClip(const Cube::Path& animPath, Project* project, AssetExplorer& assetExplorer) {
     Cube::Path relPath = animPath.lexicallyRelative(project->getConfig().assetsDirectory);
     nlohmann::json importConfig;
     importConfig["path"] = animPath.string();
-    assetExplorer.createResource("anim:" + relPath.string(), importConfig);
+    std::string identifier = "anim:" + relPath.string();
+    assetExplorer.createResource(identifier, importConfig);
+    return identifier;
 }
 
-void importNodeTree(const Cube::Path& nodePath, Project* project, AssetExplorer& assetExplorer) {
+std::string importNodeTree(const Cube::Path& nodePath, Project* project, AssetExplorer& assetExplorer) {
     Cube::Path relPath = nodePath.lexicallyRelative(project->getConfig().assetsDirectory);
     nlohmann::json importConfig;
     importConfig["path"] = nodePath.string();
-    assetExplorer.createResource("node:" + relPath.string(), importConfig);
+    std::string identifier = "node:" + relPath.string();
+    assetExplorer.createResource(identifier, importConfig);
+    return identifier;
 }
 
 void importRes(const Cube::Path& source, const Cube::Path& target, Project* project, AssetExplorer& assetExplorer) {
@@ -135,7 +106,38 @@ void importRes(const Cube::Path& source, const Cube::Path& target, Project* proj
     }
 }
 
-void Project::importResource(const Cube::Path& path) {
+std::string Project::importResource(const Cube::Path& filePath) {
+    if(!std::filesystem::is_regular_file(filePath.fspath())) {
+        CB_EDITOR_ERROR("Project::importResource: not a file: {}", filePath);
+        return {};
+    }
+
+    const Cube::Path target = config.assetsDirectory / filePath.filename();
+    if(target != filePath) {
+        std::error_code ec;
+        // TODO: 允许覆盖, 但是给出确认弹窗
+        std::filesystem::copy_file(filePath.fspath(), target.fspath(), std::filesystem::copy_options::none, ec);
+        if(ec) {
+            CB_EDITOR_ERROR("Failed to copy file from {} to {}. Error Code: {}", filePath, target, ec.message());
+            return {};
+        }
+    }
+
+    const std::string_view extension = target.extension();
+    if(extension == ".png" || extension == ".jpg") {
+        return importTexture(target, this, assetExplorer);
+    }
+    if(extension == ".anim") {
+        return importAnimClip(target, this, assetExplorer);
+    }
+    if(extension == ".node") {
+        return importNodeTree(target, this, assetExplorer);
+    }
+    CB_EDITOR_ERROR("Unknown assets format: {}", filePath);
+    return {};
+}
+
+void Project::importResources(const Cube::Path& path) {
     importRes(path, config.assetsDirectory / path.filename(), this, assetExplorer);
 }
 

@@ -22,8 +22,6 @@ private:
     bool runConfirmOpen = false;
 
     void worldRender(float deltaTime);
-    Cube::Path currentNodePath() const;
-    std::string currentNodeResourceId() const;
     Cube::Path ensureGameExecutable() const;
     void startGameProcess(const Cube::Path& exePath, const std::string& nodeResourceId);
     void stopGameProcess();
