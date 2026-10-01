@@ -1,4 +1,4 @@
-#include "ScenePanel.h"
+#include "HierarchyView.h"
 
 #include "../App/EditorPage.h"
 #include "../Project/Project.h"
@@ -8,7 +8,7 @@
 
 #include <imgui/imgui.h>
 
-void ScenePanel::render(float deltaTime) {
+void HierarchyView::render(float deltaTime) {
     ImGui::Begin("Hierarchy");
 
     Project* project = editorPage.getProject();

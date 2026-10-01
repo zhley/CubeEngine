@@ -16,7 +16,7 @@
 #include "../Project/Project.h"
 #include "../Views/EntityPropertyPanel.h"
 #include "../Views/ResourcesPanel.h"
-#include "../Views/ScenePanel.h"
+#include "../Views/HierarchyView.h"
 #include "../Views/SceneView.h"
 #include "../Views/AssetInspector.h"
 #include "../Views/LogView.h"
@@ -153,7 +153,7 @@ void DocumentManager::close(NodeDocument* document) {
 }
 
 EditorPage::EditorPage(Project* project) : project(project), documentManager(project) {
-    views.push_back(std::make_unique<ScenePanel>(*this));
+    views.push_back(std::make_unique<HierarchyView>(*this));
     views.push_back(std::make_unique<SceneView>(*this));
     views.push_back(std::make_unique<EntityPropertyPanel>(*this));
     views.push_back(std::make_unique<ResourcesPanel>(*this));
