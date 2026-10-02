@@ -15,12 +15,9 @@ class EditorApp;
 
 class NodeDocument {
 public:
-    // empty identifier means untitled, no file on disk yet.
     NodeDocument(const std::string& identifier, std::unique_ptr<Cube::Node> root) : identifier(identifier), root(std::move(root)) {};
 
     const std::string& getIdentifier() const { return identifier; }
-    bool isUntitled() const { return identifier.empty(); }
-    void setIdentifier(const std::string& id) { identifier = id; }
     Cube::Node* getRoot() const { return root.get(); }
     bool isDirty() const { return dirty; }
     void markDirty() { dirty = true; }
@@ -49,7 +46,7 @@ public:
     NodeDocument* find(const std::string& identifier) const;
     NodeDocument* openFromFile(const Cube::Path& filePath);
     NodeDocument* open(const std::string& identifier);
-    NodeDocument* createUntitled();
+    NodeDocument* create();
     void save(NodeDocument* document);
     void saveAll();
     void close(NodeDocument* document);

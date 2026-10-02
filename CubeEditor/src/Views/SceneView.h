@@ -8,6 +8,8 @@
 
 #include "View.h"
 
+class NodeDocument;
+
 class SceneView : public View {
 public:
     SceneView(EditorPage& editorPage);
@@ -20,6 +22,8 @@ private:
     PROCESS_INFORMATION gameProcess = {};
     bool gameRunning = false;
     bool runConfirmOpen = false;
+    NodeDocument* pendingCloseDocument = nullptr;
+    bool closeConfirmOpen = false;
 
     void worldRender(float deltaTime);
     Cube::Path ensureGameExecutable() const;
@@ -28,5 +32,6 @@ private:
     void runGame();
     void openRunConfirm();
     void renderRunConfirm();
+    void renderCloseConfirm();
     void markDirty();
 };

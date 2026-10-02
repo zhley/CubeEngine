@@ -285,15 +285,21 @@ void SceneView::render(float deltaTime) {
                 ImGui::EndTabItem();
             }
             if(!open) {
-                editorPage.documentManager.close(doc);
-                ImGui::PopID();
-                break;
+                if(doc->isDirty()) {
+                    pendingCloseDocument = doc;
+                    closeConfirmOpen = true;
+                } else {
+                    editorPage.documentManager.close(doc);
+                    ImGui::PopID();
+                    break;
+                }
             }
             ImGui::PopID();
         }
         ImGui::EndTabBar();
     }
     renderRunConfirm();
+    renderCloseConfirm();
     ImGui::End();
 }
 
@@ -391,11 +397,6 @@ void SceneView::runGame() {
         return;
     }
     NodeDocument* activeDoc = editorPage.documentManager.getActive();
-    if (activeDoc->isUntitled()) {
-        // TODO: 提示用户先保存
-        CB_EDITOR_ERROR("SceneView: cannot run the game with an untitled document, please save it first");
-        return;
-    }
     startGameProcess(ensureGameExecutable(), activeDoc->getIdentifier());
 }
 
@@ -435,6 +436,43 @@ void SceneView::renderRunConfirm() {
         ImGui::SameLine();
         if(ImGui::Button("Cancel")) {
             runConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+}
+
+void SceneView::renderCloseConfirm() {
+    if(!closeConfirmOpen) {
+        return;
+    }
+    ImGui::OpenPopup("Close Document##SceneView");
+    if(ImGui::BeginPopupModal("Close Document##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted("The node tree has unsaved changes.");
+        ImGui::Spacing();
+
+        bool closePopup = false;
+        if(ImGui::Button("Save")) {
+            NodeDocument* document = pendingCloseDocument;
+            editorPage.documentManager.save(document);
+            // The document stays open if writing the file failed.
+            if(document && !document->isDirty()) {
+                editorPage.documentManager.close(document);
+            }
+            closePopup = true;
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Don't Save")) {
+            editorPage.documentManager.close(pendingCloseDocument);
+            closePopup = true;
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Cancel")) {
+            closePopup = true;
+        }
+        if(closePopup) {
+            pendingCloseDocument = nullptr;
+            closeConfirmOpen = false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();

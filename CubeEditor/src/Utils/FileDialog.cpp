@@ -130,7 +130,7 @@ Cube::Path FileDialog::saveFile(const std::string& title, const std::vector<Filt
                 }
             }
             if (!defaultExtension.empty()) {
-                pDlg->SetDefaultExtension(Cube::Utils::utf8ToWchar(defaultPath.string()).c_str());
+                pDlg->SetDefaultExtension(Cube::Utils::utf8ToWchar(defaultExtension).c_str());
             }
             auto filterSpecs = buildFilterSpecs(filters);
             if (!filterSpecs.specs.empty()) {

@@ -76,17 +76,26 @@ NodeDocument* DocumentManager::open(const std::string& identifier) {
     return doc;
 }
 
-NodeDocument* DocumentManager::createUntitled() {
-    static int untitledCount = 0;
-    std::string name = "Untitled";
-    if(untitledCount > 0) {
-        name += std::to_string(untitledCount);
+NodeDocument* DocumentManager::create() {
+    Cube::Path filePath = Utils::FileDialog::saveFile(
+        "New Node Tree",
+        {{"Cube Node Tree (*.node)", "*.node"}},
+        project->getConfig().assetsDirectory,
+        ".node");
+    if(filePath.empty()) {
+        return nullptr;
     }
-    ++untitledCount;
-    auto root = std::make_unique<Cube::Node>(name);
-    documents.push_back(std::make_unique<NodeDocument>(std::string(), std::move(root)));
+    auto root = std::make_unique<Cube::Node>(std::string(filePath.stem()));
+    if(!Cube::NodeTree::save(filePath, *root)) {
+        return nullptr;
+    }
+    const std::string identifier = project->importResource(filePath);
+    if(identifier.empty()) {
+        return nullptr;
+    }
+    documents.push_back(std::make_unique<NodeDocument>(identifier, std::move(root)));
     NodeDocument* doc = documents.back().get();
-    doc->markDirty();
+    doc->markSaved();
     setActive(doc);
     return doc;
 }
@@ -95,37 +104,14 @@ void DocumentManager::save(NodeDocument* document) {
     if(!document || !document->getRoot()) {
         return;
     }
-    if(!document->isUntitled()) {
-        auto importer = project->getAssetExplorer().getAssetImporter(document->getIdentifier());
-        if(!importer) {
-            CB_EDITOR_ERROR("DocumentManager::save: unknown resource '{}'", document->getIdentifier());
-            return;
-        }
-        
-        if(Cube::NodeTree::save(Cube::Path(importer->get().at("path").get<std::string>()), *document->getRoot())) {
-            document->markSaved();
-        }
+    auto importer = project->getAssetExplorer().getAssetImporter(document->getIdentifier());
+    if(!importer) {
+        CB_EDITOR_ERROR("DocumentManager::save: unknown resource '{}'", document->getIdentifier());
         return;
     }
-
-    Cube::Path filePath = Utils::FileDialog::saveFile(
-        "Save Node Tree",
-        {{"Cube Node Tree (*.node)", "*.node"}},
-        project->getConfig().assetsDirectory,
-        ".node");
-    if(filePath.empty()) {
-        return;
+    if(Cube::NodeTree::save(Cube::Path(importer->get().at("path").get<std::string>()), *document->getRoot())) {
+        document->markSaved();
     }
-    if(!Cube::NodeTree::save(filePath, *document->getRoot())) {
-        return;
-    }
-    
-    const std::string identifier = project->importResource(filePath);
-    if(identifier.empty()) {
-        return;
-    }
-    document->setIdentifier(identifier);
-    document->markSaved();
 }
 
 void DocumentManager::saveAll() {
@@ -188,7 +174,7 @@ void EditorPage::render(float deltaTime) {
         }
         if(ImGui::BeginMenu("Node Tree")) {
             if(ImGui::MenuItem("New Node Tree")) {
-                documentManager.createUntitled();
+                documentManager.create();
             }
 
             if(ImGui::MenuItem("Load Node Tree")) {
