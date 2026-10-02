@@ -72,7 +72,7 @@ void SceneView::markDirty() {
 void SceneView::render(float deltaTime) {
     Cube::Texture2D* play_png = EditorTextureCache::get().request("assets/icons/play.png");
 
-    ImGui::Begin("World View");
+    ImGui::Begin("Scene");
 
     ImGui::BeginChild("ToolBar", {ImGui::GetWindowWidth(), 45});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -97,7 +97,7 @@ void SceneView::render(float deltaTime) {
         }
         for(NodeDocument* doc : docs) {
             ImGui::PushID(doc);
-            const std::string label = doc->isUntitled() ? "Untitled" : doc->getIdentifier();
+            const std::string label = doc->getRoot()->getName();
             std::string tabLabel = label + (doc->isDirty() ? "*" : "") + "###doc";
             bool open = true;
             const bool selected = ImGui::BeginTabItem(tabLabel.c_str(), &open);
@@ -106,181 +106,181 @@ void SceneView::render(float deltaTime) {
                     editorPage.documentManager.setActive(doc);
                 }
                 ImGui::BeginChild("World");
-        ImVec2 currentSize = ImGui::GetContentRegionAvail();
-        if(currentSize.x <= 0) currentSize.x = 1;
-        if(currentSize.y <= 0) currentSize.y = 1;
-        if((int)currentSize.x != (int)sceneViewSize.x || (int)currentSize.y != (int)sceneViewSize.y) {
-            sceneViewSize = currentSize;
-            editorPage.editorCamera.viewport = {sceneViewSize.x, sceneViewSize.y};
-            frameBuffer->resize((int)sceneViewSize.x, (int)sceneViewSize.y);
-        }
+                ImVec2 currentSize = ImGui::GetContentRegionAvail();
+                if(currentSize.x <= 0) currentSize.x = 1;
+                if(currentSize.y <= 0) currentSize.y = 1;
+                if((int)currentSize.x != (int)sceneViewSize.x || (int)currentSize.y != (int)sceneViewSize.y) {
+                    sceneViewSize = currentSize;
+                    editorPage.editorCamera.viewport = {sceneViewSize.x, sceneViewSize.y};
+                    frameBuffer->resize((int)sceneViewSize.x, (int)sceneViewSize.y);
+                }
 
-        doc->getRoot()->update(deltaTime);
+                doc->getRoot()->update(deltaTime);
 
-        frameBuffer->bind();
-        Cube::Renderer2D::setViewport((int)sceneViewSize.x, (int)sceneViewSize.y);
-        Cube::Renderer2D::setClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-        Cube::Renderer2D::clearBuffer();
-        worldRender(deltaTime);
+                frameBuffer->bind();
+                Cube::Renderer2D::setViewport((int)sceneViewSize.x, (int)sceneViewSize.y);
+                Cube::Renderer2D::setClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+                Cube::Renderer2D::clearBuffer();
+                worldRender(deltaTime);
 
-        Cube::FrameBuffer::bindDefaultFrameBuffer();
+                Cube::FrameBuffer::bindDefaultFrameBuffer();
 
-        ImGui::Image(frameBuffer->getTexture(), sceneViewSize, ImVec2(0, 1), ImVec2(1, 0));
-        if(ImGui::BeginDragDropTarget()) {
-            if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset")) {
-                AssetNode* asset = *(AssetNode**)payload->Data;
-                glm::vec2 pos = glm::vec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (ImGui::GetMousePos().y - ImGui::GetWindowPos().y));
-                pos *= editorPage.editorCamera.zoom;
-                pos += editorPage.editorCamera.position;
-                switch(asset->type) {
-                    case Cube::ResourceType::Texture: {
-                        Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(asset->identifier);
-                        n->pos = pos;
-                        auto spriteRender = n->addComponent<Cube::SpriteRender>();
-                        spriteRender->sprite = Cube::ResPtr<Cube::Sprite>("spr:" + asset->identifier);
-                        markDirty();
-                    } break;
-                    case Cube::ResourceType::AnimationClip: {
-                        Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(asset->identifier);
-                        n->pos = pos;
-                        n->addComponent<Cube::SpriteRender>();
-                        auto anim = n->addComponent<Cube::Animation>();
-                        Cube::AnimationClip* clip = anim->addClip(asset->identifier);
-                        if(clip) {
-                            anim->play(clip->getName());
+                ImGui::Image(frameBuffer->getTexture(), sceneViewSize, ImVec2(0, 1), ImVec2(1, 0));
+                if(ImGui::BeginDragDropTarget()) {
+                    if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset")) {
+                        AssetNode* asset = *(AssetNode**)payload->Data;
+                        glm::vec2 pos = glm::vec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (ImGui::GetMousePos().y - ImGui::GetWindowPos().y));
+                        pos *= editorPage.editorCamera.zoom;
+                        pos += editorPage.editorCamera.position;
+                        switch(asset->type) {
+                            case Cube::ResourceType::Texture: {
+                                Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(asset->identifier);
+                                n->pos = pos;
+                                auto spriteRender = n->addComponent<Cube::SpriteRender>();
+                                spriteRender->sprite = Cube::ResPtr<Cube::Sprite>("spr:" + asset->identifier);
+                                markDirty();
+                            } break;
+                            case Cube::ResourceType::AnimationClip: {
+                                Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(asset->identifier);
+                                n->pos = pos;
+                                n->addComponent<Cube::SpriteRender>();
+                                auto anim = n->addComponent<Cube::Animation>();
+                                Cube::AnimationClip* clip = anim->addClip(asset->identifier);
+                                if(clip) {
+                                    anim->play(clip->getName());
+                                }
+                                markDirty();
+                            } break;
+                            default: break;
                         }
-                        markDirty();
-                    } break;
-                    default: break;
-                }
-            }
-            if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AssetSprite")){
-                std::string spriteIdentifier((char*)payload->Data, payload->DataSize);
-                size_t posStr = spriteIdentifier.find('#');
-                if(posStr != std::string::npos) {
-                    glm::vec2 pos = glm::vec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (ImGui::GetMousePos().y - ImGui::GetWindowPos().y));
-                    pos *= editorPage.editorCamera.zoom;
-                    pos += editorPage.editorCamera.position;
-                    std::string spriteName = spriteIdentifier.substr(posStr + 1);
-                    Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(spriteName);
-                    n->pos = pos;
-                    auto spriteRender = n->addComponent<Cube::SpriteRender>();
-                    spriteRender->sprite = Cube::ResPtr<Cube::Sprite>(spriteIdentifier);
-                    markDirty();
-                }
-            }
-            ImGui::EndDragDropTarget();
-        }
-        if(ImGui::IsWindowFocused() && ImGui::IsWindowHovered()) {
-            EditorCamera& editorCamera = editorPage.editorCamera;
-            if(ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
-                editorCamera.position.x -= deltaTime * 500;
-            }
-            if(ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
-                editorCamera.position.x += deltaTime * 500;
-            }
-            if(ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
-                editorCamera.position.y += deltaTime * 500;
-            }
-            if(ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
-                editorCamera.position.y -= deltaTime * 500;
-            }
-
-            static bool isPanning = false;
-            ImGuiIO& io = ImGui::GetIO();
-            if(ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
-                isPanning = true;
-            }
-            if(isPanning) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-                glm::vec2 delta = {-io.MouseDelta.x * editorCamera.zoom, io.MouseDelta.y * editorCamera.zoom};
-                editorCamera.position += delta;
-
-                if(!ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
-                    isPanning = false;
-                }
-            }
-
-            if(io.MouseWheel != 0.0f) {
-                // TODO: 设一个缩放界限
-                glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
-                glm::vec2 mouseWorldPos = mousePos * editorCamera.zoom + editorCamera.position;
-                static constexpr float E = 0.08f;
-                float k = std::pow(1.0f + E, io.MouseWheel);
-                editorCamera.zoom = editorCamera.zoom * k;
-                editorCamera.position = mouseWorldPos - mousePos * editorCamera.zoom;
-            }
-            static bool isDragging = false;
-            static bool isScaling = false;
-            if(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
-                bool choose = false;
-                glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
-                glm::vec4 mouseWorldPos = editorCamera.getTransformMatrix() * glm::vec4(mousePos, 0.0f, 1.0f);
-                Cube::Node* selected = nullptr;
-                for(Cube::Node* n : collectRenderableNodes(editorPage.documentManager.getActive()->getRoot())) {
-                    Cube::SpriteRender* sprite = n->getComponent<Cube::SpriteRender>();
-                    if(!sprite || !sprite->sprite) continue;
-                    glm::mat4 model = n->getWorldMatrix();
-                    glm::mat4 corner = model * glm::mat4({
-                        {0.0f, 0.0f, 0.0f, 1.0f},
-                        {sprite->sprite->getSize().x, 0.0f, 0.0f, 1.0f},
-                        {sprite->sprite->getSize().x, sprite->sprite->getSize().y, 0.0f, 1.0f},
-                        {0.0f, sprite->sprite->getSize().y, 0.0f, 1.0f}
-                    });
-                    if(Utils::isPointInPolygon({mouseWorldPos.x, mouseWorldPos.y}, {{corner[0].x, corner[0].y}, {corner[1].x, corner[1].y}, {corner[2].x, corner[2].y}, {corner[3].x, corner[3].y}})) {
-                        selected = n;
                     }
+                    if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AssetSprite")){
+                        std::string spriteIdentifier((char*)payload->Data, payload->DataSize);
+                        size_t posStr = spriteIdentifier.find('#');
+                        if(posStr != std::string::npos) {
+                            glm::vec2 pos = glm::vec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (ImGui::GetMousePos().y - ImGui::GetWindowPos().y));
+                            pos *= editorPage.editorCamera.zoom;
+                            pos += editorPage.editorCamera.position;
+                            std::string spriteName = spriteIdentifier.substr(posStr + 1);
+                            Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(spriteName);
+                            n->pos = pos;
+                            auto spriteRender = n->addComponent<Cube::SpriteRender>();
+                            spriteRender->sprite = Cube::ResPtr<Cube::Sprite>(spriteIdentifier);
+                            markDirty();
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
                 }
-                if(selected) {
-                    if(editorPage.documentManager.getActive()->getSelectedNode() == selected) {
-                        if(io.KeyShift) {
-                            isScaling = true;
+                if(ImGui::IsWindowFocused() && ImGui::IsWindowHovered()) {
+                    EditorCamera& editorCamera = editorPage.editorCamera;
+                    if(ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
+                        editorCamera.position.x -= deltaTime * 500;
+                    }
+                    if(ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
+                        editorCamera.position.x += deltaTime * 500;
+                    }
+                    if(ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
+                        editorCamera.position.y += deltaTime * 500;
+                    }
+                    if(ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
+                        editorCamera.position.y -= deltaTime * 500;
+                    }
+
+                    static bool isPanning = false;
+                    ImGuiIO& io = ImGui::GetIO();
+                    if(ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
+                        isPanning = true;
+                    }
+                    if(isPanning) {
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+                        glm::vec2 delta = {-io.MouseDelta.x * editorCamera.zoom, io.MouseDelta.y * editorCamera.zoom};
+                        editorCamera.position += delta;
+
+                        if(!ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+                            isPanning = false;
+                        }
+                    }
+
+                    if(io.MouseWheel != 0.0f) {
+                        // TODO: 设一个缩放界限
+                        glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
+                        glm::vec2 mouseWorldPos = mousePos * editorCamera.zoom + editorCamera.position;
+                        static constexpr float E = 0.08f;
+                        float k = std::pow(1.0f + E, io.MouseWheel);
+                        editorCamera.zoom = editorCamera.zoom * k;
+                        editorCamera.position = mouseWorldPos - mousePos * editorCamera.zoom;
+                    }
+                    static bool isDragging = false;
+                    static bool isScaling = false;
+                    if(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
+                        bool choose = false;
+                        glm::vec2 mousePos = {io.MousePos.x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - (io.MousePos.y - ImGui::GetWindowPos().y)};
+                        glm::vec4 mouseWorldPos = editorCamera.getTransformMatrix() * glm::vec4(mousePos, 0.0f, 1.0f);
+                        Cube::Node* selected = nullptr;
+                        for(Cube::Node* n : collectRenderableNodes(editorPage.documentManager.getActive()->getRoot())) {
+                            Cube::SpriteRender* sprite = n->getComponent<Cube::SpriteRender>();
+                            if(!sprite || !sprite->sprite) continue;
+                            glm::mat4 model = n->getWorldMatrix();
+                            glm::mat4 corner = model * glm::mat4({
+                                {0.0f, 0.0f, 0.0f, 1.0f},
+                                {sprite->sprite->getSize().x, 0.0f, 0.0f, 1.0f},
+                                {sprite->sprite->getSize().x, sprite->sprite->getSize().y, 0.0f, 1.0f},
+                                {0.0f, sprite->sprite->getSize().y, 0.0f, 1.0f}
+                            });
+                            if(Utils::isPointInPolygon({mouseWorldPos.x, mouseWorldPos.y}, {{corner[0].x, corner[0].y}, {corner[1].x, corner[1].y}, {corner[2].x, corner[2].y}, {corner[3].x, corner[3].y}})) {
+                                selected = n;
+                            }
+                        }
+                        if(selected) {
+                            if(editorPage.documentManager.getActive()->getSelectedNode() == selected) {
+                                if(io.KeyShift) {
+                                    isScaling = true;
+                                    isDragging = false;
+                                } else {
+                                    isDragging = true;
+                                    isScaling = false;
+                                }
+                            }
+                            editorPage.documentManager.getActive()->selectNode(selected);
+                            choose = true;
+                        }
+                        if(!choose) {
+                            editorPage.documentManager.getActive()->selectNode(nullptr);
                             isDragging = false;
-                        } else {
-                            isDragging = true;
                             isScaling = false;
                         }
                     }
-                    editorPage.documentManager.getActive()->selectNode(selected);
-                    choose = true;
-                }
-                if(!choose) {
-                    editorPage.documentManager.getActive()->selectNode(nullptr);
-                    isDragging = false;
-                    isScaling = false;
-                }
-            }
-            if(isDragging) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                glm::vec2 delta = {io.MouseDelta.x * editorCamera.zoom, -io.MouseDelta.y * editorCamera.zoom};
-                if(editorPage.documentManager.getActive()->getSelectedNode()) {
-                    editorPage.documentManager.getActive()->getSelectedNode()->pos = editorPage.documentManager.getActive()->getSelectedNode()->pos + delta;
-                    markDirty();
-                }
-                if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-                    isDragging = false;
-                }
-            }
-            if(isScaling) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
-                if(editorPage.documentManager.getActive()->getSelectedNode()) {
-                    glm::vec2 scale = editorPage.documentManager.getActive()->getSelectedNode()->scale;
+                    if(isDragging) {
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                        glm::vec2 delta = {io.MouseDelta.x * editorCamera.zoom, -io.MouseDelta.y * editorCamera.zoom};
+                        if(editorPage.documentManager.getActive()->getSelectedNode()) {
+                            editorPage.documentManager.getActive()->getSelectedNode()->pos = editorPage.documentManager.getActive()->getSelectedNode()->pos + delta;
+                            markDirty();
+                        }
+                        if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                            isDragging = false;
+                        }
+                    }
+                    if(isScaling) {
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                        if(editorPage.documentManager.getActive()->getSelectedNode()) {
+                            glm::vec2 scale = editorPage.documentManager.getActive()->getSelectedNode()->scale;
 
-                    const float scaleFactor = 1.0f + (io.MouseDelta.x - io.MouseDelta.y) * 0.01f;
-                    const float safeScaleFactor = scaleFactor < 0.01f ? 0.01f : scaleFactor;
+                            const float scaleFactor = 1.0f + (io.MouseDelta.x - io.MouseDelta.y) * 0.01f;
+                            const float safeScaleFactor = scaleFactor < 0.01f ? 0.01f : scaleFactor;
 
-                    scale *= safeScaleFactor;
-                    if(scale.x < 0.01f) scale.x = 0.01f;
-                    if(scale.y < 0.01f) scale.y = 0.01f;
+                            scale *= safeScaleFactor;
+                            if(scale.x < 0.01f) scale.x = 0.01f;
+                            if(scale.y < 0.01f) scale.y = 0.01f;
 
-                    editorPage.documentManager.getActive()->getSelectedNode()->scale = scale;
-                    markDirty();
-                }
-                if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-                    isScaling = false;
-                }
-            }
-        } // if focused/hovered
+                            editorPage.documentManager.getActive()->getSelectedNode()->scale = scale;
+                            markDirty();
+                        }
+                        if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                            isScaling = false;
+                        }
+                    }
+                } // if focused/hovered
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
@@ -404,7 +404,7 @@ void SceneView::openRunConfirm() {
         CB_EDITOR_ERROR("SceneView: no node document selected, cannot run the game");
         return;
     }
-    if(editorPage.documentManager.getActive()->isDirty()) {
+    if(!editorPage.documentManager.getActive()->isDirty()) {
         runGame();
         return;
     }

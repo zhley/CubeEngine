@@ -109,7 +109,7 @@ Cube::Path FileDialog::saveFile(const std::string& title, const std::vector<Filt
     if (SUCCEEDED(hr)) {
         std::string result;
         IFileOpenDialog* pDlg = nullptr;
-        hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog, (void**)(&pDlg));
+        hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL, IID_IFileSaveDialog, (void**)(&pDlg));
         if (SUCCEEDED(hr)) {
             FILEOPENDIALOGOPTIONS options = 0;
             pDlg->GetOptions(&options);
