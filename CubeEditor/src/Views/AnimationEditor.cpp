@@ -249,7 +249,7 @@ void AnimationEditor::render(float deltaTime) {
         saveTargetAnim();
     }
 
-    if(ImGui::BeginPopupModal("New AnimationClip", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if(ImGui::BeginPopupModalSuper("New AnimationClip", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Input animation file name:");
         ImGui::InputText("##NewAnimName", newAnimName, IM_ARRAYSIZE(newAnimName));
 

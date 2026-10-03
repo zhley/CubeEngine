@@ -11,6 +11,7 @@
 #include "../App/EditorPage.h"
 #include "../Project/Project.h"
 #include "../Utils/EditorTextureCache.h"
+#include "../Utils/ImGuiExternal.h"
 #include "../Utils/misc.h"
 #include "../Utils/FileDialog.h"
 #include "AnimationEditor.h"
@@ -59,7 +60,7 @@ void AssetInspector::render(float deltaTime) {
                     ImGui::OpenPopup("Grid Slice Texture");
                 }
 
-                if(ImGui::BeginPopupModal("Grid Slice Texture", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                if(ImGui::BeginPopupModalSuper("Grid Slice Texture", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
                     ImGui::Text("Split texture into row/column grid:");
                     ImGui::InputInt("Rows", &gridRows);
                     ImGui::InputInt("Columns", &gridCols);

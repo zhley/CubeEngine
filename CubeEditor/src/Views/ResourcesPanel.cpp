@@ -285,22 +285,44 @@ void ResourcesPanel::render(float deltaTime) {
     }
 
     static char inputBuf[50] = {};
-    static std::unique_ptr<ModalPopup> renamePopup = std::make_unique<ModalPopup>("Rename", [] {
+    static bool renamePopupOpen = false;
+
+    if(renamePopupOpen) {
+        ImGui::OpenPopup("Rename");
+    }
+    if(ImGui::BeginPopupModalSuper("Rename", &renamePopupOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Name:");
         if(ImGui::IsWindowAppearing()) {
             ImGui::SetKeyboardFocusHere();
         }
         ImGui::InputText("##rename", inputBuf, IM_ARRAYSIZE(inputBuf), ImGuiInputTextFlags_AutoSelectAll);
-    }, [] {
-        selectedManager.getSingleNode()->name = inputBuf;
-        renamePopup->close();
-    }, [] {});
+
+        constexpr float buttonWidth = 100.0f;
+        constexpr float spacing = 100.0f;
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
+        ImGui::BeginGroup();
+        if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            if(selectedManager.getSingleNode()) {
+                selectedManager.getSingleNode()->name = inputBuf;
+            }
+            renamePopupOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine(0.0f, spacing);
+        if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            renamePopupOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndGroup();
+
+        ImGui::EndPopup();
+    }
 
     if(ImGui::BeginPopup("NodeRightMenu")) {
         if(selectedManager.getSingleNode()->isGroup) {
             if(ImGui::MenuItem("Rename")) {
                 strcpy_s(inputBuf, selectedManager.getSingleNode()->name.c_str());
-                renamePopup->open();
+                renamePopupOpen = true;
             }
         }
         if(selectedManager.getSingleNode()->type == Cube::ResourceType::AnimationClip){
@@ -321,7 +343,7 @@ void ResourcesPanel::render(float deltaTime) {
         if(ImGui::MenuItem("New Group")) {
             selectedManager.singleSelect(assetExplorer.createGroup("Group"));
             strcpy_s(inputBuf, selectedManager.getSingleNode()->name.c_str());
-            renamePopup->open();
+            renamePopupOpen = true;
         }
         ImGui::EndPopup();
     }
@@ -331,8 +353,6 @@ void ResourcesPanel::render(float deltaTime) {
     ImGui::EndChild();
 
     ImGui::PopStyleColor();
-
-    renamePopup->render();
 
     ImGui::End();
 

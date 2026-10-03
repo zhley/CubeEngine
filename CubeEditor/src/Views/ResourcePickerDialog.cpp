@@ -62,7 +62,7 @@ bool ResourcePickerDialog::render(std::vector<std::string>& pickedIdentifiers, E
 
     bool confirmed = false;
     ImGui::SetNextWindowSize(ImVec2(920.0f, 620.0f), ImGuiCond_Appearing);
-    if(ImGui::BeginPopupModal(title.c_str(), &isOpen, ImGuiWindowFlags_NoResize)) {
+    if(ImGui::BeginPopupModalSuper(title.c_str(), &isOpen, ImGuiWindowFlags_NoResize)) {
         AssetNode* node = getCurrentNode();
         if(!node) {
             ImGui::Text("No resource tree loaded.");

@@ -86,7 +86,12 @@ void GuidancePage::render(float deltaTime) {
     static bool isPathValid = true;
     static char name[50] = {};
     static char path[256] = {};
-    static std::unique_ptr<ModalPopup> newProject = std::make_unique<ModalPopup>("New Project", [] {
+    static bool newProjectOpen = false;
+
+    if(newProjectOpen) {
+        ImGui::OpenPopup("New Project");
+    }
+    if(ImGui::BeginPopupModalSuper("New Project", &newProjectOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Project Name:");
         if(!isNameValid) {
             ImGui::SameLine();
@@ -110,24 +115,37 @@ void GuidancePage::render(float deltaTime) {
             strcpy_s(path, Utils::FileDialog::selectDir("New Project").c_str());
         }
         ImGui::PopStyleColor();
-    }, [&switchPage, this] {
-        isNameValid = !std::string(name).empty();
-        isPathValid = std::filesystem::exists(path);
-        if(isNameValid && isPathValid){
-            delete proj;
-            projectsPathCache.push_back(Cube::Path(path) / (std::string(name) + ".cbproj"));
-            proj = new Project(name, Cube::Path(path));
-            newProject->close();
-            ImGui::CloseCurrentPopup();
 
-            switchPage = true;
+        constexpr float buttonWidth = 100.0f;
+        constexpr float spacing = 100.0f;
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
+        ImGui::BeginGroup();
+        if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            isNameValid = !std::string(name).empty();
+            isPathValid = std::filesystem::exists(path);
+            if(isNameValid && isPathValid) {
+                delete proj;
+                projectsPathCache.push_back(Cube::Path(path) / (std::string(name) + ".cbproj"));
+                proj = new Project(name, Cube::Path(path));
+                newProjectOpen = false;
+                ImGui::CloseCurrentPopup();
+                switchPage = true;
+            }
         }
-    }, [] {
+        ImGui::SameLine(0.0f, spacing);
+        if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            newProjectOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndGroup();
+
+        ImGui::EndPopup();
+    } else if(!newProjectOpen) {
         isNameValid = true;
         isPathValid = true;
         memset(name, '\0', sizeof(name));
         memset(path, '\0', sizeof(path));
-    });
+    }
 
     constexpr ImVec2 buttonSize = {128, 128};
     ImGui::SetCursorPos({ImGui::GetWindowWidth() / 2 - (buttonSize.x * 2 + 100 + ImGui::GetStyle().FramePadding.x * 2 * 2) / 2, 300.0f});
@@ -136,7 +154,7 @@ void GuidancePage::render(float deltaTime) {
 
     ImGui::BeginGroup();
     if(ImGui::ImageButton("New Project##1", new_project_png->getId(), buttonSize, {0, 1}, {1, 0})) {
-        newProject->open();
+        newProjectOpen = true;
     }
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (buttonSize.x + ImGui::GetStyle().FramePadding.x * 2) / 2 - ImGui::CalcTextSize("New Project").x / 2);
     ImGui::Text("New Project");
@@ -162,8 +180,6 @@ void GuidancePage::render(float deltaTime) {
 
     ImGui::PopStyleColor();
     ImGui::EndGroup();
-
-    newProject->render();
 
     ImGui::End();
 

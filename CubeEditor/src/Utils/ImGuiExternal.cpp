@@ -5,6 +5,15 @@
 #include "imgui/imgui_internal.h"
 
 #include <cmath>
+#include <unordered_map>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
 
 void addDashLine(ImDrawList* drawList, const ImVec2& start, const ImVec2& end, const ImU32& color, float thickness, float segmentLen, float intervalLen) {
     ImVec2 delta = end - start;
@@ -26,151 +35,6 @@ void addDashLine(ImDrawList* drawList, const ImVec2& start, const ImVec2& end, c
         drawList->AddLine(start + unit * step * count, start + unit * (step * count + segmentLen), color, thickness);
     }
 }
-
-ModalPopup::ModalPopup(const std::string& title, const std::function<void()>& content, const std::function<void()>& confirm, const std::function<void()>& clear) : title(title), content(content), confirm(confirm), clear(clear) {
-    originalBorderColor = ImGui::GetStyle().Colors[ImGuiCol_Border];
-    borderColor = ImGui::GetStyle().Colors[ImGuiCol_Border];
-}
-
-void ModalPopup::render() {
-    if(isOpen) {
-        ImGui::OpenPopup(title.c_str());
-    } else {
-        clear();
-    }
-    ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
-    if(ImGui::BeginPopupModal(title.c_str(), &isOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
-        content();
-
-        constexpr float buttonWidth = 100.0f;
-        constexpr float spacing = 100.0f;
-        ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
-        ImGui::BeginGroup();
-        if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-            confirm();
-        }
-        ImGui::SameLine(0.0f, spacing);
-        if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
-            isOpen = false;
-        }
-        ImGui::EndGroup();
-
-        if(ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-            ImVec2 mousePos = ImGui::GetMousePos();
-            ImVec2 winPos = ImGui::GetWindowPos();
-            ImVec2 size = ImGui::GetWindowSize();
-            if(!(mousePos.x >= winPos.x && mousePos.y >= winPos.y && mousePos.x <= winPos.x + size.x && mousePos.y <= winPos.y + size.y)) {
-                borderColor = highLightColor;
-                MessageBeep(MB_ICONASTERISK);  // TODO: 跨平台适配
-            } else {
-                borderColor = originalBorderColor;
-            }
-        }
-        ImGui::EndPopup();
-    }
-    ImGui::PopStyleColor();
-}
-
-/*
-bool IconTextButton(ImTextureID tex_id, const char* label, const ImVec2& icon_size, const ImVec2& uv_min, const ImVec2& uv_max, ImGuiButtonFlags flags) {
-    float rounding = ImGui::GetStyle().FrameRounding;
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if(window->SkipItems) return false;
-
-    float averageWidth = ImGui::CalcTextSize("0").x;
-    // 计算文本尺寸
-    ImVec2 text_size = ImGui::CalcTextSize(label);
-    float padding = ImGui::GetStyle().FramePadding.y;
-
-    // 计算整体大小（图标高度 + 文字高度 + 间距）
-    ImVec2 total_size = ImVec2(ImMax(icon_size.x, text_size.x) + padding * 2, icon_size.y + text_size.y + padding * 3);
-
-    // 创建透明按钮作为点击区域
-    ImGui::InvisibleButton(label, total_size, flags);
-
-    // 获取交互状态
-    bool is_hovered = ImGui::IsItemHovered();
-    bool is_active = ImGui::IsItemActive();
-    bool is_clicked = ImGui::IsItemClicked();
-
-    // 绘制按钮背景
-    ImU32 bg_color = ImGui::GetColorU32(is_active ? ImGuiCol_ButtonActive : is_hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
-
-    ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), bg_color, rounding);
-
-    // 添加边框效果
-    if(is_hovered || is_active) {
-        ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::GetColorU32(ImGuiCol_Border), rounding, 0, 1.5f);
-    }
-
-    // 计算图标位置（水平居中，顶部留边距）
-    ImVec2 icon_pos = ImVec2(ImGui::GetItemRectMin().x + (total_size.x - icon_size.x) * 0.5f, ImGui::GetItemRectMin().y + padding);
-
-    // 绘制图标（使用纹理）
-    ImGui::GetWindowDrawList()->AddImage(tex_id, icon_pos, ImVec2(icon_pos.x + icon_size.x, icon_pos.y + icon_size.y), uv_min, uv_max);
-
-    // 计算文本位置（水平居中，在图标下方）
-    ImVec2 text_pos = ImVec2(ImGui::GetItemRectMin().x + (total_size.x - text_size.x) * 0.5f, icon_pos.y + icon_size.y + padding);
-
-    // 绘制文本
-    ImGui::GetWindowDrawList()->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_Text), label);
-
-    return is_clicked;
-}
-
-// 左侧图标右侧文字按钮
-bool IconTextButtonLeft(const char* label, ImTextureID tex_id, const ImVec2& uv_min, const ImVec2& uv_max, const ImVec2& button_size, const ImVec2& icon_size) {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if(window->SkipItems)
-        return false;
-
-    const ImGuiStyle& style = ImGui::GetStyle();
-
-    // 计算文本尺寸
-    ImVec2 text_size = ImGui::CalcTextSize(label);
-
-    // 计算整体按钮大小
-    float icon_text_spacing = 8.0f;  // 图标和文字之间的间距
-    ImVec2 button_padding = style.FramePadding;
-    float rounding = style.FrameRounding;
-    ImVec2 button_size_min(icon_size.x + icon_text_spacing + text_size.x + button_padding.x * 2, ImMax(icon_size.y, text_size.y) + button_padding.y * 2);
-    ImVec2 real_button_size = {std::max(button_size.x, button_size_min.x), std::max(button_size.y, button_size_min.y)};
-
-    ImGui::InvisibleButton(label, real_button_size);
-
-    // 获取交互状态
-    bool is_hovered = ImGui::IsItemHovered();
-    bool is_active = ImGui::IsItemActive();
-    bool is_clicked = ImGui::IsItemClicked();
-
-    // 绘制按钮背景
-    ImU32 bg_color = ImGui::GetColorU32(is_active ? ImGuiCol_ButtonActive : is_hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
-
-    ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), bg_color, rounding);
-
-    // 添加边框效果
-    if(is_hovered || is_active) {
-        ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::GetColorU32(ImGuiCol_Border), rounding, 0, 1.5f);
-    }
-
-    ImVec2 pos = ImGui::GetItemRectMin();
-
-    // 计算图标和文字位置（垂直居中）
-    float icon_y = pos.y + (real_button_size.y - icon_size.y) * 0.5f;
-    float text_y = pos.y + (real_button_size.y - text_size.y) * 0.5f;
-
-    // 绘制图标
-    ImVec2 icon_min(pos.x + button_padding.x, icon_y);
-    ImVec2 icon_max(icon_min.x + icon_size.x, icon_min.y + icon_size.y);
-    window->DrawList->AddImage(tex_id, icon_min, icon_max, uv_min, uv_max);
-
-    // 绘制文本
-    ImVec2 text_pos(pos.x + button_padding.x + icon_size.x + icon_text_spacing, text_y);
-    window->DrawList->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_Text), label);
-
-    return is_clicked;
-}
-*/
 
 bool iconTextButton(const Cube::Texture2D* icon, std::string_view label, bool isSelected, const ImVec2& size, const Cube::TextureRegion& texUV) {
     float rounding = ImGui::GetStyle().FrameRounding;
@@ -356,3 +220,138 @@ bool editableLabel(const char* id, std::string& text, bool triggerEdit) {
 
     return committed;
 }
+
+namespace ImGui {
+
+namespace {
+
+struct ModalSuperState {
+    float  flashTimer   = 0.0f;
+    float  flashTotal   = 0.0f;
+    float  shakeTimer   = 0.0f;
+    float  shakeTotal   = 0.0f;
+    float  cooldown     = 0.0f;
+    bool   firstFrame   = true;
+    bool   shaking      = false;
+    ImVec2 shakeBasePos = ImVec2(0.0f, 0.0f);
+};
+
+std::unordered_map<ImGuiID, ModalSuperState> gModalSuperStates;
+
+float calcModalHighlight(const ModalSuperState& state) {
+    if(state.flashTimer <= 0.0f || state.flashTotal <= 0.0f) return 0.0f;
+    const float progress = 1.0f - state.flashTimer / state.flashTotal; // 0 -> 1
+    const float envelope = 1.0f - progress;
+    const float pulse = 0.55f + 0.45f * std::sin(progress * 6.2831853f * 3.0f); // 3 pulses
+    return envelope * pulse;
+}
+
+} // namespace
+
+ModalSuperStyle& GetModalSuperStyle() {
+    static ModalSuperStyle sModalSuperStyle;
+    return sModalSuperStyle;
+}
+
+bool BeginPopupModalSuper(const char* name, bool* p_open, ImGuiWindowFlags flags) {
+    ImGuiContext& g = *ImGui::GetCurrentContext();
+    ImGuiWindow* parentWindow = g.CurrentWindow;
+    IM_ASSERT(parentWindow != nullptr && "BeginPopupModalSuper() called outside of NewFrame()!");
+    const ImGuiID id = parentWindow->GetID(name);
+    const ModalSuperStyle& cfg = GetModalSuperStyle();
+
+    if(!ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
+        gModalSuperStates.erase(id);
+        g.NextWindowData.ClearFlags();
+        if(p_open && *p_open) *p_open = false;
+        return false;
+    }
+
+    ModalSuperState& state = gModalSuperStates[id];
+
+    // update timers
+    const float dt = g.IO.DeltaTime;
+    if(state.cooldown > 0.0f)   state.cooldown = (state.cooldown > dt) ? state.cooldown - dt : 0.0f;
+    if(state.flashTimer > 0.0f) state.flashTimer = (state.flashTimer > dt) ? state.flashTimer - dt : 0.0f;
+    if(state.shakeTimer > 0.0f) state.shakeTimer = (state.shakeTimer > dt) ? state.shakeTimer - dt : 0.0f;
+    if(state.shakeTimer <= 0.0f) state.shaking = false;
+
+    const float highlight = calcModalHighlight(state);
+
+    if(state.shaking && state.shakeTimer > 0.0f && state.shakeTotal > 0.0f) {
+        const float t = state.shakeTimer / state.shakeTotal; // 1 -> 0
+        const float offset = std::sin((1.0f - t) * 3.14159265f * 6.0f) * cfg.shakeAmplitude * t;
+        ImGui::SetNextWindowPos(ImVec2(state.shakeBasePos.x + offset, state.shakeBasePos.y), ImGuiCond_Always);
+    }
+
+    if(!ImGui::BeginPopupModal(name, p_open, flags)) return false;
+
+    ImGuiWindow* modalWindow = ImGui::GetCurrentWindow();
+    const ImVec2 windowPos = ImGui::GetWindowPos();
+    const ImVec2 windowSize = ImGui::GetWindowSize();
+
+    if(!state.firstFrame) {
+        const ImVec2 mousePos = g.IO.MousePos;
+        const bool mouseInside = mousePos.x >= windowPos.x && mousePos.y >= windowPos.y && mousePos.x <= windowPos.x + windowSize.x && mousePos.y <= windowPos.y + windowSize.y;
+
+        ImGuiWindow* rawHovered = g.HoveredWindowBeforeClear;
+        const bool hoveredOtherWindow = (rawHovered != nullptr) && (rawHovered != modalWindow) && !ImGui::IsWindowWithinBeginStackOf(rawHovered, modalWindow);
+
+        bool attemptOutside = false;
+        if(!mouseInside) {
+            if(cfg.feedbackOnClickOutside) {
+                for(int button = 0; button < 3 && !attemptOutside; ++button) {
+                    if(ImGui::IsMouseClicked(button) && (rawHovered == nullptr || hoveredOtherWindow)) {
+                        attemptOutside = true;
+                    }
+                }
+            }
+            if(!attemptOutside && cfg.feedbackOnHoverOutside && hoveredOtherWindow) {
+                attemptOutside = true;
+            }
+        }
+
+        if(attemptOutside && state.cooldown <= 0.0f) {
+            state.flashTimer = state.flashTotal = (cfg.flashDuration > 0.0f) ? cfg.flashDuration : 0.01f;
+            state.cooldown = cfg.cooldown;
+            if(cfg.shakeWindow && !state.shaking) {
+                state.shakeTimer = state.shakeTotal = (cfg.shakeDuration > 0.0f) ? cfg.shakeDuration : 0.01f;
+                state.shakeBasePos = windowPos;
+                state.shaking = true;
+            }
+            if(cfg.playSound) ::MessageBeep(cfg.beepType);
+        }
+    }
+    state.firstFrame = false;
+
+    // draw feedback effects
+    if(highlight > 0.0f && (cfg.highlightBorder || cfg.flashWindow)) {
+        ImDrawList* fgDrawList = ImGui::GetForegroundDrawList();
+        const float rounding = g.Style.WindowRounding;
+        const ImVec2 windowMax(windowPos.x + windowSize.x, windowPos.y + windowSize.y);
+
+        if(cfg.flashWindow) {
+            ImVec4 flashColor = cfg.highlightColor;
+            flashColor.w *= highlight * 0.20f;
+            fgDrawList->AddRectFilled(windowPos, windowMax, ImGui::GetColorU32(flashColor), rounding);
+        }
+
+        if(cfg.highlightBorder) {
+            const float borderSize = (g.Style.WindowBorderSize > 0.0f) ? g.Style.WindowBorderSize : 1.0f;
+            for(int layer = 3; layer >= 1; --layer) {
+                const float expand = static_cast<float>(layer) * 1.5f;
+                ImVec4 layerColor = cfg.highlightColor;
+                layerColor.w *= highlight * 0.18f * static_cast<float>(4 - layer);
+                fgDrawList->AddRect(ImVec2(windowPos.x - expand, windowPos.y - expand), ImVec2(windowMax.x + expand, windowMax.y + expand),
+                                    ImGui::GetColorU32(layerColor), rounding + expand, 0, borderSize + static_cast<float>(layer) * 2.0f);
+            }
+            ImVec4 borderColor = cfg.highlightColor;
+            borderColor.w *= highlight;
+            fgDrawList->AddRect(windowPos, windowMax, ImGui::GetColorU32(borderColor), rounding, 0, borderSize + 2.0f);
+        }
+    }
+
+    return true;
+}
+
+} // namespace ImGui

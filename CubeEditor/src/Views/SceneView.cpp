@@ -417,7 +417,7 @@ void SceneView::renderRunConfirm() {
         return;
     }
     ImGui::OpenPopup("Run Game##SceneView");
-    if(ImGui::BeginPopupModal("Run Game##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if(ImGui::BeginPopupModalSuper("Run Game##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextUnformatted("The current node tree has unsaved changes.");
         ImGui::Spacing();
         if(ImGui::Button("Save and Run")) {
@@ -447,7 +447,7 @@ void SceneView::renderCloseConfirm() {
         return;
     }
     ImGui::OpenPopup("Close Document##SceneView");
-    if(ImGui::BeginPopupModal("Close Document##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if(ImGui::BeginPopupModalSuper("Close Document##SceneView", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextUnformatted("The node tree has unsaved changes.");
         ImGui::Spacing();
 

@@ -26,27 +26,44 @@ void HierarchyView::render(float deltaTime) {
 
     static char name[50] = {};
     static Cube::Node* addParent = nullptr;
-    static std::unique_ptr<ModalPopup> addNodePopup = std::make_unique<ModalPopup>("Add Node", [] {
+    static bool addNodePopupOpen = false;
+
+    if(addNodePopupOpen) {
+        ImGui::OpenPopup("Add Node");
+    }
+    if(ImGui::BeginPopupModalSuper("Add Node", &addNodePopupOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Name:");
         ImGui::InputText("##input", name, IM_ARRAYSIZE(name));
-    }, [this] {
-        NodeDocument* doc = editorPage.documentManager.getActive();
-        if(!doc || !doc->getRoot()) {
-            addNodePopup->close();
-            return;
+
+        constexpr float buttonWidth = 100.0f;
+        constexpr float spacing = 100.0f;
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
+        ImGui::BeginGroup();
+        if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            NodeDocument* doc = editorPage.documentManager.getActive();
+            if(doc && doc->getRoot()) {
+                if(addParent) {
+                    addParent->addChild(name);
+                } else {
+                    doc->getRoot()->addChild(name);
+                }
+                doc->markDirty();
+            }
+            addNodePopupOpen = false;
+            ImGui::CloseCurrentPopup();
         }
-        if(addParent) {
-            addParent->addChild(name);
-        } else {
-            doc->getRoot()->addChild(name);
+        ImGui::SameLine(0.0f, spacing);
+        if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            addNodePopupOpen = false;
+            ImGui::CloseCurrentPopup();
         }
-        doc->markDirty();
-        addNodePopup->close();
-    }, [] {
+        ImGui::EndGroup();
+
+        ImGui::EndPopup();
+    } else if(!addNodePopupOpen) {
         memset(name, '\0', sizeof(name));
         addParent = nullptr;
-    });
-    addNodePopup->render();
+    }
 
     auto drawNodeTree = [&](auto&& self, Cube::Node* node) -> void {
         ImGui::PushID(node);
@@ -68,7 +85,7 @@ void HierarchyView::render(float deltaTime) {
         if(ImGui::BeginPopupContextItem()) {
             if(ImGui::MenuItem("Add Child")) {
                 addParent = node;
-                addNodePopup->open();
+                addNodePopupOpen = true;
             }
             if(node->getParent() && ImGui::MenuItem("Delete")) {
                 if(node == editorPage.documentManager.getActive()->getSelectedNode()) {
@@ -92,7 +109,7 @@ void HierarchyView::render(float deltaTime) {
     if(ImGui::BeginPopupContextWindow("HierarchyEmpty", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
         if(ImGui::MenuItem("Add Node")) {
             addParent = doc->getRoot();
-            addNodePopup->open();
+            addNodePopupOpen = true;
         }
         ImGui::EndPopup();
     }
