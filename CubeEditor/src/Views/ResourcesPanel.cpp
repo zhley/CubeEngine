@@ -1,7 +1,10 @@
 #include "ResourcesPanel.h"
 
+#include <filesystem>
+#include <functional>
 #include <memory>
 #include <unordered_set>
+#include <vector>
 
 #include "../App/EditorPage.h"
 #include "../Project/Project.h"
@@ -10,8 +13,69 @@
 #include "AnimationEditor.h"
 #include "App/EditorApp.h"
 #include "Cube/Core/Engine.h"
+#include "Cube/Core/Log.h"
 #include "Cube/Resource/ResourceType.h"
 #include "imgui/imgui.h"
+
+namespace {
+
+const char* resourceTypeName(Cube::ResourceType type) {
+    switch(type) {
+        case Cube::ResourceType::Texture: return "Texture";
+        case Cube::ResourceType::Sprite: return "Sprite";
+        case Cube::ResourceType::AnimationClip: return "AnimationClip";
+        case Cube::ResourceType::Font: return "Font";
+        case Cube::ResourceType::Script: return "Script";
+        case Cube::ResourceType::NodeTree: return "NodeTree";
+        default: return "Unknown";
+    }
+}
+
+// Collects the file path of every non-group resource stored under 'node'.
+void collectNodeFiles(const AssetNode* node, const AssetExplorer& assetExplorer, std::vector<Cube::Path>& out) {
+    if(node->isGroup) {
+        for(const auto& child : node->children) {
+            collectNodeFiles(child.get(), assetExplorer, out);
+        }
+        return;
+    }
+    auto importer = assetExplorer.getAssetImporter(node->identifier);
+    if(importer && importer->get().contains("path")) {
+        out.emplace_back(importer->get()["path"].get<std::string>());
+    }
+}
+
+// Collects the name of every resource under 'node' that is currently in use.
+void collectBlockedResources(const AssetNode* node, const std::unordered_map<std::string, int>& resourceUsageCounts, std::vector<std::string>& blocking) {
+    if(node->isGroup) {
+        for(const auto& child : node->children) {
+            collectBlockedResources(child.get(), resourceUsageCounts, blocking);
+        }
+        return;
+    }
+    if(resourceUsageCounts.count(node->identifier)) {
+        blocking.push_back(node->name);
+    }
+}
+
+}
+
+ResourcesPanel::ResourcesPanel(EditorPage& editorPage) : View(editorPage) {
+    Cube::Engine::getApp()->getEventDispatcher().subscribe<ResourceUsageEvent>(std::bind(&ResourcesPanel::onResourceUsage, this, std::placeholders::_1));
+}
+
+bool ResourcesPanel::onResourceUsage(const Cube::Event& e) {
+    const ResourceUsageEvent& event = static_cast<const ResourceUsageEvent&>(e);
+    if(event.inUse) {
+        ++resourceUsageCounts[event.identifier];
+    } else {
+        auto it = resourceUsageCounts.find(event.identifier);
+        if(it != resourceUsageCounts.end() && --it->second <= 0) {
+            resourceUsageCounts.erase(it);
+        }
+    }
+    return true;
+}
 
 struct SelectedManager {
     std::unordered_set<AssetNode*> nodes;
@@ -290,6 +354,16 @@ void ResourcesPanel::render(float deltaTime) {
     static char inputBuf[50] = {};
     static bool renamePopupOpen = false;
 
+    static AssetNode* pendingRemoveNode = nullptr;
+    static bool removeConfirmOpen = false;
+
+    static AssetNode* pendingDeleteNode = nullptr;
+    static std::vector<Cube::Path> pendingDeleteFiles;
+    static bool deleteConfirmOpen = false;
+
+    static std::vector<std::string> blockedResourceNames;
+    static bool blockedMessageOpen = false;
+
     if(renamePopupOpen) {
         ImGui::OpenPopup("Rename");
     }
@@ -321,6 +395,133 @@ void ResourcesPanel::render(float deltaTime) {
         ImGui::EndPopup();
     }
 
+    if(removeConfirmOpen) {
+        ImGui::OpenPopup("Remove");
+    }
+    if(ImGui::BeginPopupModalSuper("Remove", &removeConfirmOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if(pendingRemoveNode) {
+            ImGui::Text("Group: %s", pendingRemoveNode->name.c_str());
+        }
+        ImGui::Text("The following resources and groups will be removed:");
+        ImGui::Separator();
+        if(pendingRemoveNode && !pendingRemoveNode->children.empty()) {
+            for(const auto& child : pendingRemoveNode->children) {
+                if(child->isGroup) {
+                    ImGui::BulletText("%s (Group)", child->name.c_str());
+                } else {
+                    ImGui::BulletText("%s (%s)", child->name.c_str(), resourceTypeName(child->type));
+                }
+            }
+        } else {
+            ImGui::BulletText("(empty group)");
+        }
+
+        constexpr float buttonWidth = 100.0f;
+        constexpr float spacing = 100.0f;
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
+        ImGui::BeginGroup();
+        if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            if(pendingRemoveNode) {
+                assetExplorer.removeNode(pendingRemoveNode);
+                selectedManager.cancel();
+            }
+            pendingRemoveNode = nullptr;
+            removeConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine(0.0f, spacing);
+        if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            pendingRemoveNode = nullptr;
+            removeConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndGroup();
+
+        ImGui::EndPopup();
+    }
+    if(!removeConfirmOpen) {
+        pendingRemoveNode = nullptr;
+    }
+
+    if(deleteConfirmOpen) {
+        ImGui::OpenPopup("Remove And Delete Files");
+    }
+    if(ImGui::BeginPopupModalSuper("Remove And Delete Files", &deleteConfirmOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "This operation cannot be undone.");
+        ImGui::TextWrapped("The following resources will be removed and their files will be permanently deleted from disk:");
+        ImGui::Separator();
+        if(pendingDeleteFiles.empty()) {
+            ImGui::BulletText("(no file)");
+        } else {
+            for(const auto& file : pendingDeleteFiles) {
+                ImGui::Bullet();
+                ImGui::SameLine();
+                ImGui::TextWrapped("%s", file.string().c_str());
+            }
+        }
+
+        constexpr float buttonWidth = 100.0f;
+        constexpr float spacing = 100.0f;
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
+        ImGui::BeginGroup();
+        if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            for(const auto& file : pendingDeleteFiles) {
+                std::error_code ec;
+                std::filesystem::remove(file.fspath(), ec);
+                if(ec) {
+                    CB_EDITOR_ERROR("Failed to delete file {}: {}", file, ec.message());
+                }
+            }
+            if(pendingDeleteNode) {
+                assetExplorer.removeNode(pendingDeleteNode);
+                selectedManager.cancel();
+            }
+            pendingDeleteNode = nullptr;
+            pendingDeleteFiles.clear();
+            deleteConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine(0.0f, spacing);
+        if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            pendingDeleteNode = nullptr;
+            pendingDeleteFiles.clear();
+            deleteConfirmOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndGroup();
+
+        ImGui::EndPopup();
+    }
+    if(!deleteConfirmOpen) {
+        pendingDeleteNode = nullptr;
+        pendingDeleteFiles.clear();
+    }
+
+    if(blockedMessageOpen) {
+        ImGui::OpenPopup("Cannot Remove");
+    }
+    if(ImGui::BeginPopupModalSuper("Cannot Remove", &blockedMessageOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted("The following resources are open in the editor and cannot be removed:");
+        ImGui::Separator();
+        for(const auto& name : blockedResourceNames) {
+            ImGui::BulletText("%s", name.c_str());
+        }
+        ImGui::TextUnformatted("Close them first and try again.");
+
+        constexpr float buttonWidth = 100.0f;
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - buttonWidth / 2);
+        if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            blockedResourceNames.clear();
+            blockedMessageOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+    if(!blockedMessageOpen) {
+        blockedResourceNames.clear();
+    }
+
     if(ImGui::BeginPopup("NodeRightMenu")) {
         if(selectedManager.getSingleNode()->isGroup) {
             if(ImGui::MenuItem("Rename")) {
@@ -330,10 +531,7 @@ void ResourcesPanel::render(float deltaTime) {
         }
         if(selectedManager.getSingleNode()->type == Cube::ResourceType::AnimationClip){
             if(ImGui::MenuItem("Edit")){
-                if(auto imp = assetExplorer.getAssetImporter(selectedManager.getSingleNode()->identifier)) {
-                    const Cube::Path animPath(imp->get()["path"].get<std::string>());
-                    Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(animPath));
-                }
+                Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(selectedManager.getSingleNode()->identifier));
             }
         }
         if(selectedManager.getSingleNode()->type == Cube::ResourceType::NodeTree){
@@ -341,9 +539,34 @@ void ResourcesPanel::render(float deltaTime) {
                 editorPage.documentManager.open(selectedManager.getSingleNode()->identifier);
             }
         }
-        if(ImGui::MenuItem("Delete")) {
-            assetExplorer.removeNode(selectedManager.getSingleNode());
-            selectedManager.cancel();
+        if(ImGui::MenuItem("Remove")) {
+            AssetNode* node = selectedManager.getSingleNode();
+            std::vector<std::string> blocking;
+            collectBlockedResources(node, resourceUsageCounts, blocking);
+            if(!blocking.empty()) {
+                blockedResourceNames = std::move(blocking);
+                blockedMessageOpen = true;
+            } else if(node->isGroup) {
+                pendingRemoveNode = node;
+                removeConfirmOpen = true;
+            } else {
+                assetExplorer.removeNode(node);
+                selectedManager.cancel();
+            }
+        }
+        if(ImGui::MenuItem("Remove And Delete Files")) {
+            AssetNode* node = selectedManager.getSingleNode();
+            std::vector<std::string> blocking;
+            collectBlockedResources(node, resourceUsageCounts, blocking);
+            if(!blocking.empty()) {
+                blockedResourceNames = std::move(blocking);
+                blockedMessageOpen = true;
+            } else {
+                pendingDeleteNode = node;
+                pendingDeleteFiles.clear();
+                collectNodeFiles(node, assetExplorer, pendingDeleteFiles);
+                deleteConfirmOpen = true;
+            }
         }
         ImGui::EndPopup();
     }

@@ -396,6 +396,7 @@ void SceneView::runGame() {
         CB_EDITOR_ERROR("SceneView: no node document selected, cannot run the game");
         return;
     }
+    editorPage.getProject()->save();
     NodeDocument* activeDoc = editorPage.documentManager.getActive();
     startGameProcess(ensureGameExecutable(), activeDoc->getIdentifier());
 }

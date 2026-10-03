@@ -27,13 +27,13 @@ public:
 
     std::string importResource(const Cube::Path& filePath);
     void importResources(const Cube::Path& path);
+    void save();
 
     const ProjectConfig& getConfig() const;
     AssetExplorer& getAssetExplorer() { return assetExplorer; }
 
 private:
     void writeToConfigFile(const Cube::Path& configFilePath) const;
-    void save();
 
     ProjectConfig config;
     AssetExplorer assetExplorer;

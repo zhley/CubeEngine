@@ -3,10 +3,8 @@
 #include <fstream>
 
 #include "Cube/Core/Log.h"
-#include "Cube/Resource/ResourceManager.h"
 #include "Cube/Core/Engine.h"
-
-#include "../App/EditorApp.h"
+#include "Cube/Core/Application.h"
 
 void AssetExplorer::normalInit() {
     rootNode = std::make_unique<AssetNode>();
@@ -103,7 +101,23 @@ void AssetExplorer::reimportResource(const std::string& identifier, const nlohma
 }
 
 void AssetExplorer::removeNode(AssetNode* node) {
-    _removeNode(node);
+    std::vector<AssetNode*> queue;
+    queue.push_back(node);
+    int p = 0;
+    while(p < queue.size()) {
+        if (queue[p]->isGroup) {
+            for(auto& c : queue[p]->children) {
+                queue.push_back(c.get());
+            }
+        } else {
+            assetPathMap.erase(queue[p]->identifier);
+        }
+        p++;
+    }
+    auto& vec = node->parent->children;
+    auto it = std::find_if(vec.begin(), vec.end(), [node](const std::unique_ptr<AssetNode>& n){ return n.get() == node; });
+    CB_ASSERT(it != vec.end());
+    vec.erase(it);
     resetResourceManager();
 }
 
@@ -114,23 +128,6 @@ void AssetExplorer::move(const AssetNode* src, AssetNode* dst) {
     if(it == vec.end()) return;
     dst->children.push_back(std::move(*it));
     vec.erase(it);
-}
-
-void AssetExplorer::_removeNode(AssetNode* node) {
-    if(node->isGroup) {
-        enterNode(node);
-        for(auto& c : node->children) {
-            removeNode(c.get());
-        }
-        back();
-    }else {
-        assetPathMap.erase(node->identifier);
-    }
-    auto& vec = getCurrentNode()->children;
-    auto it = std::find_if(vec.begin(), vec.end(), [node](const std::unique_ptr<AssetNode>& n) { return n.get() == node; });
-    if(it != vec.end()){
-        vec.erase(it);
-    }
 }
 
 void AssetExplorer::resetResourceManager() {

@@ -86,5 +86,4 @@ private:
     std::unordered_map<std::string, nlohmann::json> assetPathMap;
 
     void resetResourceManager();
-    void _removeNode(AssetNode* node);
 };

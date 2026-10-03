@@ -147,7 +147,7 @@ void AssetInspector::render(float deltaTime) {
                 ImGui::Text("path:");
                 ImGui::Text("%s", editingImporter.value("path", "").c_str());
                 if(ImGui::Button("Edit in Animation Editor")) {
-                    Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(Cube::Path(editingImporter.value("path", ""))));
+                    Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(node->identifier));
                 }
                 break;
             } 

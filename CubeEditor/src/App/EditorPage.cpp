@@ -13,15 +13,16 @@
 #include "Cube/Core/Engine.h"
 #include "json.hpp"
 
-#include "../Project/Project.h"
-#include "../Views/EntityPropertyPanel.h"
-#include "../Views/ResourcesPanel.h"
-#include "../Views/HierarchyView.h"
-#include "../Views/SceneView.h"
-#include "../Views/AssetInspector.h"
-#include "../Views/LogView.h"
-#include "../Views/AnimationEditor.h"
-#include "../Utils/FileDialog.h"
+#include "Project/Project.h"
+#include "Views/EntityPropertyPanel.h"
+#include "Views/ResourcesPanel.h"
+#include "Views/HierarchyView.h"
+#include "Views/SceneView.h"
+#include "Views/ResourcesPanel.h"
+#include "Views/AssetInspector.h"
+#include "Views/LogView.h"
+#include "Views/AnimationEditor.h"
+#include "Utils/FileDialog.h"
 
 NodeDocument* DocumentManager::find(const std::string& identifier) const {
     auto it = std::find_if(documents.begin(), documents.end(), [&identifier](const std::unique_ptr<NodeDocument>& doc) {
@@ -73,6 +74,7 @@ NodeDocument* DocumentManager::open(const std::string& identifier) {
     NodeDocument* doc = documents.back().get();
     doc->markSaved();
     setActive(doc);
+    Cube::Engine::getApp()->getEventDispatcher().dispatch(ResourcesPanel::ResourceUsageEvent(identifier, true));
     return doc;
 }
 
@@ -97,6 +99,7 @@ NodeDocument* DocumentManager::create() {
     NodeDocument* doc = documents.back().get();
     doc->markSaved();
     setActive(doc);
+    Cube::Engine::getApp()->getEventDispatcher().dispatch(ResourcesPanel::ResourceUsageEvent(identifier, true));
     return doc;
 }
 
@@ -126,9 +129,11 @@ void DocumentManager::close(NodeDocument* document) {
     if(!document) {
         return;
     }
+    const std::string identifier = document->getIdentifier();
     documents.erase(std::remove_if(documents.begin(), documents.end(), [document](const std::unique_ptr<NodeDocument>& doc) {
         return doc.get() == document;
     }), documents.end());
+    Cube::Engine::getApp()->getEventDispatcher().dispatch(ResourcesPanel::ResourceUsageEvent(identifier, false));
     if(activeDocument != document) {
         return;
     }

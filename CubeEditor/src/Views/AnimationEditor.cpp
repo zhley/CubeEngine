@@ -4,11 +4,12 @@
 #include <fstream>
 #include <stdexcept>
 
-#include "../App/EditorPage.h"
-#include "../Project/AssetExplorer.h"
-#include "../Project/Project.h"
-#include "../Utils/EditorTextureCache.h"
-#include "../Utils/ImGuiExternal.h"
+#include "App/EditorPage.h"
+#include "Project/AssetExplorer.h"
+#include "Project/Project.h"
+#include "Utils/EditorTextureCache.h"
+#include "Utils/ImGuiExternal.h"
+#include "Views/ResourcesPanel.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Renderer/TextureRegion.h"
 #include "Cube/Core/Engine.h"
@@ -144,10 +145,10 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
 
     nlohmann::json importConfig;
     importConfig["path"] = animPath.string();
-    project->getAssetExplorer().createResource("anim:" + relPath.string(), importConfig);
+    const std::string identifier = "anim:" + relPath.string();
+    project->getAssetExplorer().createResource(identifier, importConfig);
 
-    TargetChangeEvent e(animPath);
-    Cube::Engine::getApp()->getEventDispatcher().dispatch(e);
+    Cube::Engine::getApp()->getEventDispatcher().dispatch(TargetChangeEvent(identifier));
     return true;
 }
 
@@ -544,8 +545,29 @@ void AnimationEditor::render(float deltaTime) {
 
 bool AnimationEditor::onTargetChange(const Cube::Event& e) {
     const TargetChangeEvent& event = static_cast<const TargetChangeEvent&>(e);
-    target = event.targetFilePath;
+    if(event.identifier == targetIdentifier) {
+        // Already editing this resource, just refresh it.
+        loadTargetAnim();
+        ImGui::SetWindowFocus("Animation Editor");
+        return true;
+    }
+
+    if(!targetIdentifier.empty()) {
+        Cube::Engine::getApp()->getEventDispatcher().dispatch(ResourcesPanel::ResourceUsageEvent(targetIdentifier, false));
+    }
+
+    targetIdentifier = event.identifier;
+    target.clear();
+    if(Project* project = editorPage.getProject()) {
+        if(auto importer = project->getAssetExplorer().getAssetImporter(targetIdentifier)) {
+            target = Cube::Path(importer->get().value("path", ""));
+        } else {
+            CB_EDITOR_ERROR("AnimationEditor: unknown animation resource '{}'", targetIdentifier);
+        }
+    }
     loadTargetAnim();
+
+    Cube::Engine::getApp()->getEventDispatcher().dispatch(ResourcesPanel::ResourceUsageEvent(targetIdentifier, true));
     ImGui::SetWindowFocus("Animation Editor");
     return true;
 }

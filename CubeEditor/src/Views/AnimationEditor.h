@@ -9,6 +9,7 @@
 #include "Cube/Core/Engine.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 class AnimationEditor : public View{
@@ -17,8 +18,8 @@ public:
     public:
         EVENT_TYPE(TargetChangeEvent)
 
-        TargetChangeEvent(const Cube::Path& targetFilePath) : targetFilePath(targetFilePath) {}
-        Cube::Path targetFilePath;
+        explicit TargetChangeEvent(std::string identifier) : identifier(std::move(identifier)) {}
+        std::string identifier;
     };
 
     AnimationEditor(EditorPage& editorPage) : View(editorPage) {
@@ -41,6 +42,7 @@ private:
     bool onTargetChange(const Cube::Event& e);
 
     Cube::Path target;
+    std::string targetIdentifier;
     std::string name;
     bool looping = false;
     float speed = 1.0f;
