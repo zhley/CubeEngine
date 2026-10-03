@@ -14,6 +14,7 @@
 
 class AnimationEditor : public View{
 public:
+    // Asks the animation editor to edit the animation clip resource identified by 'identifier'.
     class TargetChangeEvent : public Cube::Event {
     public:
         EVENT_TYPE(TargetChangeEvent)
@@ -22,8 +23,15 @@ public:
         std::string identifier;
     };
 
+    // Asks the animation editor to create a new animation clip resource.
+    class NewClipEvent : public Cube::Event {
+    public:
+        EVENT_TYPE(NewClipEvent)
+    };
+
     AnimationEditor(EditorPage& editorPage) : View(editorPage) {
         Cube::Engine::getApp()->getEventDispatcher().subscribe<TargetChangeEvent>(std::bind(&AnimationEditor::onTargetChange, this, std::placeholders::_1));
+        Cube::Engine::getApp()->getEventDispatcher().subscribe<NewClipEvent>(std::bind(&AnimationEditor::onNewClip, this, std::placeholders::_1));
     }
     ~AnimationEditor() override = default;
 
@@ -37,9 +45,11 @@ private:
 
     bool loadTargetAnim();
     bool saveTargetAnim();
-    bool createNewAnimationClip(const std::string& fileName);
+    bool createNewAnimationClip();
+    void closeTargetAnim();
 
     bool onTargetChange(const Cube::Event& e);
+    bool onNewClip(const Cube::Event& e);
 
     Cube::Path target;
     std::string targetIdentifier;
@@ -47,6 +57,7 @@ private:
     bool looping = false;
     float speed = 1.0f;
     float duration = 0.0f;
+    bool dirty = false;
     std::vector<FrameViewData> frames;
     int selectedFrameIndex = -1;
     bool isPreviewPlaying = false;

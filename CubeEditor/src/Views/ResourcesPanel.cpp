@@ -236,6 +236,9 @@ void ResourcesPanel::render(float deltaTime) {
             }else if(entry->type == Cube::ResourceType::NodeTree && leftDoubleClicked) {
                 selectedManager.singleSelect(entry.get());
                 editorPage.documentManager.open(entry->identifier);
+            }else if(entry->type == Cube::ResourceType::AnimationClip && leftDoubleClicked) {
+                selectedManager.singleSelect(entry.get());
+                Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::TargetChangeEvent(entry->identifier));
             }else{
                 if(leftClicked) {
                     if(ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
@@ -578,6 +581,9 @@ void ResourcesPanel::render(float deltaTime) {
         }
         if(ImGui::MenuItem("New Node Tree")) {
             editorPage.documentManager.create();
+        }
+        if(ImGui::MenuItem("New Animation Clip")) {
+            Cube::Engine::getApp()->getEventDispatcher().dispatch(AnimationEditor::NewClipEvent());
         }
         ImGui::EndPopup();
     }

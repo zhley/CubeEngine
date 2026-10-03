@@ -1,6 +1,5 @@
 #include "AnimationEditor.h"
 
-#include <filesystem>
 #include <fstream>
 #include <stdexcept>
 
@@ -8,6 +7,7 @@
 #include "Project/AssetExplorer.h"
 #include "Project/Project.h"
 #include "Utils/EditorTextureCache.h"
+#include "Utils/FileDialog.h"
 #include "Utils/ImGuiExternal.h"
 #include "Views/ResourcesPanel.h"
 #include "Cube/Core/Log.h"
@@ -100,7 +100,7 @@ std::string getFrameDisplayName(const std::string& spriteIdentifier) {
 
 } // namespace
 
-bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
+bool AnimationEditor::createNewAnimationClip() {
     Project* project = editorPage.getProject();
     if(!project) {
         // TODO: Show user-level error prompt in unified notification system.
@@ -108,48 +108,57 @@ bool AnimationEditor::createNewAnimationClip(const std::string& fileName) {
         return false;
     }
 
-    const Cube::Path& assetsDir = project->getConfig().assetsDirectory;
-
-    std::string baseName = fileName;
-    if(baseName.empty()) {
-        baseName = "NewAnimation";
-    }
-    if(baseName.size() > 5 && baseName.substr(baseName.size() - 5) == ".anim") {
-        baseName = baseName.substr(0, baseName.size() - 5);
-    }
-
-    Cube::Path animPath = assetsDir / (baseName + ".anim");
-    int index = 1;
-    while(std::filesystem::exists(animPath.fspath())) {
-        animPath = assetsDir / (baseName + "_" + std::to_string(index) + ".anim");
-        ++index;
+    const Cube::Path filePath = Utils::FileDialog::saveFile(
+        "New Animation Clip",
+        {{"Cube Animation Clip (*.anim)", "*.anim"}},
+        project->getConfig().assetsDirectory,
+        ".anim");
+    if(filePath.empty()) {
+        return false;
     }
 
     nlohmann::json animData;
-    animData["name"] = std::string(animPath.stem());
+    animData["name"] = std::string(filePath.stem());
     animData["looping"] = true;
     animData["speed"] = 1.0f;
     animData["duration"] = 0.0f;
     animData["frames"] = nlohmann::json::array();
 
-    std::ofstream file(animPath.fspath());
+    std::ofstream file(filePath.fspath());
     if(!file.is_open()) {
         // TODO: Show user-level error prompt in unified notification system.
-        CB_EDITOR_ERROR("AnimationEditor: Failed to create animation file {}", animPath);
+        CB_EDITOR_ERROR("AnimationEditor: Failed to create animation file {}", filePath);
         return false;
     }
     file << animData.dump(4);
     file.close();
 
-    Cube::Path relPath = animPath.lexicallyRelative(assetsDir);
-
-    nlohmann::json importConfig;
-    importConfig["path"] = animPath.string();
-    const std::string identifier = "anim:" + relPath.string();
-    project->getAssetExplorer().createResource(identifier, importConfig);
+    const std::string identifier = project->importResource(filePath);
+    if(identifier.empty()) {
+        // TODO: Show user-level error prompt in unified notification system.
+        CB_EDITOR_ERROR("AnimationEditor: Failed to import animation clip {}", filePath);
+        return false;
+    }
 
     Cube::Engine::getApp()->getEventDispatcher().dispatch(TargetChangeEvent(identifier));
     return true;
+}
+
+void AnimationEditor::closeTargetAnim() {
+    if(!targetIdentifier.empty()) {
+        Cube::Engine::getApp()->getEventDispatcher().dispatch(ResourcesPanel::ResourceUsageEvent(targetIdentifier, false));
+    }
+    targetIdentifier.clear();
+    target.clear();
+    name.clear();
+    looping = false;
+    speed = 1.0f;
+    duration = 0.0f;
+    dirty = false;
+    frames.clear();
+    selectedFrameIndex = -1;
+    isPreviewPlaying = false;
+    previewTime = 0.0f;
 }
 
 bool AnimationEditor::loadTargetAnim() {
@@ -161,6 +170,7 @@ bool AnimationEditor::loadTargetAnim() {
     looping = false;
     speed = 1.0f;
     duration = 0.0f;
+    dirty = false;
 
     if(target.empty()) {
         return false;
@@ -234,32 +244,49 @@ bool AnimationEditor::saveTargetAnim() {
     file << animData.dump(4);
     file.close();
     duration = totalDuration;
+    dirty = false;
     return true;
 }
 
 void AnimationEditor::render(float deltaTime) {
     ImGui::Begin("Animation Editor");
 
-    static char newAnimName[128] = "NewAnimation";
-
-    if(ImGui::Button("New AnimationClip")) {
-        ImGui::OpenPopup("New AnimationClip");
+    if(target.empty()) {
+        if(ImGui::Button("New AnimationClip")) {
+            createNewAnimationClip();
+        }
+        ImGui::SameLine();
     }
-    ImGui::SameLine();
     if(ImGui::Button("Save")) {
         saveTargetAnim();
     }
+    if(!target.empty()) {
+        ImGui::SameLine();
+        if(ImGui::Button("Close")) {
+            if(dirty) {
+                ImGui::OpenPopup("Close AnimationClip");
+            } else {
+                closeTargetAnim();
+            }
+        }
+    }
 
-    if(ImGui::BeginPopupModalSuper("New AnimationClip", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Input animation file name:");
-        ImGui::InputText("##NewAnimName", newAnimName, IM_ARRAYSIZE(newAnimName));
-
-        if(ImGui::Button("Create", ImVec2(120.0f, 0.0f))) {
-            createNewAnimationClip(newAnimName);
+    if(ImGui::BeginPopupModalSuper("Close AnimationClip", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted("The animation clip has unsaved changes. Save before closing?");
+        constexpr float buttonWidth = 100.0f;
+        if(ImGui::Button("Save", ImVec2(buttonWidth, 0))) {
+            if(saveTargetAnim()) {
+                closeTargetAnim();
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Don't Save", ImVec2(buttonWidth, 0))) {
+            closeTargetAnim();
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if(ImGui::Button("Cancel", ImVec2(120.0f, 0.0f))) {
+        if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
@@ -318,13 +345,14 @@ void AnimationEditor::render(float deltaTime) {
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0); ImGui::Text("Looping");
-            ImGui::TableSetColumnIndex(1); ImGui::Checkbox("##looping", &looping);
+            ImGui::TableSetColumnIndex(1); if(ImGui::Checkbox("##looping", &looping)) dirty = true;
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0); ImGui::Text("Speed");
             ImGui::TableSetColumnIndex(1);
             if(ImGui::DragFloat("##speed", &speed, 0.01f, 0.01f, 10.0f, "%.3f")) {
                 if(speed < 0.0f) speed = 0.0f;
+                dirty = true;
             }
 
             ImGui::TableNextRow();
@@ -428,6 +456,9 @@ void AnimationEditor::render(float deltaTime) {
                 f.duration = 0.1f;
                 frames.push_back(std::move(f));
             }
+            if(!pickedIdentifiers.empty()) {
+                dirty = true;
+            }
         }
         ImGui::SameLine();
 
@@ -446,6 +477,7 @@ void AnimationEditor::render(float deltaTime) {
                     if(selectedFrame.duration < 0.0f) {
                         selectedFrame.duration = 0.0f;
                     }
+                    dirty = true;
                 }
                 ImGui::EndTable();
             }
@@ -458,6 +490,7 @@ void AnimationEditor::render(float deltaTime) {
             if(ImGui::Button("Move Left")) {
                 std::swap(frames[selectedFrameIndex], frames[selectedFrameIndex - 1]);
                 --selectedFrameIndex;
+                dirty = true;
             }
             if(!canMoveLeft) {
                 ImGui::EndDisabled();
@@ -471,6 +504,7 @@ void AnimationEditor::render(float deltaTime) {
             if(ImGui::Button("Move Right")) {
                 std::swap(frames[selectedFrameIndex], frames[selectedFrameIndex + 1]);
                 ++selectedFrameIndex;
+                dirty = true;
             }
             if(!canMoveRight) {
                 ImGui::EndDisabled();
@@ -484,6 +518,7 @@ void AnimationEditor::render(float deltaTime) {
                 } else if(selectedFrameIndex >= static_cast<int>(frames.size())) {
                     selectedFrameIndex = static_cast<int>(frames.size()) - 1;
                 }
+                dirty = true;
             }
         } else {
             ImGui::TextDisabled("No frame selected");
@@ -569,5 +604,10 @@ bool AnimationEditor::onTargetChange(const Cube::Event& e) {
 
     Cube::Engine::getApp()->getEventDispatcher().dispatch(ResourcesPanel::ResourceUsageEvent(targetIdentifier, true));
     ImGui::SetWindowFocus("Animation Editor");
+    return true;
+}
+
+bool AnimationEditor::onNewClip(const Cube::Event&) {
+    createNewAnimationClip();
     return true;
 }
