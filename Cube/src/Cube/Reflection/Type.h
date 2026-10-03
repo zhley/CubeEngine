@@ -5,6 +5,8 @@
 #include <map>
 #include <unordered_map>
 
+// TODO: 需要重新设计
+
 namespace Cube {
 
     using TypeID = uint32_t;
@@ -107,14 +109,14 @@ namespace Cube {
         };
     }
 
-    template<typename T>
-    TypeID getTypeID() {
-        using RawT = std::decay_t<T>;
-        if constexpr (Type::isBarePtr<RawT>()) {
-            static_assert(Type::getPtrLevel<RawT>() < 8 && "Pointer depth is too deep!");
-            return getTypeID<typename Type::RemoveAllPointers<RawT>::Type>() | (Type::getPtrLevel<RawT>() << 29);
-        }else {
-            if constexpr (std::is_arithmetic_v<RawT>) {
+    namespace Detal {
+
+        template<typename BareT>
+        TypeID getBareTypeID() {
+            if constexpr (Type::isBarePtr<BareT>()) {
+                static_assert(Type::getPtrLevel<BareT>() < 8 && "Pointer depth is too deep!");
+                return getBareTypeID<typename Type::RemoveAllPointers<BareT>::Type>() | (Type::getPtrLevel<BareT>() << 29);
+            } else if constexpr (std::is_arithmetic_v<BareT>) {
                 static TypeID id = Detail::nextArithmeticID++;
                 return id;
             } else {
@@ -122,6 +124,11 @@ namespace Cube {
                 return id;
             }
         }
+    }
+
+    template<typename T>
+    TypeID getTypeID() {
+        return Detal::getBareTypeID<std::decay_t<T>>();
     }
 
     inline bool isPtr(TypeID typeID) {

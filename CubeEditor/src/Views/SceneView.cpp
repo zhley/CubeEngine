@@ -352,6 +352,7 @@ Cube::Path SceneView::ensureGameExecutable() const {
         CB_EDITOR_ERROR("SceneView: game executable not found at '{}'", source);
         return Cube::Path();
     }
+    // TODO: 时间戳落后也要更新
     std::filesystem::copy_file(source.fspath(), target.fspath());
     CB_EDITOR_INFO("SceneView: copied game executable to '{}'", target);
     return target;

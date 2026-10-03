@@ -26,7 +26,8 @@ void Application::run() {
     CB_CORE_INFO("Application run");
     Timer timer;
     while(running) {
-        float deltaTime = timer.getDuration();
+        // TODO: 需要限制最大步长
+        float deltaTime = static_cast<float>(timer.tick());
 
         Renderer::clearBuffer();
 

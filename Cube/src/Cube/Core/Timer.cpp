@@ -2,21 +2,23 @@
 
 namespace Cube {
 
-	Timer::Timer() { startTime = std::chrono::steady_clock::now(); }
+Timer::Timer() : startTime(std::chrono::steady_clock::now()), lastTime(startTime) {}
 
-    float Timer::stop() {
-        auto endTime = std::chrono::steady_clock::now();
-        std::chrono::duration<float> duration = endTime - startTime;
-        return duration.count();
-    }
+double Timer::elapsed() {
+    auto endTime = std::chrono::steady_clock::now();
+    return std::chrono::duration<double>(endTime - startTime).count();
+}
 
-    void Timer::restart() { startTime = std::chrono::steady_clock::now(); }
+void Timer::restart() { 
+    startTime = std::chrono::steady_clock::now(); 
+    lastTime = startTime;
+}
 
-    float Timer::getDuration() {
-        auto currentTime = std::chrono::steady_clock::now();
-        std::chrono::duration<float> duration = currentTime - lastTime;
-        lastTime = std::chrono::steady_clock::now();
-        return duration.count();
-	}
+double Timer::tick() {
+    auto currentTime = std::chrono::steady_clock::now();
+    std::chrono::duration<double> duration = currentTime - lastTime;
+    lastTime = std::chrono::steady_clock::now();
+    return duration.count();
+}
 
 }  // namespace Cube
