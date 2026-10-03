@@ -1,4 +1,7 @@
 #include "EntityPropertyPanel.h"
+#include <algorithm>
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -8,6 +11,8 @@
 #include "Cube/Animation/Animation.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Resource/ResourceManager.h"
+#include "Cube/Resource/ResPtr.h"
+#include "Cube/Resource/Script.h"
 #include "Cube/Resource/Sprite.h"
 #include "Cube/Scene/Camera2D.h"
 #include "Cube/Scene/Component.h"
@@ -19,12 +24,93 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+namespace {
+
+// Names of the classes declared in 'script' that qualify as components, i.e. that
+// declare both start() and update(). The compiled module keeps the class metadata,
+// so no script needs to be executed to inspect it.
+std::vector<std::string> getScriptComponentClasses(const Cube::Script& script) {
+    std::vector<std::string> result;
+    const Zeta::Module* module = script.getModule();
+    if(!module) {
+        return result;
+    }
+    for(const auto& [name, sym] : module->globalSyms) {
+        if(sym.initValue.type != Zeta::CompileValue::Type::Class || !sym.initValue.classValue) {
+            continue;
+        }
+        const Zeta::CompileClass* classInfo = sym.initValue.classValue;
+        if(classInfo->methods.contains("start") && classInfo->methods.contains("update")) {
+            result.push_back(name);
+        }
+    }
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+} // namespace
+
 void EntityPropertyPanel::render(float deltaTime) {
     ImGui::Begin("Node Properties");
 
     if(editorPage.documentManager.getActive() && editorPage.documentManager.getActive()->getSelectedNode()) {
+        Cube::Node* selectedNode = editorPage.documentManager.getActive()->getSelectedNode();
         float posX = ImGui::GetWindowWidth() / 2 - 30.0f;
         float width = ImGui::GetWindowWidth() - posX - 10.0f;
+
+        static std::string pendingScriptIdentifier;
+        static std::vector<std::string> pendingScriptClasses;
+        static int pendingScriptClassIndex = 0;
+        static bool newScriptPopupOpen = false;
+        static std::string scriptAddError;
+
+        auto addScriptComponent = [&](const std::string& identifier, const std::string& className) -> bool {
+            auto scriptComp = std::make_unique<Cube::ScriptComponent>(selectedNode, identifier, className);
+            if(!scriptComp->getInstance()) {
+                return false;
+            }
+            if(!EditorNodeAccess::addComponent(*selectedNode, std::move(scriptComp))) {
+                return false;
+            }
+            editorPage.documentManager.getActive()->markDirty();
+            return true;
+        };
+
+        auto requestAddScriptComponent = [&](const std::string& identifier) {
+            scriptAddError.clear();
+            Cube::ResPtr<Cube::Script> script(identifier);
+            if(!script || !script->getModule()) {
+                scriptAddError = "Failed to load or compile the script resource.";
+                pendingScriptIdentifier = identifier;
+                pendingScriptClasses.clear();
+                newScriptPopupOpen = true;
+                return;
+            }
+            std::vector<std::string> classes = getScriptComponentClasses(*script);
+            if(classes.size() == 1) {
+                if(!addScriptComponent(identifier, classes.front())) {
+                    CB_EDITOR_ERROR("Node Properties: failed to add ScriptComponent '{}' from '{}'", classes.front(), identifier);
+                }
+                return;
+            }
+            pendingScriptIdentifier = identifier;
+            pendingScriptClasses = std::move(classes);
+            pendingScriptClassIndex = 0;
+            newScriptPopupOpen = true;
+        };
+
+        const ImVec2 panelPos = ImGui::GetWindowPos();
+        const ImVec2 panelSize = ImGui::GetWindowSize();
+        if(ImGui::BeginDragDropTargetCustom(ImRect(panelPos, ImVec2(panelPos.x + panelSize.x, panelPos.y + panelSize.y)), ImGui::GetID("NodePropertiesScriptDrop"))) {
+            if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset")) {
+                AssetNode* asset = *(AssetNode**)payload->Data;
+                if(asset && asset->type == Cube::ResourceType::Script) {
+                    requestAddScriptComponent(asset->identifier);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         if(ImGui::TreeNodeEx("Transform", Utils::TREENODE_FLAGS)) {
             Cube::Node* node = editorPage.documentManager.getActive()->getSelectedNode();
             ImGui::Text("position");
@@ -59,7 +145,6 @@ void EntityPropertyPanel::render(float deltaTime) {
 
             ImGui::TreePop();
         }
-        Cube::Node* selectedNode = editorPage.documentManager.getActive()->getSelectedNode();
         Cube::TypeID toDelete = 0;
         std::string scriptToDelete;
         for(Cube::Component* c : selectedNode->getComponents()) {
@@ -312,16 +397,9 @@ void EntityPropertyPanel::render(float deltaTime) {
             ImGui::EndPopup();
         }
 
-        static std::string pendingScriptIdentifier;
-        static char scriptClassName[128] = "MyScript";
-        static bool newScriptPopupOpen = false;
-        static std::string scriptAddError;
-
         std::string pickedScript;
         if(scriptPickerDialog.render(pickedScript, editorPage)) {
-            pendingScriptIdentifier = pickedScript;
-            scriptAddError.clear();
-            newScriptPopupOpen = true;
+            requestAddScriptComponent(pickedScript);
         }
 
         if(newScriptPopupOpen) {
@@ -334,31 +412,43 @@ void EntityPropertyPanel::render(float deltaTime) {
                 ImGui::TextWrapped("%s", scriptAddError.c_str());
                 ImGui::PopStyleColor();
             }
-            ImGui::Text("Class name:");
-            if(ImGui::IsWindowAppearing()) {
-                ImGui::SetKeyboardFocusHere();
+
+            if(pendingScriptClasses.empty()) {
+                if(scriptAddError.empty()) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.35f, 0.35f, 1.0f));
+                    ImGui::TextWrapped("This script declares no class with both start() and update(), so it cannot be used as a component.");
+                    ImGui::PopStyleColor();
+                }
+            } else {
+                ImGui::Text("Class name:");
+                ImGui::BeginChild("scriptClassList", ImVec2(280.0f, 140.0f), true);
+                for(int i = 0; i < static_cast<int>(pendingScriptClasses.size()); ++i) {
+                    if(ImGui::Selectable(pendingScriptClasses[i].c_str(), pendingScriptClassIndex == i)) {
+                        pendingScriptClassIndex = i;
+                    }
+                }
+                ImGui::EndChild();
             }
-            ImGui::InputText("##scriptClassName", scriptClassName, IM_ARRAYSIZE(scriptClassName));
 
             constexpr float buttonWidth = 100.0f;
             constexpr float spacing = 100.0f;
-            ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
+            const int buttonCount = pendingScriptClasses.empty() ? 1 : 2;
+            const float totalWidth = buttonWidth * buttonCount + spacing * (buttonCount - 1);
+            ImGui::SetCursorPosX((ImGui::GetWindowWidth() - totalWidth) * 0.5f);
             ImGui::BeginGroup();
-            if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-                // 先构造并校验实例，避免把无法运行(类名错误)的脚本组件加入节点
-                auto scriptComp = std::make_unique<Cube::ScriptComponent>(selectedNode, pendingScriptIdentifier, std::string(scriptClassName));
-                if(scriptComp->getInstance()) {
-                    EditorNodeAccess::addComponent(*selectedNode, std::move(scriptComp));
-                    editorPage.documentManager.getActive()->markDirty();
-                    scriptAddError.clear();
-                    newScriptPopupOpen = false;
-                    ImGui::CloseCurrentPopup();
-                } else {
-                    scriptAddError = "Failed to create a script instance, check that the class name exists in the script.";
+            if(!pendingScriptClasses.empty()) {
+                if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+                    if(addScriptComponent(pendingScriptIdentifier, pendingScriptClasses[pendingScriptClassIndex])) {
+                        scriptAddError.clear();
+                        newScriptPopupOpen = false;
+                        ImGui::CloseCurrentPopup();
+                    } else {
+                        scriptAddError = "Failed to create the script instance.";
+                    }
                 }
+                ImGui::SameLine(0.0f, spacing);
             }
-            ImGui::SameLine(0.0f, spacing);
-            if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            if(ImGui::Button(pendingScriptClasses.empty() ? "Close" : "Cancel", ImVec2(buttonWidth, 0))) {
                 newScriptPopupOpen = false;
                 ImGui::CloseCurrentPopup();
             }
