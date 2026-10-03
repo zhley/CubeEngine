@@ -169,6 +169,9 @@ void ResourcesPanel::render(float deltaTime) {
             if(entry->isGroup && leftDoubleClicked) {
                 assetExplorer.enterNode(entry.get());
                 selectedManager.cancel();
+            }else if(entry->type == Cube::ResourceType::NodeTree && leftDoubleClicked) {
+                selectedManager.singleSelect(entry.get());
+                editorPage.documentManager.open(entry->identifier);
             }else{
                 if(leftClicked) {
                     if(ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
@@ -333,6 +336,11 @@ void ResourcesPanel::render(float deltaTime) {
                 }
             }
         }
+        if(selectedManager.getSingleNode()->type == Cube::ResourceType::NodeTree){
+            if(ImGui::MenuItem("Open")){
+                editorPage.documentManager.open(selectedManager.getSingleNode()->identifier);
+            }
+        }
         if(ImGui::MenuItem("Delete")) {
             assetExplorer.removeNode(selectedManager.getSingleNode());
             selectedManager.cancel();
@@ -344,6 +352,9 @@ void ResourcesPanel::render(float deltaTime) {
             selectedManager.singleSelect(assetExplorer.createGroup("Group"));
             strcpy_s(inputBuf, selectedManager.getSingleNode()->name.c_str());
             renamePopupOpen = true;
+        }
+        if(ImGui::MenuItem("New Node Tree")) {
+            editorPage.documentManager.create();
         }
         ImGui::EndPopup();
     }
