@@ -14,6 +14,7 @@
 #include "Cube/Scene/Node.h"
 #include "Cube/Scene/SpriteRender.h"
 #include "Cube/Reflection/ClassRegistry.h"
+#include "Scene/EditorNodeAccess.h"
 #include "SceneView.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -58,16 +59,84 @@ void EntityPropertyPanel::render(float deltaTime) {
 
             ImGui::TreePop();
         }
+        Cube::Node* selectedNode = editorPage.documentManager.getActive()->getSelectedNode();
         Cube::TypeID toDelete = 0;
-        for(Cube::Component* c : editorPage.documentManager.getActive()->getSelectedNode()->getComponents()) {
+        std::string scriptToDelete;
+        for(Cube::Component* c : selectedNode->getComponents()) {
             Cube::TypeID typeID = c->getType();
+            const bool isScript = typeID == Cube::getTypeID<Cube::ScriptComponent>();
             Cube::Class* classInfo = Cube::ClassRegistry::get().getClass(typeID);
-            if(ImGui::TreeNodeEx(classInfo->getName().c_str(), Utils::TREENODE_FLAGS)) {
+            const std::string title = isScript ? ("Script: " + static_cast<Cube::ScriptComponent*>(c)->getName()) : classInfo->getName();
+            if(ImGui::TreeNodeEx(title.c_str(), Utils::TREENODE_FLAGS)) {
                 if(ImGui::BeginPopupContextItem()) {
                     if(ImGui::MenuItem("Delete")) {
-                        toDelete = typeID;
+                        if(isScript) {
+                            scriptToDelete = static_cast<Cube::ScriptComponent*>(c)->getName();
+                        } else {
+                            toDelete = typeID;
+                        }
                     }
                     ImGui::EndPopup();
+                }
+                if(isScript) {
+                    Cube::ScriptComponent* scriptComp = static_cast<Cube::ScriptComponent*>(c);
+                    ImGui::Text("script");
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(posX);
+                    ImGui::TextWrapped("%s", scriptComp->getScript() ? scriptComp->getScript()->getIdentifier().c_str() : "<none>");
+                    if(!scriptComp->getInstance()) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.35f, 0.35f, 1.0f));
+                        ImGui::TextUnformatted("Script instance is unavailable");
+                        ImGui::PopStyleColor();
+                    } else {
+                        nlohmann::json instanceData = scriptComp->serializeInstance();
+                        bool instanceChanged = false;
+                        for(auto& [key, field] : instanceData.items()) {
+                            if(!field.contains("type") || !field.contains("value")) {
+                                continue;
+                            }
+                            const std::string fieldType = field["type"].get<std::string>();
+                            ImGui::Text("%s", key.c_str());
+                            ImGui::SameLine();
+                            ImGui::SetCursorPosX(posX);
+                            ImGui::SetNextItemWidth(width);
+                            const std::string widgetId = "##" + key;
+                            if(fieldType == "Int") {
+                                int v = static_cast<int>(field["value"].get<int64_t>());
+                                if(ImGui::DragInt(widgetId.c_str(), &v)) {
+                                    field["value"] = static_cast<int64_t>(v);
+                                    instanceChanged = true;
+                                }
+                            } else if(fieldType == "Float") {
+                                float v = field["value"].get<float>();
+                                if(ImGui::DragFloat(widgetId.c_str(), &v, 0.01f, 0.0f, 0.0f, "%.3f")) {
+                                    field["value"] = v;
+                                    instanceChanged = true;
+                                }
+                            } else if(fieldType == "Bool") {
+                                bool v = field["value"].get<bool>();
+                                if(ImGui::Checkbox(widgetId.c_str(), &v)) {
+                                    field["value"] = v;
+                                    instanceChanged = true;
+                                }
+                            } else if(fieldType == "String" || fieldType == "StrObj") {
+                                char buffer[256] = {};
+                                strcpy_s(buffer, field["value"].get<std::string>().c_str());
+                                if(ImGui::InputText(widgetId.c_str(), buffer, IM_ARRAYSIZE(buffer))) {
+                                    field["value"] = std::string(buffer);
+                                    instanceChanged = true;
+                                }
+                            } else {
+                                ImGui::TextDisabled("<%s>", fieldType.c_str());
+                            }
+                        }
+                        if(instanceChanged) {
+                            scriptComp->deserializeInstance(instanceData);
+                            editorPage.documentManager.getActive()->markDirty();
+                        }
+                    }
+                    ImGui::TreePop();
+                    continue;
                 }
                 for(auto& property : classInfo->getAllProperties()) {
                     ImGui::Text(property->getName().c_str());
@@ -214,7 +283,11 @@ void EntityPropertyPanel::render(float deltaTime) {
             }
         }
         if(toDelete) {
-            editorPage.documentManager.getActive()->getSelectedNode()->removeComponent(toDelete);
+            EditorNodeAccess::removeComponent(*selectedNode, toDelete);
+            editorPage.documentManager.getActive()->markDirty();
+        }
+        if(!scriptToDelete.empty()) {
+            EditorNodeAccess::removeComponent(*selectedNode, scriptToDelete);
             editorPage.documentManager.getActive()->markDirty();
         }
 
@@ -225,14 +298,72 @@ void EntityPropertyPanel::render(float deltaTime) {
         }
         if(ImGui::BeginPopup("addComponent")) {
             if(ImGui::MenuItem("SpriteRender")) {
-                editorPage.documentManager.getActive()->getSelectedNode()->addComponent<Cube::SpriteRender>();
+                EditorNodeAccess::addComponent<Cube::SpriteRender>(*selectedNode);
             }
             if(ImGui::MenuItem("Camera2D")) {
-                editorPage.documentManager.getActive()->getSelectedNode()->addComponent<Cube::Camera2D>();
+                EditorNodeAccess::addComponent<Cube::Camera2D>(*selectedNode);
             }
             if(ImGui::MenuItem("Animation")) {
-                editorPage.documentManager.getActive()->getSelectedNode()->addComponent<Cube::Animation>();
+                EditorNodeAccess::addComponent<Cube::Animation>(*selectedNode);
             }
+            if(ImGui::MenuItem("Script")) {
+                scriptPickerDialog.open("Select Script", editorPage.getProject()->getAssetExplorer().getRootNode(), Cube::ResourceType::Script);
+            }
+            ImGui::EndPopup();
+        }
+
+        static std::string pendingScriptIdentifier;
+        static char scriptClassName[128] = "MyScript";
+        static bool newScriptPopupOpen = false;
+        static std::string scriptAddError;
+
+        std::string pickedScript;
+        if(scriptPickerDialog.render(pickedScript, editorPage)) {
+            pendingScriptIdentifier = pickedScript;
+            scriptAddError.clear();
+            newScriptPopupOpen = true;
+        }
+
+        if(newScriptPopupOpen) {
+            ImGui::OpenPopup("New Script Component");
+        }
+        if(ImGui::BeginPopupModalSuper("New Script Component", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("script: %s", pendingScriptIdentifier.c_str());
+            if(!scriptAddError.empty()) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.35f, 0.35f, 1.0f));
+                ImGui::TextWrapped("%s", scriptAddError.c_str());
+                ImGui::PopStyleColor();
+            }
+            ImGui::Text("Class name:");
+            if(ImGui::IsWindowAppearing()) {
+                ImGui::SetKeyboardFocusHere();
+            }
+            ImGui::InputText("##scriptClassName", scriptClassName, IM_ARRAYSIZE(scriptClassName));
+
+            constexpr float buttonWidth = 100.0f;
+            constexpr float spacing = 100.0f;
+            ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - (buttonWidth * 2 + ImGui::GetStyle().FramePadding.x * 2 + spacing) / 2);
+            ImGui::BeginGroup();
+            if(ImGui::Button("OK", ImVec2(buttonWidth, 0)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+                // 先构造并校验实例，避免把无法运行(类名错误)的脚本组件加入节点
+                auto scriptComp = std::make_unique<Cube::ScriptComponent>(selectedNode, pendingScriptIdentifier, std::string(scriptClassName));
+                if(scriptComp->getInstance()) {
+                    EditorNodeAccess::addComponent(*selectedNode, std::move(scriptComp));
+                    editorPage.documentManager.getActive()->markDirty();
+                    scriptAddError.clear();
+                    newScriptPopupOpen = false;
+                    ImGui::CloseCurrentPopup();
+                } else {
+                    scriptAddError = "Failed to create a script instance, check that the class name exists in the script.";
+                }
+            }
+            ImGui::SameLine(0.0f, spacing);
+            if(ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+                newScriptPopupOpen = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndGroup();
+
             ImGui::EndPopup();
         }
     }

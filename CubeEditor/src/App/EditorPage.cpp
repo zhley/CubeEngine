@@ -217,7 +217,7 @@ void EditorPage::render(float deltaTime) {
 }
 
 void EditorPage::importFromFileDialog() {
-    for(auto& path : Utils::FileDialog::openMultiFiles("Import Resources", {{"All Files (*.*)", "*.*"}, {"Texture", "*.png;*.jpg"}, {"AnimationClip", "*.anim"}}, project->getConfig().assetsDirectory)) {
+    for(auto& path : Utils::FileDialog::openMultiFiles("Import Resources", {{"All Files (*.*)", "*.*"}, {"Texture", "*.png;*.jpg"}, {"AnimationClip", "*.anim"}, {"Script", "*.zt"}}, project->getConfig().assetsDirectory)) {
         project->importResources(path);
     }
 }

@@ -3,6 +3,7 @@
 #include "Cube/Core/Engine.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Script/ScriptBindings.h"
+#include "Cube/Script/ScriptRuntime.h"
 
 namespace Cube {
 
@@ -50,9 +51,6 @@ void ScriptComponent::start() {
 }
 
 void ScriptComponent::update(float deltaTime) {
-    if (!instance) {
-        return;
-    }
     Zeta::VM& vm = Engine::getApp()->getScriptRuntime().getVM();
     vm.push(Zeta::Value(static_cast<double>(deltaTime)));
     vm.push(*instance);
@@ -62,6 +60,9 @@ void ScriptComponent::update(float deltaTime) {
 
 nlohmann::json ScriptComponent::serializeInstance() const {
     nlohmann::json data;
+    if (!instance) {
+        return data;
+    }
     Zeta::Instance* inst = *instance->as<Zeta::Instance*>();
     if (!inst) return data;
     inst->getFields()->forEach([&data](const Zeta::String* key, const Zeta::Value& value) {
@@ -75,6 +76,10 @@ nlohmann::json ScriptComponent::serializeInstance() const {
 }
 
 void ScriptComponent::deserializeInstance(const nlohmann::json &data) {
+    if (!script || !script->getModule()) {
+        CB_CORE_ERROR("ScriptComponent::deserializeInstance(): script resource or module is null");
+        return;
+    }
     Zeta::VM& vm = Engine::getApp()->getScriptRuntime().getVM();
     if (instance) {
         vm.popTempRoot(instance);

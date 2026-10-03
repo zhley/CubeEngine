@@ -22,6 +22,7 @@
 #include "../Utils/ImGuiExternal.h"
 #include "../Utils/EditorTextureCache.h"
 #include "../Utils/misc.h"
+#include "Scene/EditorNodeAccess.h"
 
 namespace {
 
@@ -115,8 +116,6 @@ void SceneView::render(float deltaTime) {
                     frameBuffer->resize((int)sceneViewSize.x, (int)sceneViewSize.y);
                 }
 
-                doc->getRoot()->update(deltaTime);
-
                 frameBuffer->bind();
                 Cube::Renderer2D::setViewport((int)sceneViewSize.x, (int)sceneViewSize.y);
                 Cube::Renderer2D::setClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -134,17 +133,17 @@ void SceneView::render(float deltaTime) {
                         pos += editorPage.editorCamera.position;
                         switch(asset->type) {
                             case Cube::ResourceType::Texture: {
-                                Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(asset->identifier);
+                                Cube::Node* n = EditorNodeAccess::addChild(*editorPage.documentManager.getActive()->getRoot(), asset->identifier);
                                 n->pos = pos;
-                                auto spriteRender = n->addComponent<Cube::SpriteRender>();
+                                auto spriteRender = EditorNodeAccess::addComponent<Cube::SpriteRender>(*n);
                                 spriteRender->sprite = Cube::ResPtr<Cube::Sprite>("spr:" + asset->identifier);
                                 markDirty();
                             } break;
                             case Cube::ResourceType::AnimationClip: {
-                                Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(asset->identifier);
+                                Cube::Node* n = EditorNodeAccess::addChild(*editorPage.documentManager.getActive()->getRoot(), asset->identifier);
                                 n->pos = pos;
-                                n->addComponent<Cube::SpriteRender>();
-                                auto anim = n->addComponent<Cube::Animation>();
+                                EditorNodeAccess::addComponent<Cube::SpriteRender>(*n);
+                                auto anim = EditorNodeAccess::addComponent<Cube::Animation>(*n);
                                 Cube::AnimationClip* clip = anim->addClip(asset->identifier);
                                 if(clip) {
                                     anim->play(clip->getName());
@@ -162,9 +161,9 @@ void SceneView::render(float deltaTime) {
                             pos *= editorPage.editorCamera.zoom;
                             pos += editorPage.editorCamera.position;
                             std::string spriteName = spriteIdentifier.substr(posStr + 1);
-                            Cube::Node* n = editorPage.documentManager.getActive()->getRoot()->addChild(spriteName);
+                            Cube::Node* n = EditorNodeAccess::addChild(*editorPage.documentManager.getActive()->getRoot(), spriteName);
                             n->pos = pos;
-                            auto spriteRender = n->addComponent<Cube::SpriteRender>();
+                            auto spriteRender = EditorNodeAccess::addComponent<Cube::SpriteRender>(*n);
                             spriteRender->sprite = Cube::ResPtr<Cube::Sprite>(spriteIdentifier);
                             markDirty();
                         }

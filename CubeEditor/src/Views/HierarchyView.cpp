@@ -5,6 +5,7 @@
 #include "../Utils/ImGuiExternal.h"
 #include "Cube/Core/Log.h"
 #include "Cube/Scene/Node.h"
+#include "Scene/EditorNodeAccess.h"
 
 #include <imgui/imgui.h>
 
@@ -43,9 +44,9 @@ void HierarchyView::render(float deltaTime) {
             NodeDocument* doc = editorPage.documentManager.getActive();
             if(doc && doc->getRoot()) {
                 if(addParent) {
-                    addParent->addChild(name);
+                    EditorNodeAccess::addChild(*addParent, name);
                 } else {
-                    doc->getRoot()->addChild(name);
+                    EditorNodeAccess::addChild(*doc->getRoot(), name);
                 }
                 doc->markDirty();
             }
@@ -64,6 +65,8 @@ void HierarchyView::render(float deltaTime) {
         memset(name, '\0', sizeof(name));
         addParent = nullptr;
     }
+
+    Cube::Node* pendingDeleteNode = nullptr;
 
     auto drawNodeTree = [&](auto&& self, Cube::Node* node) -> void {
         ImGui::PushID(node);
@@ -91,7 +94,7 @@ void HierarchyView::render(float deltaTime) {
                 if(node == editorPage.documentManager.getActive()->getSelectedNode()) {
                     editorPage.documentManager.getActive()->selectNode(nullptr);
                 }
-                node->getParent()->removeChild(node);
+                pendingDeleteNode = node;
                 doc->markDirty();
             }
             ImGui::EndPopup();
@@ -115,6 +118,13 @@ void HierarchyView::render(float deltaTime) {
     }
 
     drawNodeTree(drawNodeTree, doc->getRoot());
+
+    if(pendingDeleteNode) {
+        if(Cube::Node* parent = pendingDeleteNode->getParent()) {
+            EditorNodeAccess::removeChild(*parent, pendingDeleteNode);
+        }
+        pendingDeleteNode = nullptr;
+    }
 
     ImGui::End();
 }

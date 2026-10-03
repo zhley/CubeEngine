@@ -12,6 +12,10 @@
 #include "Cube/Script/ScriptComponent.h"
 #include "Cube/Reflection/Type.h"
 
+// Editor-only direct scene manipulation, implemented in CubeEditor. It is granted
+// access through friendship so it is never part of the game build.
+class EditorNodeAccess;
+
 namespace Cube {
 
 class NodeTree;
@@ -129,6 +133,8 @@ public:
     nlohmann::json serialize() const;
 
 private:
+    friend class ::EditorNodeAccess;
+
     std::string name;  // Temporarily used as the unique identifier
     Node* parent = nullptr;
     

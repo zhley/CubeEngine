@@ -164,6 +164,11 @@ void AssetInspector::render(float deltaTime) {
                 }
                 break;
             }
+            case Cube::ResourceType::Script:{
+                ImGui::Text("path:");
+                ImGui::Text("%s", editingImporter.value("path", "").c_str());
+                break;
+            }
             default: break;
         }
         if(ImGui::Button("Reimport")) {

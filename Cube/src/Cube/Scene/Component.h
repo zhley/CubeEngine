@@ -2,6 +2,8 @@
 
 #include "Cube/Reflection/Type.h"
 
+class EditorNodeAccess;
+
 namespace Cube {
     class Node;
 
@@ -10,6 +12,8 @@ namespace Cube {
 	class Component {
 	public:
         friend class Node;
+        friend class ::EditorNodeAccess;
+
 		Component() = default;
 		explicit Component(Node* node) : node(node) {}
 		virtual ~Component() = default;

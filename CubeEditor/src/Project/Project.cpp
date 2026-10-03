@@ -72,6 +72,15 @@ std::string importNodeTree(const Cube::Path& nodePath, Project* project, AssetEx
     return identifier;
 }
 
+std::string importScript(const Cube::Path& scriptPath, Project* project, AssetExplorer& assetExplorer) {
+    Cube::Path relPath = scriptPath.lexicallyRelative(project->getConfig().assetsDirectory);
+    nlohmann::json importConfig;
+    importConfig["path"] = scriptPath.string();
+    std::string identifier = "script:" + relPath.string();
+    assetExplorer.createResource(identifier, importConfig);
+    return identifier;
+}
+
 void importRes(const Cube::Path& source, const Cube::Path& target, Project* project, AssetExplorer& assetExplorer) {
     std::filesystem::path sourcePath = source.fspath();
     std::filesystem::path targetPath = target.fspath();
@@ -98,6 +107,8 @@ void importRes(const Cube::Path& source, const Cube::Path& target, Project* proj
             importAnimClip(target, project, assetExplorer);
         } else if(extension == ".node") {
             importNodeTree(target, project, assetExplorer);
+        } else if(extension == ".zt" || extension == ".ztc") {
+            importScript(target, project, assetExplorer);
         }
         else {
             CB_EDITOR_ERROR("Unknown assets format: {}", source.extension());
@@ -132,6 +143,9 @@ std::string Project::importResource(const Cube::Path& filePath) {
     }
     if(extension == ".node") {
         return importNodeTree(target, this, assetExplorer);
+    }
+    if(extension == ".zt" || extension == ".ztc") {
+        return importScript(target, this, assetExplorer);
     }
     CB_EDITOR_ERROR("Unknown assets format: {}", filePath);
     return {};

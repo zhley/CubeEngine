@@ -7,6 +7,7 @@ target_sources(CubeEditor PRIVATE
     src/App/GuidancePage.cpp
     src/Project/AssetExplorer.cpp
     src/Project/Project.cpp
+    src/Scene/EditorNodeAccess.cpp
     src/Utils/FileDialog.cpp
     src/Utils/ImGuiExternal.cpp
     src/Utils/misc.cpp
