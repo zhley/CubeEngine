@@ -9,28 +9,14 @@ namespace Cube {
     Texture2D::Texture2D(const Cube::Path& filePath){
         stbi_set_flip_vertically_on_load(1);
         int channels;
-        uint8_t* originalData = stbi_load(filePath.c_str(), &width, &height, &channels, 0);
+        uint8_t* originalData = stbi_load(filePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
         if(!originalData) {
             CB_CORE_ERROR("Failed to load image: {}", filePath);
             CB_ASSERT(0);
         }
-        GLenum internalFormat = 0, dataFormat = 0;
-        int pixelSize = 3;
-        switch(channels) {
-        case 3:
-            internalFormat = GL_RGB8;
-            dataFormat = GL_RGB;
-            pixelSize = 3;
-            break;
-        case 4:
-            internalFormat = GL_RGBA8;
-            dataFormat = GL_RGBA;
-            pixelSize = 4;
-            break;
-        default:
-            CB_CORE_ERROR("Unsupported image format");
-            CB_ASSERT(true);
-        }
+        GLenum internalFormat = GL_RGBA8;
+        GLenum dataFormat = GL_RGBA;
+        int pixelSize = 4;
 
         // alignment
         int rowSize = width * pixelSize;
