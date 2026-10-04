@@ -23,6 +23,10 @@ public:
     static void removeChild(Cube::Node& parent, Cube::Node* child);
     static void removeChild(Cube::Node& parent, const std::string& name);
 
+    // Renames a detached node (one that is not attached to a parent yet). Renaming an
+    // attached node would desynchronize its parent's lookup of children by name.
+    static void rename(Cube::Node& node, const std::string& name);
+
     static Cube::Component* addComponent(Cube::Node& node, std::unique_ptr<Cube::Component> component);
 
     template<typename T, typename... Args>

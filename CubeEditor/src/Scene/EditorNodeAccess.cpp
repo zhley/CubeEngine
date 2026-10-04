@@ -46,6 +46,10 @@ void EditorNodeAccess::removeChild(Cube::Node& parent, const std::string& name) 
     }
 }
 
+void EditorNodeAccess::rename(Cube::Node& node, const std::string& name) {
+    node.name = name;
+}
+
 Cube::Component* EditorNodeAccess::addComponent(Cube::Node& node, std::unique_ptr<Cube::Component> component) {
     if(!component) {
         return nullptr;

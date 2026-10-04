@@ -1,9 +1,14 @@
 #include "HierarchyView.h"
 
+#include <memory>
+#include <string>
+
 #include "../App/EditorPage.h"
 #include "../Project/Project.h"
 #include "../Utils/ImGuiExternal.h"
 #include "Cube/Core/Log.h"
+#include "Cube/Resource/NodeTree.h"
+#include "Cube/Resource/ResPtr.h"
 #include "Cube/Scene/Node.h"
 #include "Scene/EditorNodeAccess.h"
 
@@ -67,6 +72,8 @@ void HierarchyView::render(float deltaTime) {
     }
 
     Cube::Node* pendingDeleteNode = nullptr;
+    Cube::Node* pendingAddParent = nullptr;
+    std::string pendingAddNodeTree;
 
     auto drawNodeTree = [&](auto&& self, Cube::Node* node) -> void {
         ImGui::PushID(node);
@@ -83,6 +90,17 @@ void HierarchyView::render(float deltaTime) {
         bool isOpen = ImGui::TreeNodeEx("##node", flags, "%s", node->getName().c_str());
         if(ImGui::IsItemClicked()) {
             editorPage.documentManager.getActive()->selectNode(node);
+        }
+
+        if(ImGui::BeginDragDropTarget()) {
+            if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset")) {
+                AssetNode* asset = *(AssetNode**)payload->Data;
+                if(asset && asset->type == Cube::ResourceType::NodeTree) {
+                    pendingAddParent = node;
+                    pendingAddNodeTree = asset->identifier;
+                }
+            }
+            ImGui::EndDragDropTarget();
         }
 
         if(ImGui::BeginPopupContextItem()) {
@@ -118,6 +136,29 @@ void HierarchyView::render(float deltaTime) {
     }
 
     drawNodeTree(drawNodeTree, doc->getRoot());
+
+    if(pendingAddParent && !pendingAddNodeTree.empty()) {
+        Cube::ResPtr<Cube::NodeTree> nodeTree(pendingAddNodeTree);
+        std::unique_ptr<Cube::Node> subtree = nodeTree ? nodeTree->instantiate() : nullptr;
+        if(subtree) {
+            std::string baseName = subtree->getName();
+            if(baseName.empty()) {
+                baseName = "Node";
+            }
+            std::string childName = baseName;
+            for(int suffix = 1; pendingAddParent->findChild(childName); ++suffix) {
+                childName = baseName + "_" + std::to_string(suffix);
+            }
+            EditorNodeAccess::rename(*subtree, childName);
+            if(EditorNodeAccess::addChild(*pendingAddParent, std::move(subtree))) {
+                doc->markDirty();
+            } else {
+                CB_EDITOR_ERROR("HierarchyView: failed to add node tree '{}'", pendingAddNodeTree);
+            }
+        }
+        pendingAddParent = nullptr;
+        pendingAddNodeTree.clear();
+    }
 
     if(pendingDeleteNode) {
         if(Cube::Node* parent = pendingDeleteNode->getParent()) {
