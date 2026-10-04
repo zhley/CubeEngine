@@ -133,12 +133,16 @@ void EditorApp::setDarkTheme() {
         colors[ImGuiCol_ButtonHovered] = ImVec4(0.25f, 0.48f, 0.80f, 1.00f);  // #407AD0
         colors[ImGuiCol_ButtonActive] = ImVec4(0.15f, 0.32f, 0.55f, 1.00f);   // #26528C
 
-        // 页签 - 更鲜明的激活状态
-        colors[ImGuiCol_Tab] = ImVec4(0.10f, 0.11f, 0.13f, 1.00f);                 // #1F2326
-        colors[ImGuiCol_TabHovered] = ImVec4(0.14f, 0.16f, 0.19f, 1.00f);          // #3366A6
-        colors[ImGuiCol_TabActive] = ImVec4(0.14f, 0.16f, 0.19f, 1.00f);           // #3873BF
-        colors[ImGuiCol_TabUnfocused] = ImVec4(0.10f, 0.11f, 0.13f, 0.97f);        // #1A1C21
-        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.10f, 0.11f, 0.13f, 1.00f);  // #242930
+        // 页签 - 未选中与标签栏同色(融入背景)，选中用更深的底色区分
+        // 注意: dock 区域通常未聚焦，ImGui 会用 TabDimmed/TabDimmedSelected，必须一并设置；
+        //       标签栏底色与节点是否聚焦有关(见 TitleBg/TitleBgActive)，两套颜色要分别对齐
+        colors[ImGuiCol_Tab] = ImVec4(0.14f, 0.16f, 0.19f, 1.00f);                       // = TitleBgActive
+        colors[ImGuiCol_TabDimmed] = ImVec4(0.10f, 0.11f, 0.13f, 1.00f);                 // = TitleBg
+        colors[ImGuiCol_TabHovered] = ImVec4(0.18f, 0.21f, 0.26f, 1.00f);                // #2E3642
+        colors[ImGuiCol_TabSelected] = ImVec4(0.05f, 0.06f, 0.07f, 1.00f);               // 选中(更深)
+        colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.05f, 0.06f, 0.07f, 1.00f);         // 选中(更深)
+        colors[ImGuiCol_TabSelectedOverline] = ImVec4(0.25f, 0.65f, 1.00f, 1.00f);       // #40A5FF
+        colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.25f, 0.65f, 1.00f, 1.00f); // #40A5FF
 
         // 标题栏 - 更强的视觉焦点
         colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.11f, 0.13f, 1.00f);           // #1A1C21
@@ -200,7 +204,7 @@ void EditorApp::setDarkTheme() {
         // ====================================================
         // 5. 增强的样式参数 (更清晰的视觉层次)
         // ====================================================
-        style.TabBarOverlineSize = 0.0f;
+        style.TabBarOverlineSize = 2.0f; // 选中页签顶部的高亮条宽度
         // 圆角效果 - 稍微减小圆角使界面更有力量感
         style.WindowRounding = 7.0f;
         style.ChildRounding = 6.0f;
@@ -221,6 +225,7 @@ void EditorApp::setDarkTheme() {
         style.WindowTitleAlign = ImVec2(0.0f, 0.5f);
         style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
     }
+    /*
     if(false) {
         // deepseek light v1
         ImGuiStyle& style = ImGui::GetStyle();
@@ -739,4 +744,5 @@ void EditorApp::setDarkTheme() {
         style.WindowTitleAlign = ImVec2(0.0f, 0.5f);  // 窗口标题对齐
         style.ButtonTextAlign = ImVec2(0.5f, 0.5f);   // 按钮文本居中
     }
+    */
 }
