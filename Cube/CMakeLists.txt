@@ -12,6 +12,10 @@ target_sources(Cube PRIVATE
     src/Cube/Core/TypeRegister.cpp
     src/Cube/Core/Window.cpp
     src/Cube/Event/Event.cpp
+    src/Cube/Physics/BoxCollider.cpp
+    src/Cube/Physics/CircleCollider.cpp
+    src/Cube/Physics/PhysicsServer.cpp
+    src/Cube/Physics/RigidBody.cpp
     src/Cube/Renderer/Buffer.cpp
     src/Cube/Renderer/BufferLayout.cpp
     src/Cube/Renderer/Camera.cpp

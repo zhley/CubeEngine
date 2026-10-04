@@ -2,3 +2,4 @@ Diagnostics:
   Includes:
     IgnoreHeader:
       - glm/glm\.hpp
+      - box2d/box2d\.h

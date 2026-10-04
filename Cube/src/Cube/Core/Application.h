@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "Cube/Event/Event.h"
+#include "Cube/Physics/PhysicsServer.h"
 #include "Cube/Resource/ResourceManager.h"
 #include "Cube/Script/ScriptRuntime.h"
 #include "Cube/Scene/RenderServer.h"
@@ -37,6 +38,9 @@ public:
     RenderServer& getRenderServer() {
         return renderServer;
     }
+    PhysicsServer& getPhysicsServer() {
+        return physicsServer;
+    }
     EventDispatcher& getEventDispatcher() {
         return eventDispatcher;
     }
@@ -60,6 +64,9 @@ protected:
     RenderServer renderServer;
     EventDispatcher eventDispatcher;
     ScriptRuntime scriptRuntime;
+    // Declared before rootNode so the physics world outlives the nodes (and
+    // their RigidBody components) during destruction.
+    PhysicsServer physicsServer;
     std::unique_ptr<Node> rootNode;
 };
 

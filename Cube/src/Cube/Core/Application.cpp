@@ -35,6 +35,7 @@ void Application::run() {
 
         // The whole game is one rooted node tree.
         rootNode->update(deltaTime);
+        physicsServer.step(deltaTime);
         renderServer.renderNodeTree(rootNode.get());
 
         mainWindow->update();
