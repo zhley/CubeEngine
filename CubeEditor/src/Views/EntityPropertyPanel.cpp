@@ -51,7 +51,7 @@ std::vector<std::string> getScriptComponentClasses(const Cube::Script& script) {
 } // namespace
 
 void EntityPropertyPanel::render(float deltaTime) {
-    ImGui::Begin("Node Properties");
+    ImGui::Begin("Node Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
     if(editorPage.documentManager.getActive() && editorPage.documentManager.getActive()->getSelectedNode()) {
         Cube::Node* selectedNode = editorPage.documentManager.getActive()->getSelectedNode();

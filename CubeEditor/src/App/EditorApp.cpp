@@ -36,6 +36,8 @@ EditorApp::EditorApp(const Cube::WindowPros& windowPros) : Cube::Application(win
 }
 
 EditorApp::~EditorApp() {
+    // destroy current page before shutting down ImGui, because EditorPage destructor needs ImGui context.
+    currentPage.reset();
     ImGui_ImplGlfw_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 #include "imgui/imgui.h"
@@ -151,10 +152,69 @@ EditorPage::EditorPage(Project* project) : project(project), documentManager(pro
     views.push_back(std::make_unique<AssetInspector>(*this));
     views.push_back(std::make_unique<AnimationEditor>(*this));
     views.push_back(std::make_unique<LogView>(*this));
+
+    loadSessionState();
+}
+
+void EditorPage::loadSessionState() {
+    const Cube::Path layoutPath = project->getConfig().projectDataDirectory / "editor_layout.ini";
+    const Cube::Path sessionPath = project->getConfig().projectDataDirectory / "editor_session.json";
+
+    ImGui::GetIO().IniFilename = nullptr;
+    if(std::filesystem::exists(layoutPath.fspath())) {
+        ImGui::LoadIniSettingsFromDisk(layoutPath.string().c_str());
+    }
+
+    std::ifstream file(sessionPath.fspath());
+    if(!file.is_open()) {
+        return;
+    }
+    nlohmann::json data = nlohmann::json::parse(file, nullptr, false);
+    file.close();
+    if(data.is_discarded()) {
+        CB_EDITOR_ERROR("EditorPage::loadSessionState: failed to parse '{}'", sessionPath);
+        return;
+    }
+    if(data.contains("openDocuments") && data["openDocuments"].is_array()) {
+        for(const auto& identifier : data["openDocuments"]) {
+            if(identifier.is_string()) {
+                documentManager.open(identifier.get<std::string>());
+            }
+        }
+    }
+    if(data.contains("activeDocument") && data["activeDocument"].is_string()) {
+        if(NodeDocument* doc = documentManager.find(data["activeDocument"].get<std::string>())) {
+            documentManager.setActive(doc);
+        }
+    }
+}
+
+void EditorPage::saveSessionState() {
+    const Cube::Path layoutPath = project->getConfig().projectDataDirectory / "editor_layout.ini";
+    const Cube::Path sessionPath = project->getConfig().projectDataDirectory / "editor_session.json";
+
+    ImGui::SaveIniSettingsToDisk(layoutPath.string().c_str());
+
+    nlohmann::json data;
+    data["openDocuments"] = nlohmann::json::array();
+    for(const auto& document : documentManager.getDocuments()) {
+        data["openDocuments"].push_back(document->getIdentifier());
+    }
+    if(NodeDocument* active = documentManager.getActive()) {
+        data["activeDocument"] = active->getIdentifier();
+    }
+
+    std::ofstream file(sessionPath.fspath());
+    if(!file.is_open()) {
+        CB_EDITOR_ERROR("EditorPage::saveSessionState: failed to open '{}'", sessionPath);
+        return;
+    }
+    file << data.dump(4);
 }
 
 EditorPage::~EditorPage() {
     if(project) {
+        saveSessionState();
         project->getAssetExplorer().saveToFile(project->getConfig().projectDataDirectory / "resources.cache", project->getConfig().assetPathMapFilePath);
     }
 }
@@ -166,7 +226,8 @@ void EditorPage::render(float deltaTime) {
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->Flags);
     // content
-    ImGui::ShowDemoWindow();
+    
+    // ImGui::ShowDemoWindow();
 
     // MenuBar
     if(ImGui::BeginMainMenuBar()) {

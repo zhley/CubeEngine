@@ -73,7 +73,7 @@ void SceneView::markDirty() {
 void SceneView::render(float deltaTime) {
     Cube::Texture2D* play_png = EditorTextureCache::get().request("assets/icons/play.png");
 
-    ImGui::Begin("Scene");
+    ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
     ImGui::BeginChild("ToolBar", {ImGui::GetWindowWidth(), 45});
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));

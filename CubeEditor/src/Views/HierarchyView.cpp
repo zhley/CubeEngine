@@ -15,7 +15,7 @@
 #include <imgui/imgui.h>
 
 void HierarchyView::render(float deltaTime) {
-    ImGui::Begin("Hierarchy");
+    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
     Project* project = editorPage.getProject();
     if(!project) {

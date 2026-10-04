@@ -77,6 +77,9 @@ public:
     ThumbnailManager thumbnailManager;
 
 private:
+    void loadSessionState();
+    void saveSessionState();
+
     std::vector<std::unique_ptr<View>> views;
     std::unique_ptr<Project> project;
 };

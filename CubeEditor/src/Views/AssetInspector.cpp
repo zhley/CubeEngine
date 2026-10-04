@@ -17,7 +17,7 @@
 #include "AnimationEditor.h"
 
 void AssetInspector::render(float deltaTime) {
-    ImGui::Begin("Asset Inspector");
+    ImGui::Begin("Asset Inspector", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
     AssetNode* node = editorPage.selectedAssetNode;
     AssetExplorer& assetExplorer = editorPage.getProject()->getAssetExplorer();
     if (node && !node->isGroup) {

@@ -249,7 +249,7 @@ bool AnimationEditor::saveTargetAnim() {
 }
 
 void AnimationEditor::render(float deltaTime) {
-    ImGui::Begin("Animation Editor");
+    ImGui::Begin("Animation Editor", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
     if(target.empty()) {
         if(ImGui::Button("New AnimationClip")) {

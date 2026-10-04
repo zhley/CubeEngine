@@ -17,6 +17,9 @@
 #include "EditorPage.h"
 
 GuidancePage::GuidancePage() {
+    static const std::string globalLayoutPath = (EditorApp::getConfigDir() / "imgui.ini").string();
+    ImGui::GetIO().IniFilename = globalLayoutPath.c_str();
+
     // load project path cache
     Cube::Path projectPathCacheFile = EditorApp::getConfigDir() / "projects_path_cache.json";
     std::ifstream file(projectPathCacheFile.fspath());

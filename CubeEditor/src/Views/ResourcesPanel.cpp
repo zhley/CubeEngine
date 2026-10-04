@@ -120,7 +120,7 @@ void ResourcesPanel::render(float deltaTime) {
     }
 
     static int showMode = 0; // 0: icon mode 1: list mode
-    ImGui::Begin("Resources Panel");
+    ImGui::Begin("Resources Panel", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 
     const std::string topText = assetExplorer.getCurrentPath();
