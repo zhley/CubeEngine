@@ -48,11 +48,13 @@ target_include_directories(Cube PUBLIC
 
 find_package(glfw3 REQUIRED)
 find_package(Freetype REQUIRED)
+find_package(box2d REQUIRED)
 target_link_libraries(Cube PUBLIC
     glad
     stb_image
     glfw
     Freetype::Freetype
+    box2d::box2d
     D:/GithubRepo/Zeta/build/lib/zeta_core.lib # temp
 )
 
